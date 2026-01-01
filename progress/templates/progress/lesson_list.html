@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="bi bi-journal-text me-1"></i> {{ program.name }} 차시 관리
+    </h4>
+
+    <div class="d-flex gap-2">
+      <!-- 차시 추가 -->
+      <a href="{% url 'progress:lesson_create' program.id %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> 차시 추가
+      </a>
+
+      <!-- Excel 업로드 -->
+      <a href="{% url 'progress:upload_lessons' program.id %}" class="btn btn-success">
+        <i class="bi bi-file-earmark-arrow-up"></i> Excel 업로드
+      </a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+
+      <table class="table table-bordered table-stack mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width: 80px;">차시</th>
+            <th>주제</th>
+            <th>내용</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lesson in lessons %}
+          <tr>
+            <td data-label="차시">{{ lesson.order }}차시</td>
+            <td data-label="주제">{{ lesson.title }}</td>
+            <td data-label="내용">{{ lesson.content }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-4">
+              등록된 차시가 없습니다.  
+              <a href="{% url 'progress:lesson_create' program.id %}" class="ms-1 fw-bold">차시 추가하기 →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

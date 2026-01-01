@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-center mb-4"><i class="bi bi-journal-text"></i> 수업자료</h3>
+
+  <div class="row row-cols-1 row-cols-md-3 g-3">
+    {% for cat in categories %}
+      <div class="col">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center">
+            <i class="bi bi-folder2-open display-5 text-primary"></i>
+            <h5 class="mt-3 fw-semibold">{{ cat.name }}</h5>
+            <a href="{% url 'resource_detail' cat.slug %}" class="btn btn-outline-primary mt-2 w-100">
+              자료 보기
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

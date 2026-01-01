@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width:600px;">
+  <div class="card shadow-sm border-0">
+    <div class="card-body text-center">
+      <h5 class="mb-3"><i class="bi bi-exclamation-triangle text-danger"></i> 대상 삭제</h5>
+      <p>정말 <strong>{{ target.name }}</strong> 대상을 삭제하시겠습니까?</p>
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'target_list' %}" class="btn btn-secondary">취소</a>
+        <button type="submit" class="btn btn-danger">삭제</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

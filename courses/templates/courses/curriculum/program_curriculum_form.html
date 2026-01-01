@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4" style="max-width:760px;">
+
+  <!-- 🔹 헤더 카드 -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h4 class="mb-1">
+        {% if mode == "edit" %}
+          <i class="bi bi-pencil-square text-secondary me-1"></i>
+          커리큘럼 프로그램 수정
+        {% else %}
+          <i class="bi bi-plus-circle text-primary me-1"></i>
+          커리큘럼 프로그램 등록
+        {% endif %}
+      </h4>
+      <small class="text-muted">
+        수강생 모집 프로그램에서 사용할 커리큘럼 프로그램을 관리합니다
+      </small>
+    </div>
+  </div>
+
+  <!-- 🔹 폼 카드 -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- 프로그램명 -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-journal-text me-1"></i>
+            프로그램명
+          </label>
+          {{ form.name }}
+        </div>
+
+        <!-- 소개 -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-card-text me-1"></i>
+            커리큘럼 소개
+          </label>
+          {{ form.description }}
+        </div>
+
+        <!-- 대상 -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-person-plus me-1"></i>
+              대상 시작
+            </label>
+            {{ form.target_start }}
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">
+              <i class="bi bi-person-check me-1"></i>
+              대상 끝
+            </label>
+            {{ form.target_end }}
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- 버튼 -->
+        <div class="d-flex justify-content-between align-items-center">
+          <a href="{% url 'curriculum_program_list' %}"
+             class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+            목록으로
+          </a>
+
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            저장
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

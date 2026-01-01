@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+
+  <!-- 제목 + 업로드 버튼 한 줄 정렬 -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="bi bi-people me-2"></i> 출강장소별 학생 관리
+    </h4>
+    <a href="{% url 'students:student_upload' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-upload me-1"></i> 엑셀 업로드
+    </a>
+  </div>
+
+  {% if institutions %}
+    <div class="row mt-3">
+      {% for inst in institutions %}
+        <div class="col-md-4 mb-3">
+          <div class="card shadow-sm h-100 hover-shadow">
+            <div class="card-body text-center">
+              <h5 class="card-title mb-2">{{ inst.name }}</h5>
+              <p class="text-muted small">{{ inst.program }}</p>
+
+              <!-- 버튼 두 개 나란히 정렬 -->
+              <div class="d-flex justify-content-center gap-2 mt-2">
+                <a href="{% url 'students:student_detail' inst.id %}" 
+                   class="btn btn-outline-primary btn-sm">
+                  학생 관리 <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{% url 'robot_levelup_by_institution' inst.id %}" 
+                   class="btn btn-outline-success btn-sm">
+                  단계업 관리 <i class="bi bi-bar-chart-line"></i>
+                </a>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-secondary mt-3">
+      등록된 출강장소가 없습니다.
+    </div>
+  {% endif %}
+  
+</div>
+{% endblock %}

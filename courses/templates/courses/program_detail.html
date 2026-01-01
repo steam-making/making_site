@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+  <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+    <div class="row g-0">
+
+      <!-- ✅ 정사각형 이미지 -->
+      {% if program.image %}
+      <div class="col-md-5">
+        <div class="ratio ratio-1x1">
+          <img src="{{ program.image.url }}" class="img-fluid object-fit-cover w-100 h-100" alt="{{ program.name }}">
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="{% if program.image %}col-md-7{% else %}col-12{% endif %}">
+        <div class="card-body d-flex flex-column">
+          <h4 class="card-title fw-bold mb-2">
+            {{ program.name }}
+            <span class="badge
+                  {% if program.status == 'open' and program.is_full %} bg-danger
+                  {% elif program.status == 'open' %} bg-success
+                  {% else %} bg-secondary {% endif %}">
+              {{ program.display_status }}
+            </span>
+          </h4>
+
+          {% if program.recruit_start_date and program.recruit_end_date %}
+            <div class="text-muted small mb-3">
+              <i class="bi bi-calendar-range me-1"></i> 모집기간:
+              {{ program.recruit_start_date|date:"Y.m.d" }} ~ {{ program.recruit_end_date|date:"Y.m.d" }}
+            </div>
+          {% endif %}
+
+          <!-- ✅ 프로그램 정보 표 -->
+          <table class="table table-sm mb-3 text-center">
+            <tbody>
+              <tr>
+                <th><i class="bi bi-list-task me-1"></i> 프로그램 유형</th>
+                <td>
+                  {% for t in program.program_types.all %}
+                    <span class="badge bg-primary">{{ t.name }}</span>
+                  {% empty %}
+                    <span class="text-muted">없음</span>
+                  {% endfor %}
+                </td>
+              </tr>
+              <tr>
+                <th style="width:30%;"><i class="bi bi-people-fill me-1"></i> 대상</th>
+                <td>{{ program.get_target_range }}</td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-calendar-event me-1"></i> 수업기간</th>
+                <td>{{ program.start_date|date:"Y.m.d" }} ~ {{ program.end_date|date:"Y.m.d" }}</td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-list-ol me-1"></i> 수업횟수</th>
+                <td>
+                  {% if program.get_schedule_summary %}
+                    {{ program.get_schedule_summary }}
+                  {% else %}
+                    <span class="text-muted">미지정</span>
+                  {% endif %}
+                </td>
+              </tr>
+              
+              <tr>
+                <th class="align-middle"><i class="bi bi-people me-1"></i> 수업시간(반)</th>
+                <td class="align-middle">
+                  {% if program.classes.all %}
+                    <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
+                      {% for c in program.classes.all %}
+                        <span class="class-badge">
+                          {{ c.name }} ({{ c.applications.count }} / {{ c.capacity }}명)
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <span class="text-muted">등록된 반이 없습니다</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-list-ol me-1"></i> 총수업횟수</th>
+                <td>{{ program.session_count }}회</td>
+              </tr>  
+              <tr>
+                <th><i class="bi bi-person-badge me-1"></i> 강사</th>
+                <td>
+                  {% if program.teacher %}
+                    {{ program.teacher.user.get_full_name|default:program.teacher.user.username }}
+                  {% else %}
+                    <span class="text-muted">미지정</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-tools me-1"></i> 교구재</th>
+                <td>
+                  {% if program.material %}
+                    {{ program.material }}
+                    {% if program.include_materials %}
+                      <span class="text-success">(교구재포함)</span>
+                    {% else %}
+                      <span class="text-muted">(교구재별도)</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">없음</span>
+                  {% endif %}
+
+                </td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-cash-coin me-1"></i> 수강료(월)</th>
+                <td>{{ program.tuition|intcomma }}원
+                  <!-- 교구비/강사료: 관리자 + 센터강사만 -->
+                  {% if user.is_staff or user.profile.user_type == "center_teacher" %}
+                    <div class="mt-2 small text-muted">
+                      <i class="bi bi-cash-stack me-1"></i> 교구비: {{ program.material_fee|intcomma }}원 <br>
+                      <i class="bi bi-cash me-1"></i> 수업료: {{ program.base_fee|intcomma }}원
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- ✅ 정원 마감 경고 -->
+          {% if program.is_full and program.status == 'open' %}
+            <div class="alert alert-danger py-2 mb-3">
+              <i class="bi bi-exclamation-triangle me-1"></i> 이 프로그램은 정원이 모두 마감되었습니다.
+            </div>
+          {% endif %}
+
+          <!-- 상세 설명 -->
+          <h6 class="mb-2 fw-bold"><i class="bi bi-file-text me-1"></i> 상세내용</h6>
+          <p class="mb-4" style="white-space: pre-wrap;">{{ program.description }}</p>
+
+          <!-- 버튼 영역 -->
+          <div class="d-flex gap-2 mt-auto">
+            <a href="{% url 'program_list' %}" class="btn btn-outline-secondary">목록</a>
+            {% if can_apply and program.status == 'open' and not program.is_full %}
+              <a href="{% url 'program_apply' program.id %}" class="btn btn-primary">수강하기</a>
+            {% else %}
+              <button class="btn btn-secondary" disabled>신청 불가</button>
+            {% endif %}
+            {% if user.is_staff %}
+              <a href="{% url 'program_edit' program.id %}" class="btn btn-warning">
+                <i class="bi bi-pencil-square"></i> 수정
+              </a>
+              <a href="{% url 'program_clone' program.id %}" class="btn btn-warning">
+                <i class="bi bi-files"></i> 복제
+              </a>
+              <a href="{% url 'program_delete' program.id %}" class="btn btn-danger"
+                 onclick="return confirm('정말 삭제하시겠습니까?');">
+                <i class="bi bi-trash"></i> 삭제
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ 관리자 전용: 모든 신청자 목록 -->
+  {% if user.is_staff %}
+    <div class="card mt-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="fw-bold mb-3"><i class="bi bi-diagram-3 me-1"></i> 반별 신청 현황</h5>
+
+        {% if program.classes.all %}
+          {% for cls in program.classes.all %}
+            <h6 class="fw-bold mt-3">
+              {{ cls.name }}
+              <span class="badge bg-secondary">
+                {{ cls.applications.count }} / {{ cls.capacity }}명
+              </span>
+            </h6>
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered table-sm text-center align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>신청자명</th>
+                    <th>연락처</th>
+                    <th>자녀</th>
+                    <th>상태</th>
+                    <th>신청일</th>
+                    <th>관리</th>   <!-- ✅ 관리 버튼 열 추가 -->
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for app in cls.applications.all %}
+                    <tr>
+                      <td>{{ app.applicant_name }}</td>
+                      <td>{{ app.phone }}</td>
+                      <td>
+                        {% if app.child %}
+                          {{ app.child.name }} ({{ app.child.birth_date|date:"Y.m.d" }})
+                        {% else %}
+                          -
+                        {% endif %}
+                      </td>
+                      <td>
+                        <span class="badge 
+                              {% if app.status == 'pending' %} bg-warning text-dark
+                              {% elif app.status == 'approved' %} bg-success
+                              {% elif app.status == 'rejected' %} bg-danger
+                              {% elif app.status == 'cancelled' %} bg-secondary
+                              {% endif %}">
+                          {{ app.get_status_display }}
+                        </span>
+                      </td>
+                      <td>{{ app.applied_at|date:"Y.m.d" }}</td>
+                      <td>
+                        <div class="d-flex gap-1 justify-content-center">
+                          <!-- 승인 -->
+                          <form method="post" action="{% url 'approve_applications' program.id %}" 
+                                class="d-inline" onsubmit="return confirm('승인하시겠습니까?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="app_id" value="{{ app.id }}">
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" class="btn btn-success btn-sm">승인</button>
+                          </form>
+
+                          <!-- 반려 -->
+                          <form method="post" action="{% url 'approve_applications' program.id %}" 
+                                class="d-inline" onsubmit="return confirm('반려하시겠습니까?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="app_id" value="{{ app.id }}">
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" class="btn btn-warning btn-sm">반려</button>
+                          </form>
+
+                          <!-- 삭제 -->
+                          <form method="post" action="{% url 'approve_applications' program.id %}" 
+                                class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="app_id" value="{{ app.id }}">
+                            <input type="hidden" name="action" value="delete">
+                            <button type="submit" class="btn btn-danger btn-sm">삭제</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                      <td colspan="6" class="text-center text-muted py-3">신청자가 없습니다.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">등록된 반이 없습니다.</p>
+        {% endif %}
+      </div>
+    </div>
+  {% elif user.is_authenticated and user.profile.user_type == "parent" %}
+    <div class="card mt-4 shadow-sm">
+      <div class="card-body">
+        <h5 class="fw-bold mb-3"><i class="bi bi-check2-circle me-1"></i> 내 자녀 반별 신청 현황</h5>
+
+        {% if program.classes.all %}
+          {% for cls in program.classes.all %}
+            <h6 class="fw-bold mt-3">{{ cls.name }}</h6>
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered table-sm text-center align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>자녀 이름</th>
+                    <th>생년월일</th>
+                    <th>신청 상태</th>
+                    <th>신청일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for app in cls.applications.all %}
+                    {% if app.child and app.applicant == user.profile %}
+                      <tr>
+                        <td>{{ app.child.name }}</td>
+                        <td>{{ app.child.birth_date|date:"Y.m.d" }}</td>
+                        <td>
+                          <span class="badge 
+                                {% if app.status == 'pending' %} bg-warning text-dark
+                                {% elif app.status == 'approved' %} bg-success
+                                {% elif app.status == 'rejected' %} bg-danger
+                                {% elif app.status == 'cancelled' %} bg-secondary
+                                {% endif %}">
+                            {{ app.get_status_display }}
+                          </span>
+                        </td>
+                        <td>{{ app.applied_at|date:"Y.m.d" }}</td>
+                      </tr>
+                    {% endif %}
+                  {% empty %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-3">내 자녀 신청 내역이 없습니다.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted">등록된 반이 없습니다.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.card table th {
+  text-align: center;
+  background: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.card table td {
+  text-align: center;
+  font-size: 0.85rem;
+  vertical-align: middle;  /* ✅ 세로 가운데 정렬 */
+}
+
+/* 반별 뱃지 색상 */
+.class-badge:nth-child(1) { background-color: #0d6efd !important; }  /* 파랑 */
+.class-badge:nth-child(2) { background-color: #198754 !important; }  /* 초록 */
+.class-badge:nth-child(3) { background-color: #fd7e14 !important; }  /* 주황 */
+.class-badge:nth-child(4) { background-color: #6f42c1 !important; }  /* 보라 */
+.class-badge:nth-child(5) { background-color: #20c997 !important; }  /* 청록 */
+.class-badge:nth-child(6) { background-color: #d63384 !important; }  /* 핑크 */
+.class-badge:nth-child(7) { background-color: #0dcaf0 !important; }  /* 하늘 */
+.class-badge:nth-child(8) { background-color: #ffc107 !important; }  /* 노랑 */
+
+.class-badge {
+  display: inline-block;
+  font-size: 0.9rem;
+  padding: 0.5em 0.75em;
+  border-radius: 0.65rem;
+  color: #fff !important;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load humanize custom_filters %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-center mb-4">
+    <i class="bi bi-card-checklist me-2"></i> 교구재 주문 목록
+  </h3>
+  <a href="{% url 'create_order' %}" class="btn btn-primary mb-3">
+    <i class="bi bi-plus-circle me-1"></i> 새 주문
+  </a>
+
+  {% for block in date_blocks %}
+    <div class="card mb-4 shadow-sm">
+      <!-- 날짜 헤더 -->
+      <div class="card-header fw-semibold bg-light">
+        <i class="bi bi-calendar-date me-1"></i> {{ block.date|date:"Y-m-d" }} 주문 내역
+      </div>
+
+      <div class="card-body p-0">
+        {% for ob in block.orders %}
+          <!-- 주문 단위 헤더 (주문자 + 입고종류 + 비고) -->
+          <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+            <div>
+              <i class="bi bi-person-fill me-1"></i> {{ ob.order.teacher.first_name }}
+            </div>
+            <div class="d-flex gap-3">
+              <span>
+                <i class="bi bi-box-arrow-in-down me-1"></i> {{ ob.order.get_receive_type_display }}
+              </span>
+              {% if ob.order.notes %}
+                <span class="text-muted">
+                  <i class="bi bi-pencil-square me-1"></i> {{ ob.order.notes }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% for v in ob.vendors %}
+            <!-- 거래처 그룹 헤더 + 버튼 -->
+            <div class="d-flex justify-content-between align-items-center px-2 py-2 bg-secondary text-white">
+              <div class="fw-bold">
+                <i class="bi bi-building me-1"></i> {{ v.vendor_type }} - {{ v.vendor_name }}
+              </div>
+              <div class="d-flex gap-2">
+                {# ▶ 입금 버튼: 반납입고는 표시 안 함 #}
+                {% if ob.order.receive_type != "return" %}
+                  <form method="post"
+                        action="{% url 'toggle_payment_vendor_group' block.date_str v.vendor_type_id v.vendor_id %}">
+                    {% csrf_token %}
+                    {% if v.items.0.paid_date %}
+                      <button class="btn btn-sm btn-outline-light"
+                              onclick="return confirm('입금완료를 취소하시겠습니까?');">
+                        <i class="bi bi-check2-circle me-1"></i> 입금완료 ({{ v.items.0.paid_date|date:"Y-m-d" }})
+                      </button>
+                    {% else %}
+                      <button class="btn btn-sm btn-warning"
+                              onclick="return confirm('입금 처리 하시겠습니까?');">
+                        <i class="bi bi-cash-coin me-1"></i> 미입금
+                      </button>
+                    {% endif %}
+                  </form>
+                {% endif %}
+
+                <!-- 입고 버튼 -->
+                <form method="post"
+                      action="{% url 'toggle_receive_vendor_group' block.date_str v.vendor_type_id v.vendor_id %}">
+                  {% csrf_token %}
+                  {% if ob.order.receive_type == "return" and v.items.0.status == "received" %}
+                    <button class="btn btn-sm btn-outline-light" disabled>
+                      <i class="bi bi-box-seam me-1"></i> 반납완료
+                      {% if v.items.0.received_date %}
+                        ({{ v.items.0.received_date|date:"Y-m-d" }})
+                      {% endif %}
+                    </button>
+                  {% elif v.items.0.status == "received" %}
+                    <button class="btn btn-sm btn-outline-light"
+                            onclick="return confirm('입고완료를 취소하시겠습니까?');">
+                      <i class="bi bi-box-seam me-1"></i> 입고완료
+                      {% if v.items.0.received_date %}
+                        ({{ v.items.0.received_date|date:"Y-m-d" }})
+                      {% endif %}
+                    </button>
+                  {% else %}
+                    <button class="btn btn-sm btn-success"
+                            onclick="return confirm('입고 처리 하시겠습니까?');">
+                      <i class="bi bi-truck me-1"></i> 미입고
+                    </button>
+                  {% endif %}
+
+                </form>
+
+                <!-- 전체삭제 (관리자 전용) -->
+                {% if user.is_superuser %}
+                  {% if ob.order.receive_type == "return" and v.items.0.status == "received" %}
+                    {# 반납완료 → 전체삭제 버튼 안보임 #}
+                  {% else %}
+                    <form method="post"
+                          action="{% url 'delete_vendor_group_orders' block.date_str v.vendor_type_id v.vendor_id %}">
+                      {% csrf_token %}
+                      <button class="btn btn-sm btn-danger"
+                              onclick="return confirm(
+                                '{% if ob.order.receive_type == "return" %}이 반납입고 그룹을 삭제하면 출고와 재고가 원래대로 되돌려집니다. 계속하시겠습니까?{% else %}정말 이 일반입고 그룹을 삭제하시겠습니까?{% endif %}'
+                              );">
+                        <i class="bi bi-trash3 me-1"></i>
+                        {% if ob.order.receive_type == "return" %}반납입고 전체삭제{% else %}전체삭제{% endif %}
+                      </button>
+                    </form>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- 그룹별 아이템 테이블 -->
+            <table class="table table-bordered table-striped text-center mb-3">
+              <thead class="table-light">
+                <tr>
+                  <th><i class="bi bi-tags me-1"></i> 거래처 종류</th>
+                  <th><i class="bi bi-shop me-1"></i> 거래처</th>
+                  <th><i class="bi bi-box me-1"></i> 교구재</th>
+                  <th><i class="bi bi-cash-stack me-1"></i> 공급가(단가)</th>
+                  <th><i class="bi bi-123 me-1"></i> 공급가(합계)</th>
+                  <th><i class="bi bi-plus-square me-1"></i> 수량</th>
+                  <th><i class="bi bi-gear me-1"></i> 관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in v.items %}
+                <tr>
+                  <td>{{ item.vendor.vendor_type.name }}</td>
+                  <td>{{ item.vendor.name }}</td>
+                  <td>{{ item.material.name }}</td>
+                  <td>{{ item.material.supply_price|intcomma }}</td>
+                  <td>{{ item.material.supply_price|mul:item.quantity|intcomma }}</td>
+                  <td>{{ item.quantity|intcomma }}</td>
+                  <td>
+                    {% if ob.order.receive_type == "return" %}
+                      <span class="text-muted small">
+                        <i class="bi bi-check2-circle me-1"></i> 처리완료
+                      </span>
+                    {% else %}
+                      {% if not item.paid_date %}
+                        <div class="d-flex justify-content-center gap-1">
+                          <form action="{% url 'delete_material_item' item.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger"
+                                    onclick="return confirm('정말 삭제하시겠습니까?');">
+                              <i class="bi bi-x-lg"></i> 삭제
+                            </button>
+                          </form>
+                          <a href="{% url 'edit_material_item' item.id %}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-pencil-square"></i> 수정
+                          </a>
+                        </div>
+                      {% else %}
+                        <span class="text-muted small">
+                          <i class="bi bi-check2-circle me-1"></i> 처리완료
+                        </span>
+                      {% endif %}
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+              <tfoot class="table-light">
+                <tr>
+                  <td colspan="3" class="text-end fw-bold">합계</td>
+                  <td class="fw-bold">{{ v.unit_sum|intcomma }}</td>
+                  <td class="fw-bold">{{ v.total_sum|intcomma }}</td>
+                  <td class="fw-bold">{{ v.qty_sum|intcomma }}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+  {% empty %}
+    <p class="text-center">등록된 주문이 없습니다.</p>
+  {% endfor %}
+</div>
+{% endblock %}

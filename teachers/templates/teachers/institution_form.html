@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 720px;">
+  <div class="card shadow rounded-4 border-0">
+    <div class="card-body p-5">
+      <h3 class="text-center mb-4 fw-bold">{{ title|default:"출강 등록" }}</h3>
+
+      <form method="post">
+        {% csrf_token %}
+
+        {% if user.is_staff %}
+        <!-- 강사 선택 -->
+        <div class="mb-4">
+          <label for="id_teacher_choice" class="form-label">강사 선택</label>
+          {{ form.teacher_choice|add_class:"form-select" }}
+        </div>
+        {% endif %}
+
+        <!-- 출강 장소 유형 -->
+        <div class="mb-4">
+          <label class="form-label">출강 장소 유형</label>
+          <div class="d-flex gap-3 flex-wrap">
+            {% for radio in form.place_type %}
+              <div class="form-check">
+                {{ radio.tag }}
+                <label class="form-check-label ms-1">
+                  {{ radio.choice_label }}
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- ================= 학교 검색 ================= -->
+        <div id="school-box" class="mb-4 position-relative">
+          <label class="form-label">학교 선택 (검색)</label>
+
+          <input type="text"
+                 id="school_search"
+                 class="form-control"
+                 placeholder="학교명을 입력하세요"
+                 autocomplete="off">
+
+          <div id="school_result"
+               class="list-group position-absolute w-100"
+               style="z-index:2000; max-height:200px; overflow-y:auto;"></div>
+
+          <!-- 실제 저장되는 FK -->
+          <input type="hidden" name="school" id="school_id">
+
+          <div class="form-text">학교를 선택하면 자동으로 연결됩니다.</div>
+
+          <!-- 🏫 학교 주소 표시 -->
+          <div id="school-address-box" class="mt-2" style="display:none;">
+            <div class="alert alert-light border py-2 px-3 mb-0">
+              <i class="bi bi-geo-alt-fill me-1 text-danger"></i>
+              <span id="school-address-text"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= 기관명 입력 ================= -->
+        <div id="name-box" class="mb-4">
+          <label for="id_name" class="form-label">기관명</label>
+          {{ form.name|add_class:"form-control" }}
+        </div>
+
+        <!-- 프로그램 -->
+        <div class="mb-4">
+          <label for="id_program" class="form-label">프로그램명</label>
+          {{ form.program|add_class:"form-control" }}
+        </div>
+
+        <!-- 담당자 이메일 -->
+        <div class="mb-4">
+          <label for="id_contact_email" class="form-label">담당자 이메일</label>
+          {{ form.contact_email|add_class:"form-control" }}
+        </div>
+
+        <!-- 행정실 이메일 -->
+        <div class="mb-4">
+          <label for="id_admin_email" class="form-label">행정실 이메일</label>
+          {{ form.admin_email|add_class:"form-control" }}
+        </div>
+
+        <!-- 출강 요일 -->
+        <div class="mb-4">
+          <label class="form-label d-block mb-2">출강 요일</label>
+          <div class="d-flex flex-wrap gap-2">
+            {% for checkbox in form.days %}
+              <div class="form-check me-3">
+                {{ checkbox.tag }}
+                <label class="form-check-label ms-1">
+                  {{ checkbox.choice_label }}
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="text-end mt-4">
+          <button type="submit" class="btn btn-primary me-2">
+            {{ submit_label|default:"등록하기" }}
+          </button>
+          <a href="{% url 'institution_list' %}" class="btn btn-outline-secondary">
+            목록으로
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+const schoolBox     = document.getElementById("school-box");
+const nameBox       = document.getElementById("name-box");
+const schoolInput   = document.getElementById("school_search");
+const schoolResult  = document.getElementById("school_result");
+const schoolHidden  = document.getElementById("school_id");
+const nameInput     = document.getElementById("id_name");
+const addressBox   = document.getElementById("school-address-box");
+const addressText  = document.getElementById("school-address-text");
+
+/* 출강 장소 유형에 따른 UI 토글 */
+function togglePlaceType(type) {
+    if (type === "school") {
+        schoolBox.style.display = "block";
+        nameBox.style.display   = "none";
+        nameInput.value = "";
+    } else {
+        schoolBox.style.display = "none";
+        nameBox.style.display   = "block";
+        schoolHidden.value = "";
+        schoolInput.value  = "";
+        addressBox.style.display = "none";
+    }
+}
+
+/* 장소 유형 변경 감지 */
+document.querySelectorAll("input[name='place_type']").forEach(radio => {
+    radio.addEventListener("change", function () {
+        togglePlaceType(this.value);
+    });
+});
+
+/* 학교 검색 */
+schoolInput.addEventListener("input", function () {
+    const q = this.value.trim();
+    if (q.length < 1) {
+        schoolResult.innerHTML = "";
+        return;
+    }
+
+    fetch(`/schools/search/?q=` + encodeURIComponent(q))
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            data.forEach(s => {
+                html += `
+                  <button type="button"
+                    class="list-group-item list-group-item-action"
+                    data-id="${s.id}"
+                    data-name="${s.name}"
+                    data-address="${s.address || ""}">
+                    <strong>${s.name}</strong><br>
+                    <small class="text-muted">${s.address || ""}</small>
+                  </button>
+                `;
+            });
+            schoolResult.innerHTML = html;
+        });
+});
+
+/* 학교 클릭 */
+schoolResult.addEventListener("click", function (e) {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const id      = btn.dataset.id;
+    const name    = btn.dataset.name;
+    const address = btn.dataset.address;
+
+    schoolHidden.value = id;
+    schoolInput.value  = name;
+    nameInput.value    = name; // 과도기용
+
+    if (address) {
+        addressText.textContent = address;
+        addressBox.style.display = "block";
+    } else {
+        addressBox.style.display = "none";
+    }
+
+    schoolResult.innerHTML = "";
+});
+
+/* 수정 화면 진입 시 초기 복원 */
+document.addEventListener("DOMContentLoaded", function () {
+    const checked = document.querySelector("input[name='place_type']:checked");
+    if (checked) {
+        togglePlaceType(checked.value);
+    }
+
+    const schoolId = "{{ school_id|default:'' }}";
+
+    if (schoolId) {
+        fetch(`/schools/${schoolId}/detail/`)
+            .then(res => res.json())
+            .then(data => {
+                schoolHidden.value = data.id;
+                schoolInput.value  = data.name;
+
+                if (data.address) {
+                    addressText.textContent = data.address;
+                    addressBox.style.display = "block";
+                }
+            });
+    }
+});
+</script>
+{% endblock %}

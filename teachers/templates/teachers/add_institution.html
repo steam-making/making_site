@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load form_tags %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 720px;">
+    <div class="card shadow rounded-4 border-0">
+        <div class="card-body p-5">
+            <h3 class="text-center mb-4 fw-bold">출강 등록</h3>
+
+            <form method="post">
+                {% csrf_token %}
+
+                {% if user.is_staff %}
+                <div class="mb-4">
+                    <label for="id_teacher" class="form-label">강사 선택</label>
+                    {{ form.teacher|add_class:"form-select" }}
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                    <label for="id_name" class="form-label">학교/기관 이름</label>
+                    {{ form.name|add_class:"form-control" }}
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_program" class="form-label">프로그램명</label>
+                    {{ form.program|add_class:"form-control" }}
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label d-block mb-2">출강 요일</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for checkbox in form.days %}
+                            <div class="form-check me-3">
+                                {{ checkbox.tag }}
+                                <label class="form-check-label ms-1">{{ checkbox.choice_label }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- ✅ 담당자 이메일 -->
+                <div class="mb-4">
+                    <label for="id_contact_email" class="form-label">담당자 이메일</label>
+                    {{ form.contact_email|add_class:"form-control" }}
+                    <div class="form-text">예: teacher@school.kr</div>
+                </div>
+
+                <!-- ✅ 행정실 이메일 -->
+                <div class="mb-4">
+                    <label for="id_admin_email" class="form-label">행정실 이메일</label>
+                    {{ form.admin_email|add_class:"form-control" }}
+                    <div class="form-text">예: admin@school.kr</div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-primary me-2">등록하기</button>
+                    <a href="{% url 'institution_list' %}" class="btn btn-outline-secondary">목록으로</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

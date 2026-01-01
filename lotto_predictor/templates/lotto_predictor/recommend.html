@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>📊 로또 추천 번호 (전략 선택)</h3>
+
+  <!-- ✅ saved.html로 이동 버튼 -->
+  <div class="mb-3 text-end">
+    <a href="{% url 'lotto_saved' %}" class="btn btn-outline-info">
+      💾 저장된 번호 보기
+    </a>
+  </div>
+
+  <!-- 전략 선택 -->
+  <form method="get" action="{% url 'lotto_recommend' %}">
+    <label class="form-label fw-bold">전략 선택</label><br>
+    {% for s in strategies %}
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="strategies" value="{{ s.key }}"
+               id="strategy_{{ s.key }}" {% if s.key in selected_strategies %}checked{% endif %}>
+        <label class="form-check-label" for="strategy_{{ s.key }}">
+          <a data-bs-toggle="collapse" href="#desc_select_{{ s.key }}" role="button"
+             aria-expanded="false" aria-controls="desc_select_{{ s.key }}">
+            {{ s.name }}
+          </a>
+        </label>
+        <div class="collapse mt-1" id="desc_select_{{ s.key }}">
+          <div class="card card-body p-2 small">
+            {{ s.desc }}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+    <div class="mt-2">
+      <button type="submit" class="btn btn-primary">생성</button>
+    </div>
+  </form>
+
+  {% if recommendations %}
+  <form method="post" action="{% url 'save_recommendations' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next_no" value="{{ next_no }}">
+    {% for rec in recommendations %}
+      <h5 class="mt-4">전략: {{ rec.name }}</h5>
+      <ul class="list-group mb-3">
+        {% for nums in rec.sets %}
+          <li class="list-group-item">
+            {{ forloop.counter }}번 세트 →
+            {% for n in nums %}
+                {% if rec.key == "recent60" %}
+                  <span class="badge bg-primary">{{ n }}</span>
+                {% endif %}
+              {% endfor %}
+
+            <input type="hidden" name="sets" value="{{ nums|join:',' }}">
+            <input type="hidden" name="strategies" value="{{ rec.key }}">
+          </li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
+    <button type="submit" class="btn btn-success">저장</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-3"><i class="bi bi-robot"></i> 로봇 수업자료</h4>
+  
+  <div class="row row-cols-1 row-cols-md-4 g-3">
+    <div class="col">
+      <a href="{% url 'robot_olloai' %}" class="btn btn-outline-primary w-100 py-3">올로AI</a>
+    </div>
+    <div class="col">
+      <a href="{% url 'robot_probo' %}" class="btn btn-outline-success w-100 py-3">프로보</a>
+    </div>
+    <div class="col">
+      <a href="{% url 'robot_xrobo' %}" class="btn btn-outline-warning w-100 py-3">엑스로보</a>
+    </div>
+    <div class="col">
+      <a href="{% url 'robot_jrobo' %}" class="btn btn-outline-danger w-100 py-3">제이로보</a>
+    </div>
+  </div>
+
+  <div class="list-group">
+    <a href="#" class="list-group-item list-group-item-action">
+      <i class="bi bi-file-earmark-pdf me-2"></i> LEGO SPIKE Prime 실습 자료 (PDF)
+    </a>
+    <a href="#" class="list-group-item list-group-item-action">
+      <i class="bi bi-file-earmark-play me-2"></i> 로봇 제어 예제 영상
+    </a>
+  </div>
+</div>
+{% endblock %}

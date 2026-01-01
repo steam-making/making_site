@@ -1,0 +1,106 @@
+
+.custom-navbar {
+  background-color: #001f3f !important; /* 진한 네이비 */
+}
+
+
+.badge {
+  font-size: 0.875rem !important;  /* Bootstrap 기본 .btn-sm 과 비슷 */
+  font-weight: 500;                /* 글씨 두께도 통일 */
+  vertical-align: middle;   /* 버튼과 세로 중앙 정렬 */
+  line-height: 1.2;         /* 글자 높이 보정 (원하면) */
+}
+
+/* 긴 텍스트 줄바꿈/줄임 */
+.text-truncate-1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 버튼/배지 크기 통일 */
+.badge { font-size: .875rem !important; font-weight: 500; vertical-align: middle; }
+
+/* 모바일 카드형 테이블 */
+@media (max-width: 768px) {
+  .table-stack,
+  .table-stack thead,
+  .table-stack tbody,
+  .table-stack th,
+  .table-stack tr {
+    display: block;
+    width: 100%;
+  }
+
+  .table-stack thead {
+    display: none; /* 헤더 숨김 */
+  }
+
+  .table-stack tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem;
+    margin-bottom: .75rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: #fff;
+  }
+
+  .table-stack td {
+    display: flex;
+    align-items: center;
+    border: 0 !important;
+    padding: 0 !important;
+    flex: 1 1 auto;
+  }
+
+  .table-stack td::before {
+    display: none; /* label 제거 (한 줄로 붙이기 위해) */
+  }
+
+  /* 입력/선택창 크기 조정 */
+  .table-stack select,
+  .table-stack input {
+    width: 100%;
+    font-size: 0.9rem;
+  }
+
+  .row-number {
+    flex: 0 0 30px; /* 번호는 고정폭 */
+    text-align: center;
+  }
+}
+
+/* ✅ 네비게이션바 글씨 흰색 */
+.custom-navbar .navbar-brand,
+.custom-navbar .nav-link,
+.custom-navbar .navbar-text {
+  color: #ffffff !important;
+}
+
+/* ✅ 푸터 색상 */
+.custom-footer {
+  background-color: #002147 !important; /* 네비와 동일 */
+  color: #ffffff !important;            /* 글씨 흰색 */
+  text-align: center;
+  padding: 15px 0;
+}
+
+/* ✅ 네이비 버튼 스타일 */
+.btn-navy {
+  background-color: #002147 !important; /* 네이비 */
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.btn-navy:hover {
+  background-color: #001533 !important; /* 더 짙은 네이비 */
+  color: #ffffff !important;
+}
+
+/* ✅ 고정 네비게이션 때문에 본문이 겹치지 않도록 보정 */
+.content {
+  padding-top: 70px !important; /* nav 높이에 맞게 조정 */
+}

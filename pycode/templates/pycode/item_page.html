@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ item.key }} - {{ item.title }}</title>
+
+<link rel="stylesheet" href="{% static 'pycourse/css/editor.css' %}">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js"></script>
+
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- 왼쪽: 설명 -->
+    <div class="left-panel">
+        <h2>{{ item.key }}: {{ item.title }}</h2>
+        <div class="explain">{{ item.explain_html|safe }}</div>
+
+        <button id="hint-btn">힌트 보기</button>
+        <div id="hint-box" style="display:none;"></div>
+
+        <button id="answer-btn">정답 보기</button>
+        <pre id="answer-box" style="display:none;" class="code-block"></pre>
+    </div>
+
+    <!-- 가운데: Code Editor -->
+    <div class="center-panel">
+        <div id="editor">{{ user_code }}</div>
+
+        <div class="action-buttons">
+            <button id="run-btn">▶ 실행</button>
+            <button id="submit-btn">✔ 제출(채점)</button>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 출력 -->
+    <div class="right-panel">
+        <h3>출력 결과</h3>
+        <pre id="output"></pre>
+        <div id="grade-result"></div>
+    </div>
+
+</div>
+
+<script src="{% static 'pycourse/js/editor.js' %}"></script>
+<script>
+window.ITEM_ID = {{ item.id }};
+</script>
+
+</body>
+</html>

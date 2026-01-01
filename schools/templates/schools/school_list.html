@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+
+  <h4>
+    <i class="bi bi-building me-1"></i> 학교 목록
+
+    <small class="text-muted ms-2">
+      (광주: {{ gwangju_count }} / 전남: {{ jeonnam_count }} / 전북: {{ jeonbuk_count }})
+    </small>
+  </h4>
+
+  <div>
+    {% if request.user.is_staff %}
+      <a href="{% url 'school_delete_all' %}"
+        class="btn btn-danger btn-sm ms-2"
+        onclick="return confirm('정말 전체 학교 데이터를 삭제하시겠습니까?');">
+        <i class="bi bi-trash"></i> 전체 삭제
+      </a>
+    
+    <a href="{% url 'school_add' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-circle me-1"></i> 학교 등록
+    </a>
+    <a href="{% url 'upload_school_excel' %}" class="btn btn-secondary btn-sm">
+      <i class="bi bi-file-earmark-spreadsheet me-1"></i> 엑셀 업로드
+    </a>
+    <!-- ⭐ 업데이트 실행 버튼 -->
+    <a href="{% url 'update_schoolinfo' %}"
+       onclick="return confirm('학교 정보 API 업데이트를 실행하시겠습니까?');"
+       class="btn btn-outline-primary btn-sm">
+       <i class="bi bi-arrow-repeat"></i> 데이터 업데이트
+    </a>
+    {% endif %}
+  </div>
+
+</div>
+
+
+  <div class="table-responsive table-stack">
+    <table class="table table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>학교명</th>
+          <th>학생수</th>
+          <th>홈페이지</th>
+          <th>우편번호</th>
+          <th>주소</th>
+          <th>교무실 전화</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for s in schools %}
+        <tr>
+          <td data-label="학교명">{{ s.name }}</td>
+
+          <td data-label="학생수">{{ s.student_count|default:"-" }}</td>
+
+          <td data-label="홈페이지">
+            {% if s.homepage %}
+              <a href="{{ s.homepage }}" target="_blank" class="text-primary">
+                방문하기
+              </a>
+            {% else %}
+              -
+            {% endif %}
+          </td>
+
+          <td data-label="우편번호">{{ s.zipcode }}</td>
+
+          <td data-label="주소">{{ s.address }}</td>
+
+          <td data-label="교무실 전화">{{ s.office_phone }}</td>
+
+          <td data-label="관리" class="text-center">
+            <a href="{% url 'school_edit' s.id %}" class="btn btn-sm btn-outline-primary me-1">
+              수정
+            </a>
+
+            <a href="{% url 'school_delete' s.id %}"
+               class="btn btn-sm btn-outline-danger"
+               onclick="return confirm('정말 삭제하시겠습니까?');">
+              삭제
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+</div>
+{% endblock %}

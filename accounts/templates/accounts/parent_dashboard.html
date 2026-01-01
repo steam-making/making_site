@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body text-center">
+      <h4 class="fw-bold mb-4">학부모 대시보드</h4>
+      <p class="text-muted mb-4">원하시는 메뉴를 선택하세요 👇</p>
+
+      <div class="row g-3">
+        <!-- 공지사항 -->
+        <div class="col-12 col-md-4">
+          <a href="{% url 'notice_list' %}" class="card h-100 text-decoration-none text-dark shadow-sm">
+            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+              <i class="bi bi-megaphone fs-1 text-primary mb-3"></i>
+              <h5 class="fw-bold">공지사항</h5>
+              <p class="text-muted small">학원 소식을 확인하세요</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- 자녀관리 -->
+        <div class="col-12 col-md-4">
+          <a href="{% url 'child_list' %}" class="card h-100 text-decoration-none text-dark shadow-sm">
+            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+              <i class="bi bi-people-fill fs-1 text-success mb-3"></i>
+              <h5 class="fw-bold">자녀정보</h5>
+              <p class="text-muted small">자녀 정보를 등록/관리하세요</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- 수강생 모집 -->
+        <div class="col-12 col-md-4">
+          <a href="{% url 'program_list' %}" class="card h-100 text-decoration-none text-dark shadow-sm">
+            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+              <i class="bi bi-journal-text fs-1 text-warning mb-3"></i>
+              <h5 class="fw-bold">수강생 모집</h5>
+              <p class="text-muted small">진행 중인 프로그램을 확인하고 신청하세요</p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

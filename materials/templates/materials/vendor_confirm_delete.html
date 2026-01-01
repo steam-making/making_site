@@ -1,0 +1,9 @@
+<h3>거래처 삭제</h3>
+
+<p>거래처 "{{ vendor.name }}"을 삭제하시겠습니까?</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">삭제하기</button>
+    <a href="{% url 'vendor_list' %}" class="btn btn-secondary">취소</a>
+</form>

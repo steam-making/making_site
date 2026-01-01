@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <h4 class="mb-3">
+    <i class="bi bi-clipboard-check me-1"></i>
+    진도관리 시스템 (Progress)
+  </h4>
+
+  <p class="text-muted mb-4">
+    아래에서 프로그램을 선택하여 차시 관리 또는 학생 진도 체크를 진행하세요.
+  </p>
+
+  <div class="row">
+    {% for program in programs %}
+    <div class="col-md-6 mb-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-2">
+            <i class="bi bi-journal-text me-1"></i> {{ program.name }}
+          </h5>
+
+          <p class="text-muted small mb-3">
+            {{ program.description|default:"등록된 설명 없음" }}
+          </p>
+
+          <div class="d-flex gap-2">
+
+            <!-- 관리자/강사 전용: 차시 관리 -->
+            {% if request.user.is_superuser or request.user.user_type == "admin" or request.user.user_type == "teacher" %}
+            <a href="{% url 'progress:lesson_list' program.id %}" class="btn btn-primary w-50">
+            <i class="bi bi-list-check"></i> 차시 관리
+            </a>
+            {% endif %}
+
+
+            <!-- 학생 전용: 진도 체크 -->
+            {% if request.user.user_type == "student" %}
+            <a href="{% url 'progress:student_progress' program.id %}" class="btn btn-success w-100">
+              <i class="bi bi-check-circle"></i> 진도 체크
+            </a>
+            {% endif %}
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted">
+      등록된 프로그램이 없습니다.
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

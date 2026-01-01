@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body">
+      <h4 class="mb-3">
+        {% if mode == "create" %}
+          <i class="bi bi-plus-circle"></i> 새 프로그램 등록
+        {% else %}
+          <i class="bi bi-pencil-square"></i> 프로그램 수정
+        {% endif %}
+      </h4>
+
+      <form method="post" enctype="multipart/form-data" class="row g-3">
+        {% csrf_token %}
+        <div class="col-md-6">
+          <label class="form-label"><i class="bi bi-journal-code"></i> 프로그램명</label>
+          {{ form.name }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label"><i class="bi bi-tags"></i> 카테고리</label>
+          {{ form.category }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label"><i class="bi bi-clock-history"></i> 수업시간(분)</label>
+          {{ form.duration_minutes }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label"><i class="bi bi-cash-coin"></i> 가격(인당)</label>
+          {{ form.base_price }}
+        </div>
+
+        <!-- ✅ 재료비 포함 여부 -->
+        <div class="col-md-4 d-flex align-items-end">
+          <div class="form-check">
+            {{ form.include_material_cost }}
+            <label class="form-check-label ms-1">
+              <i class="bi bi-box-seam"></i> 재료비 포함
+            </label>
+          </div>
+        </div>
+
+        <!-- ✅ 포함 시: 설명 입력 -->
+        <div class="col-12" id="included-materials-box">
+          <label class="form-label"><i class="bi bi-list-ul"></i> 포함 재료 설명</label>
+          {{ form.included_materials }}
+          <div class="form-text">예: 교재, 키트, 부품세트 등</div>
+        </div>
+        
+        <!-- ✅ 미포함 시: Formset (재료명 + 가격) -->
+        <div class="col-12" id="excluded-materials-box">
+          <label class="form-label"><i class="bi bi-tools"></i> 별도 재료 입력</label>
+          {{ formset.management_form }}
+          <table class="table table-sm align-middle" id="materials-table">
+            <thead>
+              <tr>
+                <th>재료명</th>
+                <th>가격</th>
+                <th>삭제</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in formset %}
+              <tr class="material-form">
+                <td>{{ f.name }}</td>
+                <td>{{ f.price }}</td>
+                <td>
+                  {% if forloop.first %}
+                    <span class="text-muted small">-</span>
+                  {% else %}
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+                      <i class="bi bi-x"></i>
+                    </button>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <button type="button" class="btn btn-sm btn-outline-success" id="add-material-btn">
+              <i class="bi bi-plus"></i> 재료 추가
+            </button>
+            <span class="fw-bold text-primary">
+              합계: <span id="materials-total">0</span> 원
+            </span>
+          </div>
+        </div>
+
+
+        <div class="col-12">
+          <label class="form-label fw-bold"><i class="bi bi-eye"></i> 공개 상태</label>
+          {{ form.status }}
+          <div class="form-text">공개: 모든 사용자 / 비공개: 관리자만 확인 가능</div>
+        </div>
+
+        <!-- ✅ 주제 입력 (동적 추가 가능) -->
+        <div class="col-12">
+          <label class="form-label"><i class="bi bi-list-task"></i> 주제</label>
+          <div id="topics-container" class="mb-2"></div>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-topic-btn">
+            <i class="bi bi-plus"></i> 주제 추가
+          </button>
+          {{ form.topics }}
+        </div>
+
+        <!-- ✅ 이미지 업로드 -->
+        <div class="col-12">
+          <label class="form-label"><i class="bi bi-image"></i> 프로그램 이미지</label>
+          {{ form.image }}
+          {% if form.image.errors %}
+            <div class="text-danger small">{{ form.image.errors.0 }}</div>
+          {% endif %}
+          <div class="mt-2">
+            <img id="image-preview"
+                src="{% if form.instance.image %}{{ form.instance.image.url }}{% endif %}"
+                alt="이미지 미리보기"
+                class="img-fluid rounded"
+                style="max-width:200px; {% if not form.instance.image %}display:none;{% endif %}">
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label"><i class="bi bi-card-text"></i> 설명</label>
+          {{ form.description }}
+        </div>
+
+        <div class="col-12 d-flex justify-content-between">
+          <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 목록
+          </a>
+          <button class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            {% if mode == "create" %}등록{% else %}저장{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ 토글 스크립트 -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  function toggleMaterialFields() {
+    const includeCheckbox = document.querySelector("#id_include_material_cost");
+    const includedBox = document.querySelector("#included-materials-box");
+    const excludedBox = document.querySelector("#excluded-materials-box");
+    if (includeCheckbox && includeCheckbox.checked) {
+      includedBox.style.display = "block";
+      excludedBox.style.display = "none";
+    } else {
+      includedBox.style.display = "none";
+      excludedBox.style.display = "block";
+    }
+  }
+  const includeCheckbox = document.querySelector("#id_include_material_cost");
+  if (includeCheckbox) {
+    includeCheckbox.addEventListener("change", toggleMaterialFields);
+    toggleMaterialFields();
+  }
+});
+</script>
+
+<!-- ✅ 주제 동적 추가 스크립트 -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const form = document.querySelector("form");
+  const container = document.getElementById("topics-container");
+  const hiddenInput = document.getElementById("id_topics");
+  const addBtn = document.getElementById("add-topic-btn");
+  const imageInput = document.getElementById("id_image");
+  const previewImg = document.getElementById("image-preview");
+  const originalSrc = previewImg.src;
+
+  if (imageInput) {
+    imageInput.addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          previewImg.src = e.target.result;
+          previewImg.style.display = "block";
+        }
+        reader.readAsDataURL(file);
+      } else {
+        if (originalSrc) {
+          previewImg.src = originalSrc;
+          previewImg.style.display = "block";
+        } else {
+          previewImg.src = "";
+          previewImg.style.display = "none";
+        }
+      }
+    });
+  }
+
+  let topics = hiddenInput.value ? JSON.parse(hiddenInput.value) : [];
+  if (topics.length === 0) topics.push("");
+
+  function renderTopics() {
+    container.innerHTML = "";
+    topics.forEach((t, idx) => {
+      const div = document.createElement("div");
+      div.className = "input-group mb-1";
+
+      const span = document.createElement("span");
+      span.className = "input-group-text";
+      span.textContent = idx + 1;
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "form-control";
+      input.value = t;
+      input.addEventListener("input", function() {
+        topics[idx] = this.value;
+        hiddenInput.value = JSON.stringify(topics);
+      });
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-outline-danger btn-sm";
+      btn.textContent = "삭제";
+      btn.addEventListener("click", function() {
+        topics.splice(idx, 1);
+        if (topics.length === 0) topics.push("");
+        hiddenInput.value = JSON.stringify(topics);
+        renderTopics();
+      });
+
+      div.appendChild(span);
+      div.appendChild(input);
+      div.appendChild(btn);
+      container.appendChild(div);
+    });
+    hiddenInput.value = JSON.stringify(topics);
+  }
+
+  addBtn.addEventListener("click", function() {
+    topics.push("");
+    renderTopics();
+  });
+
+  form.addEventListener("submit", function() {
+    hiddenInput.value = JSON.stringify(topics);
+  });
+
+  renderTopics();
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const addBtn = document.getElementById("add-material-btn");
+  const tableBody = document.querySelector("#materials-table tbody");
+  const totalForms = document.querySelector("#id_materials-TOTAL_FORMS");
+  const totalDisplay = document.getElementById("materials-total");
+
+  // 합계 계산
+  function calcTotal() {
+    let sum = 0;
+    tableBody.querySelectorAll("input[type='number']").forEach(input => {
+      const val = parseInt(input.value);
+      if (!isNaN(val)) sum += val;
+    });
+    totalDisplay.textContent = sum.toLocaleString();
+  }
+
+  function refreshDeleteButtons() {
+    const rows = tableBody.querySelectorAll("tr.material-form");
+    rows.forEach((row, idx) => {
+      const delBtn = row.querySelector(".remove-row");
+      if (idx === 0) {
+        if (delBtn) delBtn.remove();
+        row.lastElementChild.innerHTML = `<span class="text-muted small">-</span>`;
+      } else {
+        if (!row.querySelector(".remove-row")) {
+          row.lastElementChild.innerHTML = `
+            <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+              <i class="bi bi-x"></i>
+            </button>`;
+        }
+      }
+    });
+
+    // 삭제 버튼 이벤트 재등록
+    tableBody.querySelectorAll(".remove-row").forEach(btn => {
+      btn.onclick = function() {
+        btn.closest("tr").remove();
+        refreshDeleteButtons();
+        calcTotal();
+      };
+    });
+
+    // 가격 입력 변화 감지
+    tableBody.querySelectorAll("input[type='number']").forEach(input => {
+      input.oninput = calcTotal;
+    });
+
+    calcTotal();
+  }
+
+  addBtn.addEventListener("click", function() {
+    const currentCount = parseInt(totalForms.value);
+    const newForm = document.querySelector(".material-form").cloneNode(true);
+
+    // input 초기화
+    const inputs = newForm.querySelectorAll("input");
+    inputs.forEach(input => {
+      if (input.type === "text" || input.type === "number") {
+        input.value = "";
+      }
+    });
+
+    // name 속성 index 교체
+    newForm.innerHTML = newForm.innerHTML.replace(/materials-(\d+)-/g, `materials-${currentCount}-`);
+
+    tableBody.appendChild(newForm);
+    totalForms.value = currentCount + 1;
+    refreshDeleteButtons();
+  });
+
+  refreshDeleteButtons(); // 초기화 실행
+});
+</script>
+
+
+
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-3">
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h4 class="mb-0 fw-bold">
+      <i class="bi bi-keyboard me-2"></i>타자 연습
+    </h4>
+  </div>
+
+  <div class="row g-3">
+    {% for s in stages %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div class="text-muted small">{{ s.get_stage_type_display }} · {{ s.get_language_display }}</div>
+                <div class="fw-bold fs-5">{{ s.name }}</div>
+              </div>
+              <div class="text-muted">
+                <i class="bi bi-stopwatch"></i> {{ s.duration_seconds }}s
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="small text-muted mb-2">
+              통과조건:
+              <span class="badge bg-light text-dark">정확도 {{ s.min_accuracy }}%</span>
+              <span class="badge bg-light text-dark">타수 {{ s.min_speed }}</span>
+              <span class="badge bg-light text-dark">오타 ≤ {{ s.max_typo }}</span>
+            </div>
+
+            <a class="btn btn-primary w-100"
+               href="{% url 'typing_trainer:practice' s.id %}">
+              <i class="bi bi-play-fill me-1"></i>연습 시작
+            </a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}

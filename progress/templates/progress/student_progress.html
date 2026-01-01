@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  <h4 class="mb-3">
+    <i class="bi bi-check2-square me-1"></i>
+    {{ program.name }} 진도 체크
+  </h4>
+
+  <form method="post">
+    {% csrf_token %}
+    <table class="table table-stack">
+      <thead class="table-light">
+        <tr>
+          <th>차시</th>
+          <th>제목</th>
+          <th>완료</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lp in progresses %}
+        <tr>
+          <td data-label="차시">{{ lp.lesson.order }}</td>
+          <td data-label="제목">{{ lp.lesson.title }}</td>
+          <td data-label="완료">
+            <input type="checkbox" name="lesson_{{ lp.id }}" {% if lp.is_completed %}checked{% endif %}>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button class="btn btn-primary w-100">
+      <i class="bi bi-save"></i> 진도 저장
+    </button>
+  </form>
+</div>
+
+{% endblock %}

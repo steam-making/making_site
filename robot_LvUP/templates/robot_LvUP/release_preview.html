@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <h4 class="mb-3">
+    <i class="bi bi-box-arrow-up me-2"></i>
+    {{ year_month }} 출고 미리보기
+  </h4>
+
+  <form method="post" action="{% url 'release_confirm' institution.id year_month %}">
+    {% csrf_token %}
+
+    <table class="table table-bordered table-hover align-middle text-center">
+      <thead class="table-light">
+        <tr>
+          <th>교구명</th>
+          <th>납품가(단가)</th>
+          <th>수량</th>
+          <th>합계</th>
+          <th>센터 재고</th>
+          <th>출고방법</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.material.name }}</td>
+
+          <!-- 단가 = 납품가(unit_price) -->
+          <td>{{ item.unit_price|intcomma }}원</td>
+
+          <!-- 수량 -->
+          <td>{{ item.quantity }}</td>
+
+          <!-- 합계 -->
+          <td class="fw-bold text-end">{{ item.total_price|intcomma }}원</td>
+
+          <td>{{ item.stock }}</td>
+
+          <!-- 교구별 출고방법 선택 -->
+          <td>
+            <select name="method_{{ item.material.id }}" class="form-select">
+              <option value="택배" selected>택배</option>
+              <option value="센터수령">센터수령</option>
+            </select>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- 총합 -->
+    <div class="text-end fs-5 fw-bold mt-3">
+      총합계: {{ total_sum|intcomma }}원
+    </div>
+
+    <hr>
+
+    <button class="btn btn-primary btn-lg w-100 mt-3">
+      최종 출고등록
+    </button>
+
+  </form>
+</div>
+{% endblock %}

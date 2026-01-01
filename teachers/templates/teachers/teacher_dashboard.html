@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card p-4">
+    <h2 class="text-center mb-4">강사 대시보드</h2>
+
+    <div class="row g-4">
+      
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">내 정보 관리</h5>
+                    <p class="card-text">내 프로필 정보 수정 및 확인</p>
+                    <a href="{% url 'profile' %}" class="btn btn-warning">마이페이지</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">출강 장소 관리</h5>
+                    <p class="card-text">본인이 출강하는 학교 및 기관 정보 확인</p>
+                    <a href="{% url 'institution_list' %}" class="btn btn-primary">출강장소 보기</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">교구재 주문</h5>
+                    <p class="card-text">교구재를 주문할 수 있습니다.</p>
+                    <a href="{% url 'release_list' %}" class="btn btn-success">주문하기</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

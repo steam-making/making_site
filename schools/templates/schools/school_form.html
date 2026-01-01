@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3">
+        {% if mode == "create" %}
+          <i class="bi bi-building-add me-1"></i> 학교 등록
+        {% else %}
+          <i class="bi bi-pencil-square me-1"></i> 학교 정보 수정
+        {% endif %}
+      </h4>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label">학교명</label>
+          {{ form.name }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">학생수(계)</label>
+          {{ form.student_count }}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">홈페이지</label>
+          {{ form.homepage }}
+        </div>
+
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">우편번호</label>
+            {{ form.zipcode }}
+          </div>
+
+          <div class="col-md-8 mb-3">
+            <label class="form-label">주소</label>
+            {{ form.address }}
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">교무실 연락처</label>
+          {{ form.office_phone }}
+        </div>
+
+        <button class="btn btn-primary w-100 mt-2">
+          {% if mode == "create" %}등록하기{% else %}수정하기{% endif %}
+        </button>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

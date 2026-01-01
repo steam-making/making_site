@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-people"></i> 대상 관리</h4>
+    <a href="{% url 'target_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> 새 대상 추가
+    </a>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0 table-stack align-middle text-center">
+        <thead class="table-light">
+          <tr>
+            <th style="width:15%;">코드</th>
+            <th style="width:45%;">이름</th>
+            <th style="width:20%;">기준 나이</th>
+            <th style="width:20%;">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in targets %}
+          <tr>
+            <td data-label="코드">{{ t.code }}</td>
+            <td data-label="이름">{{ t.name }}</td>
+            <td data-label="기준 나이">
+              {% if t.age %}
+                <span class="badge bg-info text-dark">{{ t.age }}세</span>
+              {% else %}
+                <span class="text-muted">미등록</span>
+              {% endif %}
+            </td>
+            <td data-label="관리">
+              <a href="{% url 'target_update' t.pk %}" class="btn btn-sm btn-outline-secondary">
+                수정
+              </a>
+              <a href="{% url 'target_delete' t.pk %}" class="btn btn-sm btn-outline-danger">
+                삭제
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center">등록된 대상이 없습니다.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

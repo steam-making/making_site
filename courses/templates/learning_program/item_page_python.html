@@ -1,0 +1,92 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ item.key }} - {{ item.title }}</title>
+
+    <link rel="stylesheet" href="{% static 'learning_program/editor.css' %}">
+
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.js"></script>
+</head>
+<body>
+
+<input type="hidden" id="csrf" value="{{ csrf_token }}">
+
+<div class="container">
+
+    <div class="panel left left-panel">
+
+
+        <!-- 🔥 여기가 스크롤 영역 -->
+        <div class="explain-scroll">
+            <div class="explain-box">
+                {{ item.explain_html|safe }}
+            </div>
+            <div id="hintBox" class="hint-box" style="display:none;"></div>
+            <pre id="answerBox" class="answer-box" style="display:none;"></pre>
+        </div>
+
+        <!-- 힌트/정답 버튼 -->
+        <div class="button-group-left">
+            <button id="btnHint" class="btn hint">힌트 보기</button>
+            <button id="btnAnswer" class="btn answer">정답 보기</button>
+        </div>
+
+        
+
+        <!-- 🔥 왼쪽 패널 최하단 네비게이션 -->
+        <div class="left-bottom-nav">
+            {% if prev_item %}
+                <a href="{% url 'item_page' prev_item.id %}" class="nav-btn">◀ 이전</a>
+            {% else %}
+                <span class="nav-btn disabled">◀ 이전</span>
+            {% endif %}
+
+            <a href="{% url 'chapter_detail' item.chapter.id %}" class="nav-btn">목록 보기</a>
+
+            {% if next_item %}
+                <a href="{% url 'item_page' next_item.id %}" class="nav-btn">다음 ▶</a>
+            {% else %}
+                <span class="nav-btn disabled">다음 ▶</span>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- 📌 중앙: 파이썬 에디터 -->
+    <div class="panel center center-panel">
+        <h3 class="editor-title">코드를 작성해보세요</h3>
+
+        <!-- 🔥 에디터를 세로 꽉 차게 -->
+        <div class="editor-wrapper">
+            <div id="editor">{{ user_code }}</div>
+        </div>
+
+        <!-- 🔥 아래 고정되는 영역 -->
+        <div class="fixed-bottom-buttons">
+            <button id="btnRun" class="btn run">▶ 실행</button>
+            <button id="btnGrade" class="btn grade" data-item="{{ item.id }}">✓ 채점하기</button>
+        </div>
+    </div>
+
+    <!-- 📌 오른쪽: 실행 결과 -->
+    <div class="panel right">
+        <h3>입력값 (input)</h3>
+        <textarea id="inputBox" class="input-box" placeholder="여기에 input() 값 입력. 여러 줄 입력하려면 줄바꿈하세요"></textarea>
+
+        <h3>출력 결과</h3>
+        <pre id="outputBox" class="output"></pre>
+
+        <h3>채점 결과</h3>
+        <pre id="gradeBox" class="grade-box"></pre>
+    </div>
+
+</div>
+
+<script src="{% static 'learning_program/editor.js' %}"></script>
+
+</body>
+</html>

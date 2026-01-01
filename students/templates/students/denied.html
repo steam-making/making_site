@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+  <h4 class="text-danger mb-3"><i class="bi bi-shield-exclamation"></i> 접근 권한이 없습니다.</h4>
+  <p>이 출강장소(<strong>{{ institution.name }}</strong>)에 대한 권한이 없습니다.</p>
+  <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary mt-3">
+    <i class="bi bi-arrow-left"></i> 출강장소 목록으로 돌아가기
+  </a>
+</div>
+{% endblock %}

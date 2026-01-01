@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">자격증 관리 - {{ teacher.first_name|default:teacher.username }}</h4>
+    <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">뒤로</a>
+  </div>
+
+  {% now "U" as NOW_TS %}
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <table class="table table-striped table-hover align-middle mb-0">
+        <thead class="table-light text-center">
+          <tr>
+            <th style="width:28%">자격증명</th>
+            <th style="width:22%">발급기관</th>
+            <th style="width:16%">발급일</th>
+            <th style="width:16%">만료일</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cert in certificates %}
+          <tr>
+            <td class="text-center">{{ cert.name }}</td>
+            <td class="text-center">{{ cert.issued_by|default:"-" }}</td>
+            <td class="text-center">{{ cert.issued_date|date:"Y-m-d" }}</td>
+            <td class="text-center">
+              {% if cert.expires_date %}
+                {{ cert.expires_date|date:"Y-m-d" }}
+              {% else %}
+                <span class="badge bg-secondary">만료일 없음</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              {% if cert.expires_date %}
+                {% if cert.expires_date|date:"U" < NOW_TS %}
+                  <span class="badge bg-danger">만료</span>
+                  <small class="text-muted d-block mt-1">{{ cert.expires_date|timesince }} 경과</small>
+                {% else %}
+                  <span class="badge bg-success">유효</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-primary">상시</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">등록된 자격증이 없습니다.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

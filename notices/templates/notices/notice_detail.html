@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <h3 class="mb-2">
+          {% if notice.is_pinned %}<span class="badge bg-danger me-2">고정</span>{% endif %}
+          {{ notice.title }}
+        </h3>
+        <div class="text-end">
+          <div class="text-muted small">{{ notice.published_at|date:"Y-m-d H:i" }}</div>
+          <div class="text-muted small">조회 {{ notice.view_count }}</div>
+        </div>
+      </div>
+      <div class="mb-2">
+        <span class="badge bg-light text-dark">대상: {{ notice.get_audience_display }}</span>
+        {% if notice.author %}<span class="badge bg-light text-dark">작성자: {{ notice.author.first_name|default:notice.author.username }}</span>{% endif %}
+        {% if notice.status != "published" %}<span class="badge bg-warning text-dark">임시저장</span>{% endif %}
+      </div>
+      <hr>
+      <div class="mb-3" style="white-space:pre-wrap;">{{ notice.content }}</div>
+
+      {% if notice.attachment %}
+      <div class="alert alert-secondary d-flex justify-content-between align-items-center">
+        <div>첨부파일: {{ notice.attachment.name|slice:"-40:" }}</div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ notice.attachment.url }}">다운로드</a>
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <a href="{% url 'notice_list' %}" class="btn btn-outline-secondary">목록</a>
+        {% if request.user.is_staff %}
+          <a href="{% url 'notice_update' notice.pk %}" class="btn btn-outline-primary">수정</a>
+          <a href="{% url 'notice_delete' notice.pk %}" class="btn btn-outline-danger">삭제</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

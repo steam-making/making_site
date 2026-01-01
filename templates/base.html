@@ -1,0 +1,480 @@
+{% load static %}
+{% load humanize %}
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+
+    <!-- 기본 메타 태그 -->
+    <title>메이킹LAB | 창의융합 로봇코딩 아카데미</title>
+    <meta name="description" content="메이킹LAB은 로봇, 코딩, 과학, 드론, 창의수학 등 STEAM 융합교육 전문 학원입니다.">
+    <meta name="keywords" content="로봇코딩, 메이킹LAB, 창의융합, 과학실험, 드론, 3D펜, STEAM교육, 광주학원">
+    <meta name="author" content="메이킹LAB">
+
+    <!-- 오픈그래프 (SNS 미리보기용) -->
+    <meta property="og:title" content="메이킹LAB | 창의융합 로봇코딩 아카데미">
+    <meta property="og:description" content="로봇·코딩·과학·창의수학까지 한 곳에서 배우는 메이킹LAB!">
+    <meta property="og:image" content="{% static 'images/making_logo(500px).png' %}">
+    <meta property="og:url" content="https://steam-making.com/">
+    <meta property="og:type" content="website">
+
+    <meta charset="UTF-8" />
+    <meta name="naver-site-verification" content="35ca93374dfd3798a5626031fd86af622a021dde" />
+    <meta name="google-site-verification" content="bXzr2A_zxDobLtMhwe8z7W_zDYtJFT39Jy_q1VmaqCQ" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/making_logo(500px).png' %}">
+    <link rel="shortcut icon" href="{% static 'images/making_logo(500px).png' %}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    
+  </head>
+  <body>
+    <!-- ✅ 네비게이션 바 -->
+    <nav class="navbar navbar-expand-lg navbar-dark custom-navbar fixed-top">
+      <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'home' %}">
+          <!-- ✅ 로고 이미지 -->
+          <img src="{% static 'images/making_logo(500px).png' %}" alt="로고" 
+              width="32" height="32" class="me-2">
+          메이킹LAB
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            {% if user.is_authenticated %}
+              {% if user.is_staff %}
+                <!-- ✅ 관리자 메뉴 -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                    <i class="bi bi-speedometer2 me-1"></i>관리자 대시보드
+                  </a>
+                </li>
+                <!-- ✅ 할 일 관리 -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'task_list' %}">
+                    <i class="bi bi-check2-square me-1"></i>할일관리
+                  </a>
+                </li>
+
+                <!-- 🔽 사이트관리 그룹 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="siteManageDropdown" role="button"
+                    data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-gear me-1"></i>사이트관리
+                  </a>
+
+                  <ul class="dropdown-menu" aria-labelledby="siteManageDropdown">
+
+                    <!-- 🔹 메이킹 -->
+                    <li>
+                      <a class="dropdown-item" href="{% url 'making_page' %}">
+                        <i class="bi bi-lightbulb me-1"></i>메이킹?
+                      </a>
+                    </li>
+
+                    <!-- 🔹 커리큘럼 -->
+                    <li>
+                      <a class="dropdown-item" href="{% url 'curriculum_program_list' %}">
+                        <i class="bi bi-journal-text me-1"></i>커리큘럼
+                      </a>
+                    </li>
+
+                    <!-- 🔹 공지사항 -->
+                    <li>
+                      <a class="dropdown-item" href="{% url 'notice_list' %}">
+                        <i class="bi bi-megaphone me-1"></i>공지사항
+                      </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+
+                    <!-- ✅ 회원관리 -->
+                    <li>
+                      <a class="dropdown-item" href="{% url 'approve_users' %}">
+                        <i class="bi bi-person-check me-1"></i>회원승인
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'admin_user_list' %}">
+                        <i class="bi bi-people me-1"></i>회원목록
+                      </a>
+                    </li>
+
+                    <!-- ✅ 미디어 -->
+                    <li>
+                      <a class="dropdown-item" href="/admin/filebrowser/browse/">
+                        <i class="bi bi-folder2-open me-1"></i>미디어관리
+                      </a>
+                    </li>
+
+                  </ul>
+                </li>
+
+
+                <!-- 🔽 교구재 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="materialDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-box-seam me-1"></i>교구재
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="materialDropdown">
+                    <li><a class="dropdown-item" href="{% url 'vendor_list' %}"><i class="bi bi-building me-1"></i>거래처 목록</a></li>
+                    <li><a class="dropdown-item" href="{% url 'material_list' %}"><i class="bi bi-list-check me-1"></i>교구재 목록</a></li>
+                    <li><a class="dropdown-item" href="{% url 'order_list' %}"><i class="bi bi-download me-1"></i>교구 입고</a></li>
+                  </ul>
+                </li>
+                
+                <!-- 🔽 학생 (신규 추가) -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                    <i class="bi bi-book me-1"></i>학생
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'learning_program_list' %}">
+                      <i class="bi bi-list-ul me-1"></i>학습 프로그램 관리
+                    </a></li>
+
+                    <li><a class="dropdown-item" href="{% url 'student_course_list' %}">
+                      <i class="bi bi-book-half me-1"></i>학생 수강 프로그램
+                    </a></li>
+                  </ul>
+                </li>
+
+
+                <!-- 🔽 강사 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-workspace me-1"></i>강사
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="teacherDropdown">
+
+                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=gwangju"><i class="bi bi-box-arrow-up-right"></i>모집공고(광주·늘봄)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=jeonnam"><i class="bi bi-geo"></i>모집공고(전남)</a></li>
+                    <!-- 기존 항목 -->
+                    <li><a class="dropdown-item" href="{% url 'release_list' %}">
+                      <i class="bi bi-upload me-1"></i>교구출고</a></li>
+
+                    <li><a class="dropdown-item" href="{% url 'institution_list' %}">
+                      <i class="bi bi-geo-alt me-1"></i>출강장소</a></li>
+
+                    <!-- ✅ 새로 추가된 항목 -->
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'students:student_list' %}">
+                      <i class="bi bi-people me-1"></i>학생관리</a></li>
+
+                    <!-- 기존 수업자료 -->
+                    <li><a class="dropdown-item" href="{% url 'resource_list' %}">
+                      <i class="bi bi-folder2-open me-1"></i>수업자료</a></li>
+
+                  </ul>
+                </li>
+
+
+                <!-- 🔽 기관 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="institutionDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-building-check me-1"></i>기관
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="institutionDropdownAdmin">
+                    <li><a class="dropdown-item" href="{% url 'product_list' %}"><i class="bi bi-journal-code me-1"></i>프로그램목록</a></li>
+                    <li><a class="dropdown-item" href="{% url 'reservation_list' %}"><i class="bi bi-list-ul me-1"></i>예약리스트</a></li>
+                    <li><a class="dropdown-item" href="{% url 'reservation_calendar' %}"><i class="bi bi-calendar-event me-1"></i>예약캘린더</a></li>
+                  </ul>
+                </li>
+
+                <!-- 🔽 학부모 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="parantDropdownAdmin" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-people-fill me-1"></i>학부모
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="parantDropdownAdmin">
+                    <li><a class="dropdown-item" href="{% url 'program_list' %}"><i class="bi bi-book-half me-1"></i>수강생모집</a></li>
+                  </ul>
+                </li>
+
+                <!-- 🔽 유틸 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="utilDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-tools me-1"></i>유틸
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="utilDropdown">
+                    <li>
+                      <a class="dropdown-item" href="{% url 'lotto_recommend' %}">
+                        <i class="bi bi-dice-5 me-1"></i>로또 추천
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'redirects:link_list' %}">
+                        <i class="bi bi-qr-code me-1"></i> QR 링크
+                      </a>
+                    </li>
+                    <!-- 앞으로 다른 유틸 메뉴도 여기 추가 가능 -->
+                  </ul>
+                </li>
+
+
+              {% elif user.profile.user_type in 'teacher,center_teacher' %}
+                <!-- ✅ 강사 및 센터강사 공통 메뉴 -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'teacher_dashboard' %}">
+                    <i class="bi bi-speedometer2 me-1"></i>강사 대시보드
+                  </a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'making_page' %}"><i class="bi bi-lightbulb me-1"></i>메이킹?</a></li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'curriculum_program_list' %}">
+                    <i class="bi bi-journal-text me-1"></i>
+                    커리큘럼
+                  </a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'notice_list' %}"><i class="bi bi-megaphone me-1"></i>공지사항</a></li>
+
+                <!-- ✅ 할 일 관리 -->
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'task_list' %}">
+                    <i class="bi bi-check2-square me-1"></i>할일관리
+                  </a>
+                </li>
+
+                <!-- ✅ 수업관리 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="classManageDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-journal-check me-1"></i>수업관리
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="classManageDropdown">
+                    <li>
+                      <a class="dropdown-item" href="{% url 'students:student_list' %}">
+                        <i class="bi bi-people me-1"></i>학생관리
+                      </a>
+                    </li>
+                    
+                    <li>
+                      <a class="dropdown-item" href="{% url 'release_list' %}">
+                        <i class="bi bi-upload me-1"></i>교구출고
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'return_list' %}">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>교구반납
+                      </a>
+                    </li>
+                  </ul>
+                </li>
+
+                <!-- ✅ 수업자료 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="resourceDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-folder2-open me-1"></i>수업자료
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="resourceDropdown">
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' '3dpen' %}"><i class="bi bi-pen me-1"></i>3D펜</a></li>
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' 'science' %}"><i class="bi bi-binoculars me-1"></i>과학</a></li>
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' 'robot' %}"><i class="bi bi-robot me-1"></i>로봇</a></li>
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' 'career' %}"><i class="bi bi-briefcase me-1"></i>직업진로</a></li>
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' 'math' %}"><i class="bi bi-calculator me-1"></i>창의수학</a></li>
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' 'coding' %}"><i class="bi bi-laptop me-1"></i>코딩</a></li>
+                    <li><a class="dropdown-item" href="{% url 'resource_detail' 'drone' %}"><i class="bi bi-airplane-engines me-1"></i>항공드론</a></li>
+                  </ul>
+                </li>
+
+                <!-- ✅ 이력관리 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="historyDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-journal-text me-1"></i>이력관리
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="historyDropdown">
+                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=gwangju"><i class="bi bi-box-arrow-up-right"></i>모집공고(광주·늘봄)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=jeonnam"><i class="bi bi-geo"></i>모집공고(전남)</a></li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'certificate_list' %}">
+                        <i class="bi bi-award me-1"></i>자격증관리
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'career_list' %}">
+                        <i class="bi bi-briefcase me-1"></i>경력관리
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{% url 'institution_list' %}">
+                        <i class="bi bi-geo-alt me-1"></i>출강장소
+                      </a>
+                    </li>
+                  </ul>
+                </li>
+
+                <!-- ✅ 센터강사 전용 메뉴 -->
+                {% if user.profile.user_type == 'center_teacher' %}
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="centerClassDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bi bi-people-fill me-1"></i>센터수업
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="centerClassDropdown">
+                      <li><a class="dropdown-item" href="{% url 'program_list' %}"><i class="bi bi-book-half me-1"></i>센터프로그램</a></li>
+                    </ul>
+                  </li>
+                {% endif %}
+
+                
+
+              {% elif user.profile.user_type == 'parent' %}
+                <!-- ✅ 학부모 메뉴 -->
+                <li class="nav-item"><a class="nav-link" href="{% url 'parent_dashboard' %}"><i class="bi bi-speedometer2 me-1"></i>학부모 대시보드</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'making_page' %}"><i class="bi bi-lightbulb me-1"></i>메이킹?</a></li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'curriculum_program_list' %}">
+                    <i class="bi bi-journal-text me-1"></i>
+                    커리큘럼
+                  </a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'notice_list' %}"><i class="bi bi-megaphone me-1"></i>공지사항</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'child_list' %}"><i class="bi bi-person-hearts me-1"></i>자녀정보</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'program_list' %}"><i class="bi bi-book-half me-1"></i>수강생 모집</a></li>
+
+              {% elif user.profile.user_type == 'institution' %}
+                <!-- ✅ 기관 메뉴 -->
+                <li class="nav-item"><a class="nav-link" href="{% url 'making_page' %}"><i class="bi bi-lightbulb me-1"></i>메이킹?</a></li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'curriculum_program_list' %}">
+                    <i class="bi bi-journal-text me-1"></i>
+                    커리큘럼
+                  </a>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'notice_list' %}"><i class="bi bi-megaphone me-1"></i>공지사항</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'product_list' %}"><i class="bi bi-journal-code me-1"></i>프로그램목록</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'reservation_list' %}"><i class="bi bi-list-ul me-1"></i>예약리스트</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'reservation_calendar' %}"><i class="bi bi-calendar-event me-1"></i>예약캘린더</a></li>
+
+              {% elif user.profile.user_type == 'student' %}
+                <!-- ✅ 학생 메뉴 -->
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'making_page' %}">
+                        <i class="bi bi-lightbulb me-1"></i>메이킹?
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'notice_list' %}">
+                        <i class="bi bi-megaphone me-1"></i>공지사항
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'student_course_list' %}">
+                        <i class="bi bi-journal-code me-1"></i>수강 프로그램
+                    </a>
+                </li>
+
+              {% endif %}
+            {% endif %}
+
+
+          </ul>
+
+          <!-- ✅ 우측 로그인/마이페이지 영역 -->
+          <ul class="navbar-nav ms-auto align-items-center">
+            {% if user.is_authenticated %}
+              <span class="navbar-text text-white me-2">
+                <i class="bi bi-person-circle me-1"></i>
+                {{ request.user.first_name|default:request.user.username }}님
+              </span>
+              <li class="nav-item">
+                <a href="{% url 'profile' %}" class="btn btn-warning btn-sm btn-nav">
+                  <i class="bi bi-person-badge me-1"></i>마이페이지
+                </a>
+              </li>
+              <li class="nav-item">
+                <form method="post" action="{% url 'logout' %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm btn-nav">
+                    <i class="bi bi-box-arrow-right me-1"></i>로그아웃
+                  </button>
+                </form>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a href="{% url 'login' %}" class="btn btn-light btn-sm btn-nav">
+                  <i class="bi bi-box-arrow-in-right me-1"></i>로그인
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+
+        </div>
+      </div>
+    </nav>
+    
+    <!-- ✅ 메인 컨텐츠 영역 -->
+    <div class="container content">
+      {% if messages %}
+        <div class="mt-3">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </div>
+    
+    <!-- ✅ 푸터 -->
+    <footer class="custom-footer">
+      &copy; 2025 메이킹LAB. All rights reserved.
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+  </body>
+</html>
+
+<style>
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; background-color: #f8f9fa; }
+  .content { flex: 1; }
+  footer { background: #343a40; color: #fff; text-align: center; padding: 15px 0; margin-top: auto; }
+  .btn-nav { margin-right: 5px; }
+
+  /* ✅ 메뉴 감싸는 래퍼만 스크롤 허용 */
+  .navbar-scroll {
+    overflow-x: auto;          /* 가로 스크롤 */
+    white-space: nowrap;       /* 줄바꿈 금지 */
+    flex: 1;                   /* 공간 채우기 */
+  }
+
+  .navbar-nav {
+    flex-wrap: nowrap !important;
+    white-space: nowrap;
+  }
+
+  .navbar-nav .nav-item {
+    flex-shrink: 0;
+  }
+
+  .navbar-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+  .navbar-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.3);
+    border-radius: 3px;
+  }
+
+  /* ✅ 간격 정리 */
+  .navbar-nav .nav-link {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* ✅ 모바일에서는 기존 Bootstrap 동작 유지 */
+  @media (max-width: 991px) {
+    .navbar-scroll {
+      overflow-x: visible;
+      white-space: normal;
+    }
+  }
+</style>

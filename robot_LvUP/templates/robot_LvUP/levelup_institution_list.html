@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4><i class="bi bi-geo-alt me-2"></i>출강장소별 단계업 관리</h4>
+  <p class="text-muted small mb-3">
+    관리할 출강장소를 선택하세요.
+  </p>
+
+  <div class="row mt-3">
+    {% for inst in institutions %}
+      <div class="col-md-4 mb-3">
+        <div class="card shadow-sm h-100 text-center">
+          <div class="card-body">
+            <h5 class="card-title fw-bold mb-2">{{ inst.name }}</h5>
+            <p class="text-muted small">{{ inst.program }}</p>
+            <a href="{% url 'robot_levelup_by_institution' inst.id %}" 
+               class="btn btn-outline-primary btn-sm">
+              단계업 관리하기 <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="alert alert-secondary mt-3 text-center">
+        등록된 출강장소가 없습니다.
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

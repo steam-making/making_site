@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <h3>학교 등록</h3>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary mt-2">등록하기</button>
+    </form>
+    <a href="{% url 'select_school' %}" class="btn btn-secondary mt-3">← 학교 선택으로 돌아가기</a>
+</div>
+{% endblock %}

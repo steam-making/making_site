@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load static %}
+{% block content %}
+<div class="container mt-4" style="max-width:900px;">
+  <div class="card shadow border-0">
+    <div class="card-header bg-primary text-white">
+      <h4 class="mb-0"><i class="bi bi-journal-plus me-2"></i>프로그램 등록</h4>
+    </div>
+    <div class="card-body p-4">
+      <form method="post" enctype="multipart/form-data" class="vstack gap-3">
+        {% csrf_token %}
+
+        {% if form.errors %}
+          <div class="alert alert-danger">
+            {{ form.errors }}
+          </div>
+        {% endif %}
+
+        {% if formset.non_form_errors %}
+          <div class="alert alert-danger">
+            {{ formset.non_form_errors }}
+          </div>
+        {% endif %}
+
+        {% for subform in formset %}
+          {% if subform.errors %}
+            <div class="alert alert-warning small">
+              {{ subform.errors }}
+            </div>
+          {% endif %}
+        {% endfor %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <!-- 모집 방식 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">
+            <i class="bi bi-check2-square me-1"></i> 모집 방식
+          </label>
+
+          <div class="d-flex flex-wrap gap-3">
+            {% for radio in form.recruit_type %}
+              <div class="form-check form-check-inline">
+                {{ radio.tag }}
+                <label class="form-check-label">{{ radio.choice_label }}</label>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        
+        <!-- 프로그램명 / 유형 / 대상 -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-book me-1"></i> 프로그램명</label>
+            {{ form.name|add_class:"form-control" }}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold"><i class="bi bi-list-task"></i> 프로그램 유형</label>
+            <div class="d-flex flex-wrap gap-2">
+              {% for checkbox in form.program_types %}
+                <div class="form-check form-check-inline">
+                  {{ checkbox.tag }}
+                  <label class="form-check-label">{{ checkbox.choice_label }}</label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold"><i class="bi bi-people"></i> 대상 시작</label>
+              {{ form.target_start }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold"><i class="bi bi-people"></i> 대상 끝</label>
+              {{ form.target_end }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 모집기간 -->
+        <div class="row g-3" id="recruit-period-wrapper">
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-calendar-check me-1"></i> 모집 시작일</label>
+            {{ form.recruit_start_date }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-calendar-x me-1"></i> 모집 마감일</label>
+            {{ form.recruit_end_date }}
+          </div>
+        </div>
+
+        <!-- 수업기간 -->
+        <div class="row g-3" id="class-period-wrapper">
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-calendar-event me-1"></i> 수업 시작일</label>
+            {{ form.start_date }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-calendar-event-fill me-1"></i> 수업 종료일</label>
+            {{ form.end_date }}
+          </div>
+        </div>
+        <hr>
+        <!-- 수업횟수 설정 -->
+        <h5 class="mt-4"><i class="bi bi-list-ol me-2"></i> 수업 횟수 설정</h5>
+
+        <!-- 1줄: 주, 월, 수업시간 -->
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">
+              <i class="bi bi-calendar-week me-1"></i> 주
+            </label>
+            {{ form.weekly_sessions|add_class:"form-select" }}
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">
+              <i class="bi bi-calendar3 me-1"></i> 월
+            </label>
+            {{ form.monthly_sessions|add_class:"form-control" }}
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-bold">
+              <i class="bi bi-hourglass-split me-1"></i> 수업시간(분)
+            </label>
+            {{ form.class_duration|add_class:"form-control" }}
+          </div>
+        </div>
+
+        <!-- 2줄: 개월 과정, 총 수업횟수 -->
+        <div class="row g-3 align-items-end mt-2">
+          <div class="col-md-3">
+            <label class="form-label fw-bold">
+              <i class="bi bi-calendar-range me-1"></i> 개월 과정
+            </label>
+            {{ form.months|add_class:"form-control" }}
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold">
+              <i class="bi bi-list-ol me-1"></i> 총 수업횟수 (공휴일 제외)
+            </label>
+            {{ form.session_count|add_class:"form-control" }}
+          </div>
+        </div>
+
+
+
+        <!-- 반별 설정 -->
+        <h5 class="mt-4">
+          <i class="bi bi-people me-2"></i> 반별 설정
+        </h5>
+        {{ formset.management_form }}
+
+        <table class="table table-bordered align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th style="width:160px;">요일</th>
+              <th style="width:120px;">시작 시간</th>
+              <th style="width:120px;">종료 시간</th>
+              <th style="width:160px;">수업 시작일</th>
+              <th style="width:160px;">수업 종료일</th>
+              <th style="width:100px;">정원</th>
+              <th style="width:90px;">삭제</th>
+            </tr>
+          </thead>
+          <tbody id="class-table-body">
+            {% for subform in formset %}
+            <tr class="class-row">
+              {% for hidden in subform.hidden_fields %}
+                {{ hidden }}
+              {% endfor %}
+
+              <td>
+                <div class="dropdown">
+                  <button class="btn btn-outline-secondary w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <span class="selected-days">
+                      {% if subform.initial.days %}
+                        {{ subform.initial.days|join:", " }}
+                      {% else %}
+                        선택하세요
+                      {% endif %}
+                    </span>
+                  </button>
+                  <ul class="dropdown-menu p-2" style="min-width:200px;">
+                    {% for value, label in subform.fields.days.choices %}
+                    <li>
+                      <label class="form-check">
+                        <input type="checkbox" class="form-check-input day-checkbox"
+                              name="{{ subform.prefix }}-days"
+                              value="{{ value }}"
+                              {% if subform.days.value and value in subform.days.value %}checked{% endif %}>
+                        {{ label }}
+                      </label>
+                    </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </td>
+
+              <td>{{ subform.start_time|add_class:"form-control form-control-sm" }}</td>
+              <td>{{ subform.end_time|add_class:"form-control form-control-sm" }}</td>
+              <td>{{ subform.start_date|add_class:"form-control form-control-sm" }}</td>
+              <td>{{ subform.end_date|add_class:"form-control form-control-sm" }}</td>
+              <td>{{ subform.capacity|add_class:"form-control form-control-sm text-center" }}</td>
+              <td>
+                {{ subform.DELETE|add_class:"d-none" }}
+                {% if not forloop.first %}
+                  <button type="button" class="btn btn-sm btn-outline-danger delete-row">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <!-- 빈 폼 템플릿 (반추가용) -->
+        <script type="text/template" id="empty-form">
+        <tr class="class-row">
+          {% for hidden in formset.empty_form.hidden_fields %}
+            {{ hidden }}
+          {% endfor %}
+          <td>
+            <div class="dropdown">
+              <button class="btn btn-outline-secondary w-100 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <span class="selected-days">선택하세요</span>
+              </button>
+              <ul class="dropdown-menu p-2" style="min-width:200px;">
+                {% for value, label in formset.empty_form.fields.days.choices %}
+                <li>
+                  <label class="form-check">
+                    <input type="checkbox" class="form-check-input day-checkbox"
+                          name="{{ formset.empty_form.prefix }}-days"
+                          value="{{ value }}">
+                    {{ label }}
+                  </label>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </td>
+          <td>{{ formset.empty_form.start_time|add_class:"form-control form-control-sm" }}</td>
+          <td>{{ formset.empty_form.end_time|add_class:"form-control form-control-sm" }}</td>
+          <td>{{ formset.empty_form.start_date|add_class:"form-control form-control-sm" }}</td>
+          <td>{{ formset.empty_form.end_date|add_class:"form-control form-control-sm" }}</td>
+          <td>{{ formset.empty_form.capacity|add_class:"form-control form-control-sm text-center" }}</td>
+          <td>
+            {{ formset.empty_form.DELETE|add_class:"d-none" }}
+            <button type="button" class="btn btn-sm btn-outline-danger delete-row">
+              <i class="bi bi-x-circle"></i>
+            </button>
+          </td>
+        </tr>
+        </script>
+
+        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="add-class-btn">
+          <i class="bi bi-plus-circle"></i> 반 추가
+        </button>
+
+        <hr>
+
+        <!-- 강사 / 교구재 -->
+        <div class="col-md-6">
+          <label class="form-label"><i class="bi bi-person-badge"></i> 담당 강사</label>
+          {{ form.teacher }}
+        </div>
+
+        <!-- 교구재 -->
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold"><i class="bi bi-tools"></i> 교구재</label>
+            {{ form.material|add_class:"form-control" }}
+          </div>
+
+          <!-- 교구비 입력 -->
+          <div class="col-md-4">
+            <label class="form-label fw-bold"><i class="bi bi-cash-stack me-1"></i> 교구비</label>
+            <div class="input-group">
+              {{ form.material_fee|add_class:"form-control" }}
+              <span class="input-group-text">원</span>
+            </div>
+          </div>
+
+          <!-- 교구재 포함 여부 (체크박스는 중앙정렬) -->
+          <div class="col-md-4 d-flex align-items-center">
+            <div class="form-check mt-4">
+              {{ form.include_materials|add_class:"form-check-input" }}
+              <label class="form-check-label fw-bold ms-1" for="id_include_materials">
+                교구재 포함
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 강사료 -->
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-bold"><i class="bi bi-cash me-1"></i> 수업료</label>
+            <div class="input-group">
+              {{ form.base_fee|add_class:"form-control" }}
+              <span class="input-group-text">원</span>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-bold"><i class="bi bi-cash-coin me-1"></i> 수강료(월)</label>
+            <div class="input-group">
+              {{ form.tuition|add_class:"form-control" }}
+              <span class="input-group-text">원</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 이미지 -->
+        <div class="mb-3 mt-2">
+          <label class="form-label fw-bold"><i class="bi bi-image me-1"></i> 대표 이미지</label>
+          {{ form.image }}
+          <div class="mt-2">
+            <img id="program-image-preview"
+              src="{% if form.instance.image %}{{ form.instance.image.url }}{% endif %}"
+              class="img-thumbnail"
+              style="max-height:150px; {% if not form.instance.image %}display:none;{% endif %}">
+          </div>
+        </div>
+
+        <!-- 상태 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold"><i class="bi bi-flag me-1"></i> 모집 상태</label>
+          {{ form.status|add_class:"form-select" }}
+        </div>
+
+        <!-- 설명 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold"><i class="bi bi-file-text me-1"></i> 상세 내용</label>
+          {{ form.description|add_class:"form-control" }}
+        </div>
+
+        <!-- 버튼 -->
+        <div class="d-flex justify-content-between mt-4">
+          <a href="{% url 'program_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 목록으로
+          </a>
+          <div class="d-flex gap-2">
+            {% if program %}
+              <a href="{% url 'program_delete' program.id %}" class="btn btn-danger"
+                onclick="return confirm('정말 삭제하시겠습니까?');">
+                <i class="bi bi-trash"></i> 삭제
+              </a>
+            {% endif %}
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-circle"></i> 저장
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/program_form.js' %}"></script>
+
+{% endblock %}

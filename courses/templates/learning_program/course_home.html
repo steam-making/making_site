@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+{% load course_filters %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h2 class="mb-4">
+        <i class="bi bi-code-square me-2"></i>
+        {{ program.name }} 진도 체크
+    </h2>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 80px;">차시</th>
+                    <th style="width: 240px;">주제</th>
+                    <th>내용</th>
+                    <th style="width: 120px;">진도율</th>
+                    <th style="width: 120px;">학습</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for chapter in chapters %}
+                <tr>
+
+                    <!-- 차시 -->
+                    <td>
+                        <span class="fw-bold">{{ chapter.number }}장</span>
+                    </td>
+
+                    <!-- 주제 -->
+                    <td class="fw-semibold">
+                        {{ chapter.title }}
+                    </td>
+
+                    <!-- 내용 요약 (제목 일부를 설명처럼) -->
+                    <td>{{ chapter.content }}</td>
+
+                    <!-- 진도율 -->
+                    <td>
+                        <div class="progress" style="height:12px;">
+                            <div class="progress-bar bg-success"
+                                 role="progressbar"
+                                 style="width: {{ progress|get_item:chapter.id }}%;">
+                            </div>
+                        </div>
+                        <span class="small text-muted">
+                            {{ progress|get_item:chapter.id }}%
+                        </span>
+                    </td>
+
+                    <!-- 이동 버튼 -->
+                    <td>
+                        <a href="{% url 'chapter_detail' chapter.id %}"
+                           class="btn btn-primary btn-sm w-100">
+                            시작하기 →
+                        </a>
+                    </td>
+
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}

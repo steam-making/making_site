@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card p-4 shadow-sm">
+    <h3 class="text-center mb-4">
+      <i class="bi bi-bag-plus me-2"></i> 교구재 주문 등록
+    </h3>
+
+    {% if error %}
+    <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- 주문자 -->
+      <div class="mb-3">
+        <label class="form-label">
+          <i class="bi bi-person-fill me-1"></i> 주문자
+        </label>
+        <input type="text" class="form-control" value="{{ user.first_name }} ({{ user.username }})" readonly>
+        <input type="hidden" name="teacher" value="{{ user.id }}">
+      </div>
+
+      <!-- ✅ 입고 종류 선택 -->
+      <div class="mb-3">
+        <label for="receive_type" class="form-label">
+          <i class="bi bi-box-arrow-in-down me-1"></i> 입고 종류
+        </label>
+        <select name="receive_type" id="receive_type" class="form-select" required>
+          <option value="order" {% if form.receive_type.value == "order" %}selected{% endif %}>주문입고</option>
+          <option value="return" {% if form.receive_type.value == "return" %}selected{% endif %}>반납입고</option>
+        </select>
+      </div>
+
+      <!-- 거래처 종류 선택 -->
+      <div class="mb-3">
+        <label for="vendor_type" class="form-label">
+          <i class="bi bi-building me-1"></i> 거래처 종류
+        </label>
+        <select id="vendor_type" class="form-select" required>
+          <option value="">-- 전체 종류 --</option>
+          {% for kind in vendor_kinds %}
+          <option value="{{ kind }}">{{ kind }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 주문 항목 테이블 -->
+      <table class="table table-bordered align-middle" id="orderTable">
+        <thead class="table-light text-center">
+          <tr>
+            <th style="width: 5%"><i class="bi bi-hash"></i></th>
+            <th><i class="bi bi-shop me-1"></i> 거래처</th>
+            <th><i class="bi bi-box-seam me-1"></i> 교구재</th>
+            <th style="width: 15%"><i class="bi bi-archive me-1"></i> 현재고</th>
+            <th style="width: 15%"><i class="bi bi-plus-square me-1"></i> 수량</th>
+            <th style="width: 10%"><i class="bi bi-trash me-1"></i> 삭제</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 기본 1줄 -->
+          <tr data-row="1">
+            <td class="text-center">1</td>
+            <td>
+              <select name="vendor_1" class="form-select vendor-select" data-row="1">
+                <option value="">-- 거래처 선택 --</option>
+                {% for vendor in vendors %}
+                <option value="{{ vendor.id }}" data-kind="{{ vendor.vendor_type.name|default:'' }}">
+                  {{ vendor.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <select name="material_1" class="form-select material-select" data-row="1">
+                <option value="">-- 교구재 선택 --</option>
+                {% for material in materials %}
+                <option value="{{ material.id }}"
+                        data-vendor="{{ material.vendor.id }}"
+                        data-kind="{{ material.vendor.vendor_type.name|default:'' }}"
+                        data-stock="{{ material.stock }}">
+                  {{ material.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="text-center">
+              <span class="badge text-dark stock-label" id="stock_1">-</span>
+            </td>
+            <td>
+              <input type="number" name="quantity_1" class="form-control" min="0" placeholder="예: 10" />
+            </td>
+            <td class="text-center">
+              <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 행 추가 버튼 -->
+      <div class="mb-3 text-end">
+        <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-plus-circle me-1"></i> 행 추가
+        </button>
+      </div>
+
+      <!-- ✅ 비고란 -->
+      <div class="mb-3">
+        <label for="notes" class="form-label">
+          <i class="bi bi-pencil-square me-1"></i> 비고 (예: 홍길동 강사 / ○○학교 반납 사유 등)
+        </label>
+        <textarea name="notes" id="notes" rows="3" class="form-control"
+                  placeholder="예: 홍길동 강사, ○○학교 반납 건"></textarea>
+      </div>
+
+      <!-- 주문일 / 예상입고일 -->
+      <div class="mb-3">
+        <label for="ordered_date" class="form-label">
+          <i class="bi bi-calendar-date me-1"></i> 주문일
+        </label>
+        <input type="date" name="ordered_date" id="ordered_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required />
+      </div>
+
+      <div class="mb-3">
+        <label for="expected_date" class="form-label">
+          <i class="bi bi-calendar-check me-1"></i> 예상 입고일
+        </label>
+        <input type="date" name="expected_date" id="expected_date" class="form-control" readonly />
+      </div>
+
+      <div class="text-center mt-4 d-grid gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-check2-circle me-1"></i> 주문 등록
+        </button>
+        <a href="{% url 'order_list' %}" class="btn btn-secondary">
+          <i class="bi bi-arrow-left-circle me-1"></i> 취소
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ JS -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const now = new Date();
+
+  // 주문일 기본값
+  const orderedDateInput = document.getElementById("ordered_date");
+  if (orderedDateInput && !orderedDateInput.value) {
+    orderedDateInput.value = now.toISOString().split("T")[0];
+  }
+
+  // 예상입고일 기본값 (주문 시간에 따라 +2일 또는 +3일)
+  const expectedDateInput = document.getElementById("expected_date");
+  if (expectedDateInput) {
+    const deliveryDate = new Date(now);
+    deliveryDate.setDate(deliveryDate.getDate() + (now.getHours() < 12 ? 2 : 3));
+    expectedDateInput.value = deliveryDate.toISOString().split("T")[0];
+  }
+
+  const tableBody = document.querySelector("#orderTable tbody");
+  let rowCount = 1;
+
+  // 행 추가 버튼
+  document.getElementById("addRowBtn").addEventListener("click", function () {
+    rowCount++;
+    const newRow = document.createElement("tr");
+    newRow.setAttribute("data-row", rowCount);
+    newRow.innerHTML = `
+      <td class="text-center">${rowCount}</td>
+      <td>
+        <select name="vendor_${rowCount}" class="form-select vendor-select" data-row="${rowCount}">
+          <option value="">-- 거래처 선택 --</option>
+          {% for vendor in vendors %}
+          <option value="{{ vendor.id }}" data-kind="{{ vendor.vendor_type.name|default:'' }}">
+            {{ vendor.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </td>
+      <td>
+        <select name="material_${rowCount}" class="form-select material-select" data-row="${rowCount}">
+          <option value="">-- 교구재 선택 --</option>
+          {% for material in materials %}
+          <option value="{{ material.id }}"
+                  data-vendor="{{ material.vendor.id }}"
+                  data-kind="{{ material.vendor.vendor_type.name|default:'' }}"
+                  data-stock="{{ material.stock }}">
+            {{ material.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </td>
+      <td class="text-center">
+        <span class="badge bg-info text-dark stock-label" id="stock_${rowCount}">-</span>
+      </td>
+      <td>
+        <input type="number" name="quantity_${rowCount}" class="form-control" min="0" placeholder="예: 10" />
+      </td>
+      <td class="text-center">
+        <button type="button" class="btn btn-sm btn-outline-danger remove-row">–</button>
+      </td>
+    `;
+    tableBody.appendChild(newRow);
+    attachRowEvents(newRow);
+  });
+
+  // 행별 이벤트 등록
+  function attachRowEvents(row) {
+    const vendorSelect = row.querySelector(".vendor-select");
+    const materialSelect = row.querySelector(".material-select");
+    const removeBtn = row.querySelector(".remove-row");
+    const stockLabel = row.querySelector(".stock-label");
+
+    vendorSelect.addEventListener("change", function () {
+      const selectedVendorId = this.value;
+      Array.from(materialSelect.options).forEach((option) => {
+        const vendorId = option.getAttribute("data-vendor");
+        option.style.display = !vendorId || vendorId === selectedVendorId || option.value === "" ? "" : "none";
+      });
+      materialSelect.value = "";
+      if (stockLabel) stockLabel.textContent = "-";
+    });
+
+    materialSelect.addEventListener("change", function () {
+      const selectedOption = this.options[this.selectedIndex];
+      const vendorId = selectedOption.getAttribute("data-vendor");
+      const stock = selectedOption.getAttribute("data-stock") || "-";
+      if (vendorId) {
+        vendorSelect.value = vendorId;
+      }
+      if (stockLabel) {
+        stockLabel.textContent = stock;
+      }
+    });
+
+    removeBtn.addEventListener("click", function () {
+      row.remove();
+    });
+  }
+
+  // 초기 1행 이벤트 바인딩
+  attachRowEvents(document.querySelector('tr[data-row="1"]'));
+
+  // 거래처 종류 필터
+  const vendorTypeSelect = document.getElementById("vendor_type");
+  vendorTypeSelect.addEventListener("change", function () {
+    const selectedType = this.value;
+    document.querySelectorAll(".vendor-select").forEach((vendorSelect) => {
+      Array.from(vendorSelect.options).forEach((option) => {
+        const type = option.getAttribute("data-kind");
+        option.style.display = (!selectedType || type === selectedType || option.value === "") ? "" : "none";
+      });
+      vendorSelect.value = "";
+
+      const row = vendorSelect.dataset.row;
+      const materialSelect = document.querySelector(`select[name="material_${row}"]`);
+      if (materialSelect) {
+        Array.from(materialSelect.options).forEach((opt) => {
+          const kind = opt.getAttribute("data-kind");
+          opt.style.display = (!selectedType || kind === selectedType || opt.value === "") ? "" : "none";
+        });
+        materialSelect.value = "";
+        const stockLabel = document.getElementById(`stock_${row}`);
+        if (stockLabel) stockLabel.textContent = "-";
+      }
+    });
+  });
+}
+);
+</script>
+{% endblock %}

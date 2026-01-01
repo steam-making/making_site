@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width:600px;">
+  <div class="card shadow border-0">
+    <div class="card-body text-center p-4">
+      <h4 class="mb-3 text-danger"><i class="bi bi-exclamation-triangle"></i> 프로그램 삭제</h4>
+      <p>정말 <strong>{{ program.name }}</strong> 프로그램을 삭제하시겠습니까?</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex justify-content-center gap-2 mt-3">
+          <a href="{% url 'program_list' %}" class="btn btn-outline-secondary">취소</a>
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash"></i> 삭제
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

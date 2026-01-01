@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3"><i class="bi bi-pencil-square me-2"></i> 모집공고 수정</h4>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- 제출방법 -->
+        <div class="mb-3">
+          <label class="form-label">제출방법</label><br>
+
+          {% for option in submit_method_options %}
+            <div class="form-check form-check-inline">
+              <input class="form-check-input"
+                    type="checkbox"
+                    name="submit_method"
+                    value="{{ option }}"
+                    {% if option in notice.submit_method %}checked{% endif %}>
+              <label class="form-check-label">{{ option }}</label>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- 학교 검색 -->
+        <div class="mb-3 position-relative">
+          <label class="form-label">학교명</label>
+          <input type="text" id="school_search" class="form-control"
+                 value="{{ notice.school.name }}" autocomplete="off">
+
+          <div id="school_result" class="list-group position-absolute w-100"
+               style="z-index:2000; max-height:200px; overflow-y:auto;"></div>
+
+          <input type="hidden" name="school" id="school_id" value="{{ notice.school.id }}">
+        </div>
+
+        <!-- 지역 -->
+        <div class="mb-3">
+          <label class="form-label">지역</label>
+          <input type="text" id="region" name="region"
+                 value="{{ notice.region }}" class="form-control" readonly>
+        </div>
+
+        <!-- 학생수 -->
+        <div class="mb-3">
+          <label class="form-label">학생수</label>
+          <input type="text" id="student_count" name="student_count"
+                 value="{{ notice.student_count }}" class="form-control">
+        </div>
+
+        <!-- 모집 프로그램 + 강사료 포함 -->
+        <div class="mb-3">
+          <label class="form-label">모집 프로그램</label>
+
+          <div id="programList">
+
+            {% for p in notice.programs %}
+              <div class="row g-2 mb-2 program-row">
+
+                <!-- 프로그램명 -->
+                <div class="col-md-4">
+                  <input type="text" name="program_name[]" class="form-control"
+                        value="{{ p.name }}" placeholder="프로그램명">
+                </div>
+
+                <!-- mng_no -->
+                <div class="col-md-4">
+                  <input type="text" name="program_mng_no[]" class="form-control"
+                        value="{{ p.mng_no }}" placeholder="mng_no">
+                </div>
+
+                <!-- 강사료 -->
+                <div class="col-md-3">
+                  <input type="text" name="program_fee[]" class="form-control"
+                        value="{{ p.fee }}" placeholder="강사료 예: 시간당 50,000">
+                </div>
+
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-outline-danger w-100 btn-remove">삭제</button>
+                </div>
+
+              </div>
+            {% endfor %}
+
+          </div>
+
+          <button type="button" class="btn btn-outline-primary mt-2" id="addProgramBtn">
+            + 프로그램 추가
+          </button>
+        </div>
+
+        <!-- 접수기간 -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">접수 시작일</label>
+            <input type="date" name="receive_date"
+              value="{{ notice.receive_date|date:'Y-m-d' }}"
+              class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">접수 마감</label>
+            <input type="datetime-local" name="deadline"
+                   value="{{ notice.deadline|date:'Y-m-d\\TH:i' }}"
+                   class="form-control">
+          </div>
+        </div>
+
+        <!-- 첨부파일 링크 -->
+        <div class="mb-3">
+          <label class="form-label">첨부파일 링크들</label>
+          <textarea name="attachment_urls" class="form-control" rows="3">
+{% for u in notice.attachment_urls %}{{ u }}
+{% endfor %}
+          </textarea>
+        </div>
+
+        <button class="btn btn-success w-100 mt-2">
+          <i class="bi bi-check-lg me-1"></i> 수정 완료
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+/* --- 학교 검색 --- */
+document.getElementById("school_search").addEventListener("input", function () {
+    const query = this.value;
+    if (!query) {
+        document.getElementById("school_result").innerHTML = "";
+        return;
+    }
+
+    fetch(`/schools/search/?q=` + query)
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            data.forEach(school => {
+                html += `
+                    <button type="button"
+                        class="list-group-item list-group-item-action"
+                        data-id="${school.id}"
+                        data-name="${school.name}"
+                        data-address="${school.address}"
+                        data-student="${school.student_count}">
+                        ${school.name} (${school.student_count})
+                    </button>`;
+            });
+            document.getElementById("school_result").innerHTML = html;
+        });
+});
+
+document.getElementById("school_result").addEventListener("click", function (e) {
+    if (!e.target.dataset.id) return;
+
+    document.getElementById("school_search").value = e.target.dataset.name;
+    document.getElementById("school_id").value = e.target.dataset.id;
+
+    const region = e.target.dataset.address.split(" ").slice(0, 2).join(" ");
+    document.getElementById("region").value = region;
+
+    document.getElementById("student_count").value = e.target.dataset.student;
+    document.getElementById("school_result").innerHTML = "";
+});
+</script>
+
+<script>
+// 프로그램 추가 버튼
+document.getElementById("addProgramBtn").addEventListener("click", function () {
+    const row = `
+      <div class="row g-2 mb-2 program-row">
+
+        <div class="col-md-4">
+          <input type="text" name="program_name[]" class="form-control" placeholder="프로그램명">
+        </div>
+
+        <div class="col-md-4">
+          <input type="text" name="program_mng_no[]" class="form-control" placeholder="mng_no">
+        </div>
+
+        <div class="col-md-3">
+          <input type="text" name="program_fee[]" class="form-control"
+                 placeholder="강사료 예: 시간당 50,000">
+        </div>
+
+        <div class="col-md-1">
+          <button type="button" class="btn btn-outline-danger w-100 btn-remove">삭제</button>
+        </div>
+
+      </div>
+    `;
+    document.getElementById("programList").insertAdjacentHTML("beforeend", row);
+});
+
+// 행 삭제
+document.getElementById("programList").addEventListener("click", function (e) {
+    if (e.target.classList.contains("btn-remove")) {
+        e.target.closest(".program-row").remove();
+    }
+});
+</script>
+
+{% endblock %}

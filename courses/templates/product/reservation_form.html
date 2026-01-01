@@ -1,0 +1,369 @@
+<!-- === 파일: templates/reservation/reservation_form.html === -->
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body">
+      <div class="card-body">
+      <!-- ✅ 예약 생성/수정 헤더 -->
+      <h4 class="mb-3">
+        <i class="bi bi-calendar-plus"></i>
+        {% if reservation and reservation.pk %}
+          예약 수정
+        {% else %}
+          프로그램 예약
+        {% endif %}
+      </h4>
+
+      <form method="post" action="{% if reservation %}{% url 'reservation_edit' reservation.pk %}{% else %}{% url 'reservation_create' %}{% endif %}" id="reservation-form" class="row g-3">
+        {% csrf_token %}
+
+        <div id="program-container">
+          <div class="program-block row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label"><i class="bi bi-building"></i> 기관</label>
+              {{ form.institution }}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label"><i class="bi bi-journal-code"></i> 프로그램</label>
+              {{ form.product }}
+            </div>
+
+            <!-- ✅ 주제 드롭다운 -->
+            <div class="col-md-6" id="topics-section" style="display:none;">
+              <label class="form-label"><i class="bi bi-list-task"></i> 주제(선택)</label>
+              <select id="id_topic" name="selected_topic" class="form-select"></select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-hourglass-split"></i> 수업 시간</label>
+              <input type="text" id="duration_minutes" class="form-control" disabled>
+              <input type="hidden" id="id_duration_minutes" name="duration_minutes">
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-calendar-event"></i> 날짜(입력)</label>
+              {{ form.date }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-clock"></i> 시작</label>
+              {{ form.start_time }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-clock-history"></i> 종료(자동입력)</label>
+              <input type="text" id="end_time_display" class="form-control" disabled>
+              <!-- ✅ 서버로 제출될 hidden input -->
+              <input type="hidden" id="id_end_time" name="end_time">
+            </div>
+
+            
+            <!-- ✅ 재료비 표시 영역 -->
+            <div class="col-12" id="materials-section" style="display:none;">
+              <label class="form-label"><i class="bi bi-tools"></i> 재료비</label>
+              <div id="materials-box" class="border rounded p-2 bg-light small"></div>
+            </div>
+
+            <!-- ✅ 예상 인원 & 가격/총액 -->
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-people"></i> 수업인원(입력)</label>
+              {{ form.headcount }}
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" id="unit_price_label">
+                <i class="bi bi-cash"></i> 프로그램 가격 (인당)
+              </label>
+              <input type="text" id="unit_price" class="form-control" disabled>
+              <input type="hidden" id="id_unit_price" name="unit_price">
+            </div>
+
+            
+
+            <div class="col-md-4">
+              <label class="form-label"><i class="bi bi-cash-coin"></i> 총 결제액</label>
+              <input type="text" id="total_price" class="form-control" disabled>
+              <input type="hidden" id="id_total_price" name="total_price">
+            </div>
+
+            <!-- ✅ 기본 장소 값 -->
+            <div class="col-md-8">
+              <label class="form-label"><i class="bi bi-geo-alt"></i> 장소</label>
+              {{ form.place }}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label"><i class="bi bi-pencil-square"></i> 요청 메모</label>
+              {{ form.memo }}
+            </div>
+          </div>
+        </div>
+        
+        <!-- ✅ 프로그램 추가 버튼 -->
+        <div class="col-12 d-flex justify-content-between mt-3">
+          <a href="{% url 'reservation_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 목록
+          </a>
+          <button type="button" id="add-program" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle"></i> 프로그램 추가
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i>
+            {% if reservation and reservation.pk %} 예약 수정 {% else %} 예약 요청 {% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+  const programContainer = document.getElementById("program-container");
+  const addBtn = document.getElementById("add-program");
+
+
+  // ✅ 기본 예약 블록
+
+  // ======================================================
+  // 블록 단위 초기화 함수
+  // ======================================================
+  function initProgramBlock(block) {
+    const productSelect = block.querySelector("[name='product']");
+    const headcountInput = block.querySelector("[name='headcount']");
+    const unitPriceDisplay = block.querySelector("#unit_price");
+    const unitPriceHidden = block.querySelector("#id_unit_price");
+    const totalPriceDisplay = block.querySelector("#total_price");
+    const totalPriceHidden = block.querySelector("#id_total_price");
+    const placeInput = block.querySelector("[name='place']");
+
+    const topicsSection = block.querySelector("#topics-section");
+    const topicSelect = block.querySelector("#id_topic");
+
+    const startTimeInput = block.querySelector("[name='start_time']");
+    const endTimeDisplay = block.querySelector("#end_time_display");
+    const endTimeHidden = block.querySelector("#id_end_time");
+    const durationDisplay = block.querySelector("#duration_minutes");
+    const durationHidden = block.querySelector("#id_duration_minutes");
+    
+    let currentUnitPrice = 0;
+    let currentDuration = 0;
+
+    // 기본 장소 값
+    if (placeInput && !placeInput.value) {
+      placeInput.value = "메이킹\n(화개중앙로 51 5F)";
+    }
+
+    // ✅ 페이지 로드 시 오늘 날짜 기본값 설정
+    const dateInput = block.querySelector("[name='date']");
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 종료시간 자동 계산
+    function updateEndTime() {
+      if (!startTimeInput.value || !currentDuration) return;
+      const [h, m] = startTimeInput.value.split(":").map(Number);
+      const start = new Date();
+      start.setHours(h, m, 0, 0);
+      const end = new Date(start.getTime() + currentDuration * 60000);
+      const eh = String(end.getHours()).padStart(2, "0");
+      const em = String(end.getMinutes()).padStart(2, "0");
+      endTimeDisplay.value = `${eh}:${em}`;
+      endTimeHidden.value = `${eh}:${em}`;
+    }
+
+    // 프로그램 변경 시 주제 & 가격 갱신
+    async function updateProgramInfo() {
+      const productId = productSelect.value;
+      if (!productId) {
+        topicsSection.style.display = "none";
+        unitPriceDisplay.value = "";
+        unitPriceHidden.value = "";
+        totalPriceDisplay.value = "";
+        totalPriceHidden.value = "";
+        currentUnitPrice = 0;
+        currentDuration = 0;
+        document.getElementById("materials-section").style.display = "none";
+        // ✅ 라벨 초기화
+        document.getElementById("unit_price_label").innerHTML =
+          `<i class="bi bi-cash"></i> 프로그램 가격 (인당)`;
+        return;
+      }
+
+      const resp = await fetch(`/courses/api/products/${productId}/`);
+      if (resp.ok) {
+        const data = await resp.json();
+
+        // 주제 드롭다운
+        topicSelect.innerHTML = "";
+        if (data.topics && data.topics.length > 0) {
+          data.topics.forEach((t, idx) => {
+            const opt = document.createElement("option");
+            opt.value = t;
+            opt.textContent = `${idx + 1}. ${t}`;
+            topicSelect.appendChild(opt);
+          });
+          topicsSection.style.display = "block";
+        } else {
+          topicsSection.style.display = "none";
+        }
+
+        // ✅ 가격 + 재료비 처리
+        let materialTotal = 0;
+        const materialsBox = document.getElementById("materials-box");
+        const unitPriceLabel = document.getElementById("unit_price_label");
+
+        if (data.include_material_cost) {
+          document.getElementById("materials-section").style.display = "block";
+          materialsBox.innerHTML = `<span class="text-success">재료비 포함</span>`;
+          currentUnitPrice = data.base_price;
+
+          // ✅ 라벨 변경
+          unitPriceLabel.innerHTML =
+            `<i class="bi bi-cash"></i> 프로그램 가격 (재료비 포함 인당)`;
+
+        } else {
+          if (Array.isArray(data.materials) && data.materials.length > 0) {
+            materialsBox.innerHTML = `
+              <table class="table table-sm mb-0">
+                <thead><tr><th>재료명</th><th>가격</th></tr></thead>
+                <tbody>
+                  ${data.materials
+                    .map((m) => {
+                      materialTotal += m.price;
+                      return `<tr><td>${m.name}</td><td>${m.price.toLocaleString()}원</td></tr>`;
+                    })
+                    .join("")}
+                </tbody>
+              </table>
+              <div class="fw-bold text-end mt-1">재료비 합계: ${materialTotal.toLocaleString()}원</div>
+            `;
+            document.getElementById("materials-section").style.display = "block";
+          } else {
+            materialsBox.innerHTML = `<span class="text-muted">별도 재료 없음 (0원)</span>`;
+            document.getElementById("materials-section").style.display = "block";
+            materialTotal = 0;
+          }
+          currentUnitPrice = data.base_price + materialTotal;
+
+          // ✅ 라벨 변경 (재료비 별도)
+          unitPriceLabel.innerHTML =
+            `<i class="bi bi-cash"></i> 프로그램 가격(재료비+인당)`;
+        }
+
+        unitPriceDisplay.value = currentUnitPrice.toLocaleString() + " 원";
+        unitPriceHidden.value = currentUnitPrice;
+
+        // 수업시간
+        currentDuration = data.duration_minutes;
+        durationDisplay.value = currentDuration + " 분";
+        durationHidden.value = currentDuration;
+
+        // 종료시간 갱신
+        updateEndTime();
+        calculateTotal();
+      }
+    }
+
+
+    // 총 결제액 계산
+    function calculateTotal() {
+      const headcount = parseInt(headcountInput.value || 0);
+      const total = headcount * currentUnitPrice;
+      totalPriceDisplay.value = total.toLocaleString() + " 원";
+      totalPriceHidden.value = total;
+    }
+
+    // 이벤트 바인딩
+    headcountInput.addEventListener("input", calculateTotal);
+    productSelect.addEventListener("change", updateProgramInfo);
+    startTimeInput.addEventListener("input", updateEndTime);
+
+    // 상세페이지에서 넘어온 product=ID 자동 선택
+    const params = new URLSearchParams(location.search);
+    const productId = params.get("product");
+    if (productId) {
+      productSelect.value = productId;
+    }
+
+    // ✅ 페이지 로드시 기본 데이터와 종료시간 세팅
+    updateProgramInfo().then(() => {
+      updateEndTime();
+      calculateTotal();
+    });
+  }
+  // ======================================================
+  // 첫 번째 블록 초기화
+  // ======================================================
+  const firstBlock = programContainer.querySelector(".program-block");
+  if (firstBlock) initProgramBlock(firstBlock);
+
+  // ======================================================
+  // 프로그램 추가 버튼
+  // ======================================================
+  if (addBtn) {
+    addBtn.addEventListener("click", function() {
+      const firstBlock = programContainer.querySelector(".program-block");
+      if (!firstBlock) return;
+
+      const newBlock = firstBlock.cloneNode(true);
+
+      // 모든 입력 초기화
+      newBlock.querySelectorAll("input, select, textarea").forEach(el => {
+        if (["text","number","hidden","date","time"].includes(el.type)) {
+          el.value = "";
+        }
+        if (el.tagName === "SELECT") {
+          el.selectedIndex = 0;
+        }
+      });
+
+      // 삭제 버튼 추가
+      let removeBtn = newBlock.querySelector(".remove-block");
+      if (!removeBtn) {
+        removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "btn btn-sm btn-danger remove-block mt-2";
+        removeBtn.textContent = "삭제";
+        newBlock.appendChild(removeBtn);
+      }
+      removeBtn.addEventListener("click", function() {
+        newBlock.remove();
+      });
+
+      // wrapper에 넣기
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = "<hr>";
+      wrapper.appendChild(newBlock);
+      programContainer.appendChild(wrapper);
+
+      // ✅ 새 블록 초기화
+      initProgramBlock(newBlock);
+    });
+  }
+});
+</script>
+
+
+<style>
+  /* ✅ 테이블 자동 크기 조정 + 줄바꿈 허용 */
+  .table {
+    table-layout: auto;
+    width: 100%;
+  }
+  .table td,
+  .table th {
+    white-space: normal;  /* 줄바꿈 허용 */
+    word-break: break-word;
+    vertical-align: middle;
+  }
+</style>
+
+
+{% endblock %}
+

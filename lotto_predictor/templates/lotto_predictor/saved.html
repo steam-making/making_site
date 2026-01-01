@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+ 
+  <!-- ✅ 추천 페이지로 이동 버튼 -->
+  <div class="mb-3 text-end">
+    <a href="{% url 'lotto_recommend' %}" class="btn btn-outline-info">
+      📊 로또추천번호생성
+    </a>
+  </div>
+
+  <!-- ✅ 최신 회차 당첨번호 표시 -->
+  {% if latest_result %}
+    <div class="card my-3">
+      <div class="card-body">
+        <h5 class="card-title">🎯 {{ latest_result.draw_no }}회차 당첨번호</h5>
+        <p>
+          {% for n in latest_result.get_numbers %}
+            <span class="badge bg-success">{{ n }}</span>
+          {% endfor %}
+          <span class="badge bg-warning text-dark">보너스 {{ latest_result.bonus }}</span>
+        </p>
+      </div>
+    </div>
+  {% endif %}
+
+  <h3>💾 저장된 추천 번호</h3>
+
+  {% for draw_no, sets in grouped.items %}
+    <div class="card my-3 shadow-sm border-0">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">{{ draw_no }}회차 저장된 추천</span>
+        <form method="post" action="{% url 'delete_recommendations_by_draw' draw_no %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-danger">회차 전체 삭제</button>
+        </form>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for rec in sets %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <!-- ✅ 전략 이름 배지 -->
+              {% if rec.strategy == "freq" %}
+                <span class="badge bg-primary">빈도 기반</span>
+              {% elif rec.strategy == "missed" %}
+                <span class="badge bg-warning text-dark">미출현 기반</span>
+              {% elif rec.strategy == "mixed" %}
+                <span class="badge" style="background-color: purple; color: white;">혼합 전략</span>
+              {% elif rec.strategy == "core" %}
+                <span class="badge bg-success">핵심군</span>
+              {% elif rec.strategy == "mlrule" %}
+                <span class="badge bg-info text-dark">ML + 규칙 기반</span>
+              {% endif %}
+              →
+
+              <!-- ✅ 번호 출력 -->
+              {% for n in rec.get_numbers %}
+                {% if rec.strategy == "freq" %}
+                  <span class="badge bg-primary">{{ n }}</span>
+                {% elif rec.strategy == "missed" %}
+                  <span class="badge bg-warning text-dark">{{ n }}</span>
+                {% elif rec.strategy == "mixed" %}
+                  <span class="badge" style="background-color: purple; color: white;">{{ n }}</span>
+                {% elif rec.strategy == "core" %}
+                  <span class="badge bg-success">{{ n }}</span>
+                {% elif rec.strategy == "mlrule" %}
+                  <span class="badge bg-info text-dark">{{ n }}</span>
+                {% endif %}
+              {% endfor %}
+
+              <!-- ✅ 적중 여부 -->
+              {% if rec.is_pending %}
+                <span class="ms-2 text-warning fw-bold">⏳ 미추첨</span>
+              {% else %}
+                <span class="ms-2 fw-bold text-success">
+                  🎯 {{ rec.match }}개 적중
+                  {% if rec.bonus_hit %}+ 보너스{% endif %}
+                </span>
+              {% endif %}
+
+              <span class="text-muted ms-2 small">{{ rec.created_at|date:"Y-m-d H:i" }}</span>
+            </div>
+
+            <!-- ✅ 개별 삭제 -->
+            <form method="post" action="{% url 'delete_recommendation' rec.id %}" style="margin:0;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm btn-outline-danger">삭제</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% empty %}
+    <p class="text-muted">아직 저장된 세트가 없습니다.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card p-4">
+    <h2 class="text-center mb-4">관리자 대시보드</h2>
+
+    <div class="row g-4">
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">회원 승인</h5>
+                    <p class="card-text">가입한 사용자 승인</p>
+                    <a href="{% url 'approve_users' %}" class="btn btn-navy">회원 승인 페이지</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">회원 목록</h5>
+                    <p class="card-text">가입된 전체 회원 확인</p>
+                    <a href="{% url 'admin_user_list' %}" class="btn btn-navy">회원 목록</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">거래처 관리</h5>
+                    <p class="card-text">거래처 등록 및 수정/삭제</p>
+                    <a href="{% url 'vendor_list' %}" class="btn btn-navy">거래처 목록</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">교구재 관리</h5>
+                    <p class="card-text">교구재 등록 및 관리</p>
+                    <a href="{% url 'material_list' %}" class="btn btn-navy">교구재 목록</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">교구재 입고</h5>
+                    <p class="card-text">센터 입고 등록 및 목록 확인</p>
+                    <a href="{% url 'order_list' %}" class="btn btn-navy">입고 관리</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">교구재 주문</h5>
+                    <p class="card-text">주문 등록 및 관리</p>
+                    <a href="{% url 'release_list' %}" class="btn btn-navy">주문 관리</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title">출강 장소</h5>
+                    <p class="card-text">강사의 출강 장소 등록 및 관리</p>
+                    <a href="{% url 'institution_list' %}" class="btn btn-navy">출강장소 관리</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

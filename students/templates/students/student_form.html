@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4><i class="bi bi-person-plus me-2"></i>{{ title }}</h4>
+  <hr>
+
+  <form method="post" class="mt-3">
+    {% csrf_token %}
+
+    <!-- 부서 선택 (적당한 크기) -->
+    <div class="mb-3" style="max-width: 250px;">
+      <label class="form-label">부서</label>
+      {{ form.division }}
+    </div>
+
+    <!-- 학년 / 반 / 번호 같은 줄 배치 -->
+    <div class="row mb-3">
+      <div class="col-auto">
+        <label class="form-label">학년</label>
+        <input type="text" name="grade" value="{{ form.grade.value|default_if_none:'' }}" 
+               class="form-control text-center" maxlength="2"  style="width:70px;">
+      </div>
+      <div class="col-auto">
+        <label class="form-label">반</label>
+        <input type="text" name="class_name" value="{{ form.class_name.value|default_if_none:'' }}" 
+               class="form-control text-center" maxlength="2" style="width:70px;">
+      </div>
+      <div class="col-auto">
+        <label class="form-label">번호</label>
+        <input type="text" name="number" value="{{ form.number.value|default_if_none:'' }}" 
+               class="form-control text-center" maxlength="3" style="width:70px;">
+      </div>
+    </div>
+
+    <!-- 학생 이름 -->
+    <div class="mb-3" style="max-width: 350px;">
+      <label class="form-label">학생 이름</label>
+      <input type="text" name="name" value="{{ form.name.value|default_if_none:'' }}"
+             class="form-control" maxlength="50" placeholder="이름을 입력하세요">
+    </div>
+
+    <!-- 학부모 연락처 -->
+    <div class="mb-3" style="max-width: 350px;">
+      <label class="form-label">학부모 연락처</label>
+      <input type="text" name="parent_contact" value="{{ form.parent_contact.value|default_if_none:'' }}"
+             class="form-control" maxlength="20" placeholder="010-0000-0000">
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+      <i class="bi bi-check-circle me-1"></i> 저장
+    </button>
+    <a href="{% url 'students:student_detail' institution.id %}" class="btn btn-outline-secondary ms-2">
+      <i class="bi bi-arrow-left"></i> 취소
+    </a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-3">
+    <i class="bi bi-robot"></i> 자동 블로그 공장
+  </h4>
+
+  <!-- 🔹 글 자동 생성 폼 -->
+  <form method="post" action="{% url 'blog_auto:generate_post' %}" class="card card-body mb-4">
+    {% csrf_token %}
+    <div class="row g-2">
+      <div class="col-md-4">
+        <label class="form-label">주제</label>
+        <input type="text" name="topic" class="form-control" placeholder="예) AI 자격증 AICE가 필요한 이유" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">카테고리</label>
+        <select name="category" class="form-select">
+          {% for value,label in categories %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">플랫폼</label>
+        <select name="platform" class="form-select">
+          <option value="both">네이버 + 티스토리</option>
+          <option value="naver">네이버만</option>
+          <option value="tistory">티스토리만</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check me-3">
+          <input class="form-check-input" type="checkbox" name="generate_image" id="generateImageCheck" checked>
+          <label class="form-check-label" for="generateImageCheck">
+            썸네일 생성
+          </label>
+        </div>
+        <button class="btn btn-primary ms-auto">
+          <i class="bi bi-magic"></i> 자동 생성
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- 🔹 최근 생성 글 리스트 -->
+  <h5 class="mb-2">최근 생성된 글</h5>
+  <table class="table table-sm table-hover">
+    <thead class="table-light">
+      <tr>
+        <th>제목</th>
+        <th>카테고리</th>
+        <th>플랫폼</th>
+        <th>상태</th>
+        <th>예약시간</th>
+        <th>발행</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+      <tr>
+        <td>
+          <a href="{% url 'blog_auto:preview' post.id %}">
+            {{ post.main_title }}
+          </a>
+        </td>
+        <td>{{ post.get_category_display }}</td>
+        <td>
+          {% if post.platform == 'both' %}네이버+티스토리
+          {% elif post.platform == 'naver' %}네이버
+          {% else %}티스토리{% endif %}
+        </td>
+        <td>{{ post.get_status_display }}</td>
+        <td>{{ post.publish_at|default:"-" }}</td>
+        <td>
+          <form method="post" action="{% url 'blog_auto:publish_now' post.id %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-success">
+              <i class="bi bi-upload"></i> 즉시발행
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">아직 생성된 글이 없습니다.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

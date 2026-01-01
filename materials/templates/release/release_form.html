@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card p-4 shadow-sm">
+    <h3 class="text-center mb-4">교구재 출고 등록</h3>
+
+    {% if error %}
+      <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'create_release' %}?{{ request.GET.urlencode }}">
+      {% csrf_token %}
+      <!-- 강사 / 출강장소 / 주문년월 / 거래처종류 / 출고예정일 -->
+      <div class="row g-3 mb-3">
+
+        {% if user.is_staff %}
+        <div class="col-12 col-md-3">
+          <label class="form-label d-flex align-items-center gap-1">
+            <i class="bi bi-person-badge"></i> 강사 선택
+          </label>
+          <select name="teacher" class="form-select">
+          <option value="">-- 강사 선택 --</option>
+
+          <!-- 일반 강사 그룹 -->
+          <optgroup label="강사">
+            {% for t in teachers %}
+              <option value="{{ t.id }}"
+                {% if selected_teacher_id == t.id|stringformat:"s" %}selected{% endif %}>
+                {{ t.first_name }} ({{ t.username }})
+              </option>
+            {% endfor %}
+          </optgroup>
+
+          <!-- 센터강사 그룹 -->
+          <optgroup label="센터강사">
+            {% for ct in center_teachers %}
+              <option value="{{ ct.id }}"
+                {% if selected_teacher_id == ct.id|stringformat:"s" %}selected{% endif %}>
+                {{ ct.first_name }} ({{ ct.username }})
+              </option>
+            {% endfor %}
+          </optgroup>
+        </select>
+        </div>
+        {% endif %}
+
+        <div class="col-12 col-md-4">
+          <label class="form-label d-flex align-items-center gap-1">
+            <i class="bi bi-geo-alt"></i> 출강 장소
+          </label>
+          <select name="institution" class="form-select">
+            <option value="">-- 출강 장소 선택 --</option>
+            {% for inst in institutions %}
+            <option value="{{ inst.id }}"
+                    data-teacher="{{ inst.teacher.id }}"
+                    data-program="{{ inst.program }}"
+                    {% if selected_institution_id == inst.id|stringformat:"s" %}selected{% endif %}>
+              {{ inst.name }} - {{ inst.program }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-3">
+          <label class="form-label d-flex align-items-center gap-1">
+            <i class="bi bi-calendar-event"></i> 주문 년월
+          </label>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="input-group" style="max-width: 120px;">
+              <input type="number" name="order_year" id="order_year"
+                    class="form-control" min="2020" max="2100"
+                    value="{{ form_data.order_year|default:'' }}" required>
+              <span class="input-group-text">년</span>
+            </div>
+            <div class="input-group" style="max-width: 120px;">
+              <input type="number" name="order_month" id="order_month"
+                    class="form-control" min="1" max="12"
+                    value="{{ form_data.order_month|default:''|stringformat:"02d" }}" required>
+              <span class="input-group-text">월</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-2">
+          <label class="form-label d-flex align-items-center gap-1">
+            <i class="bi bi-tags"></i> 거래처 종류
+          </label>
+          <select id="vendor_type" name="vendor_type" class="form-select">
+            <option value="">-- 전체 종류 --</option>
+            {% for kind in vendor_kinds %}
+            <option value="{{ kind }}"
+              {% if form_data.vendor_type == kind %}selected{% endif %}>
+              {{ kind }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-3">
+          <label for="expected_date" class="form-label d-flex align-items-center gap-1">
+            <i class="bi bi-clock"></i> 출고 예정일
+          </label>
+          <input type="date" name="expected_date" id="expected_date"
+                class="form-control"
+                value="{{ form_data.expected_date|default:'' }}">
+        </div>
+      </div>
+
+      <!-- ✅ 품목 입력 테이블 -->
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle table-stack" id="releaseTable">
+          <thead class="table-light text-center">
+            <tr>
+              <th>#</th>
+              <th>거래처</th>
+              <th>교구재</th>
+              <th>납품가</th>
+              <th>수량</th>
+              <th>센터재고</th>
+              <th>출고방법</th>
+            </tr>
+          </thead>
+
+          <input type="hidden" name="row_count" id="row_count" value="{{ row_count|default:1 }}">
+
+          <tbody>
+            {% for row in rows_data %}
+            <tr>
+              <td class="text-center row-number" data-label="#">{{ row.index }}</td>
+
+              <!-- 거래처 -->
+              <td data-label="거래처">
+                <select name="vendor_{{ row.index }}" class="form-select vendor-select" data-row="{{ row.index }}">
+                  <option value="">-- 거래처 선택 --</option>
+                  {% for vendor in vendors %}
+                  <option value="{{ vendor.id }}"
+                          data-kind="{{ vendor.vendor_type.name|default:'' }}"
+                          {% if row.vendor == vendor.id|stringformat:"s" %}selected{% endif %}>
+                    {{ vendor.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </td>
+
+              <!-- 교구재 -->
+              <td data-label="교구재">
+                <select name="material_{{ row.index }}" class="form-select material-select" data-row="{{ row.index }}">
+                  <option value="">-- 교구재 선택 --</option>
+                  {% for material in materials %}
+                  <option value="{{ material.id }}"
+                          data-vendor="{{ material.vendor.id }}"
+                          data-kind="{{ material.vendor.vendor_type.name|default:'' }}"
+                          data-price="{{ material.school_price|default:0 }}"
+                          data-stock="{{ material.stock }}"
+                          {% if row.material == material.id|stringformat:"s" %}selected{% endif %}>
+                    {{ material.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </td>
+
+
+              <!-- 납품가 (천단위 표시, 숫자 input 그대로 두되 화면에서는 천단위로) -->
+              <!-- 납품가 -->
+              <td data-label="납품가">
+                <input type="text"
+                      name="unit_price_{{ row.index }}"
+                      class="form-control price-input text-end"
+                      placeholder="가격"
+                      value="{{ row.unit_price|default:'' }}">
+              </td>
+
+              <td data-label="수량">
+                <input type="number" 
+                      name="quantity_{{ row.index }}" 
+                      class="form-control text-end material-qty"
+                      data-row="{{ row.index }}"
+                      value="{{ row.quantity|default:'0' }}">
+              </td>
+
+              <!-- ⭐ 센터재고 칸 추가 -->
+              <td data-label="센터재고" class="text-center">
+                <span class="stock-display-{{ row.index }} text-primary fw-bold">-</span>
+              </td>
+
+              <!-- 출고방법 -->
+              <td data-label="출고방법">
+                <select name="release_method_{{ row.index }}" class="form-select">
+                  <option value="택배" {% if row.release_method == "택배" %}selected{% endif %}>택배</option>
+                  <option value="센터수령" {% if row.release_method == "센터수령" %}selected{% endif %}>센터수령</option>
+                </select>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+
+        </table>
+      </div>
+
+      <div class="mb-3 text-end">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="addRowBtn">+ 추가</button>
+      </div>
+
+      <div class="text-center mt-4 d-grid gap-2">
+        <button type="submit" class="btn btn-primary">출고 등록</button>
+        <a href="{% url 'release_list' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">취소</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<script src="{% static 'js/release_form.js' %}"></script>
+{% endblock %}

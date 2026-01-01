@@ -1,0 +1,246 @@
+<!-- === 파일: templates/release/estimate_preview.html === -->
+<!-- 👉 견적서 미리보기 (교구재 포함/제외 선택 + 제목/비고 수정 + 즉시 합계 미리보기) -->
+
+{% extends "base.html" %}
+{% load humanize mul_filters %}
+{% block content %}
+<div class="container mt-4" style="max-width:960px;">
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-file-earmark-text"></i> 견적서 미리보기
+    </div>
+
+    <div class="card-body">
+      <!-- 알림 -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- 상단 요약 -->
+      <p class="mb-2">
+        <strong><i class="bi bi-building"></i> 기관:</strong> {{ totals.institution.name }} /
+        <strong><i class="bi bi-calendar"></i> 주문년월:</strong> {{ totals.order_month }} /
+        <strong><i class="bi bi-cash-coin"></i> 합계:</strong> {{ totals.grand_total|intcomma }}원
+      </p>
+      <p class="mb-3">
+        <strong><i class="bi bi-envelope"></i> 수신 예정:</strong>
+        {% if recipients and recipients|length > 0 %}
+          {{ recipients|join:", " }}
+        {% else %}
+          <span class="text-warning">담당자/행정실 이메일이 없어 발송 대상이 없습니다.</span>
+        {% endif %}
+      </p>
+
+      <!-- ✅ 수정/저장 폼 시작 -->
+      <form method="post" id="estimateForm" class="mb-3">
+        {% csrf_token %}
+        {{ form.management_form }}
+        {{ formset.management_form }}
+
+        <!-- 견적서 정보 -->
+        <div class="card mb-3 shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-pencil-square"></i> 견적서 정보</h5>
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label">견적서 제목</label>
+                {{ form.title }}
+              </div>
+              <div class="col-12">
+                <label class="form-label">비고/특이사항</label>
+                {{ form.notes }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 교구재 선택 -->
+        <div class="card mb-3 shadow-sm border-0">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h5 class="mb-0"><i class="bi bi-box-seam"></i> 교구재 선택</h5>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="checkAll">
+                  <i class="bi bi-check2-square"></i> 전체 선택
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="uncheckAll">
+                  <i class="bi bi-square"></i> 전체 해제
+                </button>
+              </div>
+            </div>
+
+            <table class="table table-bordered align-middle text-center">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 6%;">포함</th>
+                  <th style="width: 30%;">교구재명</th>
+                  <th style="width: 30%;">그룹명</th>
+                  <th style="width: 10%;">단가(원)</th>
+                  <th style="width: 8%;">수량</th>
+                  <th style="width: 16%;">소계(원)</th>
+                </tr>
+              </thead>
+              <tbody id="itemTbody">
+              {% for f in formset %}
+                {% with it=f.instance %}
+                <tr data-unit="{{ it.unit_price }}" data-qty="{{ it.quantity }}">
+                  <td>
+                    {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                    {{ f.included }}
+                  </td>
+                  <td class="text-center">
+                    <div class="fs-6">{{ it.material.name }}</div>
+                  </td>
+                  <td>
+                    <span class="group-name-display text-muted small">
+                      {{ f.group_name.value|default:it.material.name }}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary edit-group-btn">수정</button>
+                    <div class="group-name-edit d-none mt-1">
+                      {{ f.group_name }}
+                      <button type="button" class="btn btn-sm btn-primary save-group-btn">저장</button>
+                    </div>
+                  </td>
+                  <td>{{ it.unit_price|intcomma }}</td>
+                  <td>{{ it.quantity|intcomma }}</td>
+                  <td class="line-total text-end">{{ it.unit_price|mul:it.quantity|intcomma }}</td>
+                </tr>
+                {% endwith %}
+              {% endfor %}
+              </tbody>
+            </table>
+
+            <small class="text-muted">※ 단가는 VAT 포함가로 가정합니다.</small>
+          </div>
+        </div>
+
+        <!-- 합계 -->
+        <div class="card mb-3 shadow-sm border-0">
+          <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-calculator"></i> 합계 (선택 반영 미리보기)</h5>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3">
+                  <div class="small text-muted">공급가액</div>
+                  <div class="fs-5 fw-semibold" id="supplySum">-</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3">
+                  <div class="small text-muted">부가세</div>
+                  <div class="fs-5 fw-semibold" id="vatSum">-</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="p-3 bg-light rounded-3">
+                  <div class="small text-muted">총 합계(VAT 포함)</div>
+                  <div class="fs-5 fw-semibold" id="totalSum">-</div>
+                </div>
+              </div>
+            </div>
+            <div class="small text-muted mt-2">
+              * 미리보기 값은 체크 상태로 계산한 값이며, <strong>저장</strong> 후 PDF/메일에 반영됩니다. (VAT 계산: 총액 ÷ 11, 5 이상 반올림)
+            </div>
+          </div>
+        </div>
+      </form>
+      <!-- ✅ 저장폼 끝 -->
+
+      <!-- 버튼 그룹 (4개 한 줄) -->
+      <div class="d-flex gap-2 flex-wrap">
+        <!-- 저장 -->
+        <button type="submit" form="estimateForm" class="btn btn-primary">
+          <i class="bi bi-save"></i> 저장
+        </button>
+
+        <!-- PDF 미리보기 -->
+        <a href="{{ pdf_url }}" target="_blank" class="btn btn-outline-primary">
+          <i class="bi bi-filetype-pdf"></i> PDF 미리보기
+        </a>
+
+        <!-- 이메일 발송 -->
+        <form method="post" action="{{ send_url }}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-send"></i> 이메일 발송
+          </button>
+        </form>
+
+        <!-- 목록으로 -->
+        <a href="{% url 'release_list' %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" class="btn btn-secondary">
+          <i class="bi bi-list-ul"></i> 목록으로
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 합계 계산 JS -->
+<script>
+  function nfmt(n){ return (n||0).toLocaleString(); }
+  function calcVatFromTotal(total){ return Math.floor((total + 5) / 11); }
+
+  function recalc(){
+    const rows = document.querySelectorAll('#itemTbody tr');
+    let total = 0;
+    rows.forEach(row => {
+      const cb = row.querySelector('input[type="checkbox"]');
+      if(cb && cb.checked){
+        const u = parseInt(row.dataset.unit || '0', 10);
+        const q = parseInt(row.dataset.qty  || '0', 10);
+        total += (u * q);
+      }
+    });
+    const vat = calcVatFromTotal(total);
+    const supply = total - vat;
+
+    document.getElementById('totalSum').textContent  = nfmt(total) + '원';
+    document.getElementById('vatSum').textContent    = nfmt(vat)   + '원';
+    document.getElementById('supplySum').textContent = nfmt(supply)+ '원';
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('#itemTbody input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', recalc);
+    });
+    document.getElementById('checkAll').addEventListener('click', () => {
+      document.querySelectorAll('#itemTbody input[type="checkbox"]').forEach(cb => cb.checked = true);
+      recalc();
+    });
+    document.getElementById('uncheckAll').addEventListener('click', () => {
+      document.querySelectorAll('#itemTbody input[type="checkbox"]').forEach(cb => cb.checked = false);
+      recalc();
+    });
+    recalc();
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".edit-group-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const td = btn.closest("td");
+        td.querySelector(".group-name-display").classList.add("d-none");
+        td.querySelector(".edit-group-btn").classList.add("d-none");
+        td.querySelector(".group-name-edit").classList.remove("d-none");
+      });
+    });
+
+    document.querySelectorAll(".save-group-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const td = btn.closest("td");
+        const input = td.querySelector("input[name$='group_name']");
+        const display = td.querySelector(".group-name-display");
+        display.textContent = input.value || "-";
+
+        td.querySelector(".group-name-display").classList.remove("d-none");
+        td.querySelector(".edit-group-btn").classList.remove("d-none");
+        td.querySelector(".group-name-edit").classList.add("d-none");
+      });
+    });
+  });
+</script>
+{% endblock %}

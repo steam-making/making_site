@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load static %}
+{% load course_filters %}
+
+{% block content %}
+<style>
+    /* 타입별 라벨 색상 */
+    .tag-example { background:#d0e7ff; color:#0b64c0; font-weight:600; padding:3px 8px; border-radius:6px; }
+    .tag-problem { background:#ffd6d6; color:#d92323; font-weight:600; padding:3px 8px; border-radius:6px; }
+    .tag-project { background:#d7f5dd; color:#259a42; font-weight:600; padding:3px 8px; border-radius:6px; }
+    .tag-homework { background:#ffe5c2; color:#d97314; font-weight:600; padding:3px 8px; border-radius:6px; }
+</style>
+
+<div class="container mt-4">
+
+    <!-- 제목 영역 -->
+    <div class="mb-4">
+        <h3 class="fw-bold">
+            {{ chapter.number }}장 – {{ chapter.title }}
+        </h3>
+
+        <!-- 🔥 전체 진도율 -->
+        <div>
+            <label class="small text-muted">전체 진도율</label>
+            <div class="progress" style="height: 12px;">
+                <div class="progress-bar bg-success"
+                     role="progressbar"
+                     style="width: {{ chapter_progress }}%;">
+                </div>
+            </div>
+            <span class="small text-muted">
+                {{ chapter_progress }}%
+            </span>
+        </div>
+    </div>
+
+    <!-- 문제 목록 테이블 -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle shadow-sm">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 100px;">번호</th>
+                    <th style="width: 150px;">유형</th>
+                    <th>문제 제목</th>
+                    <th style="width: 120px;">상태</th>
+                    <th style="width: 120px;">학습</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+            {% for it in items %}
+                {% with done=user_progress|get_item:it.id %}
+                <tr>
+
+                    <!-- 문제 번호 -->
+                    <td class="fw-bold">{{ it.key }}</td>
+
+                    <!-- 🔥 유형 태그 + 아이콘 -->
+                    <td>
+                        {% if it.item_type == "example" %}
+                            <span class="tag-example">
+                                <i class="bi bi-lightbulb"></i> 예제
+                            </span>
+                        {% elif it.item_type == "problem" %}
+                            <span class="tag-problem">
+                                <i class="bi bi-pencil-square"></i> 문제
+                            </span>
+                        {% elif it.item_type == "project" %}
+                            <span class="tag-project">
+                                <i class="bi bi-rocket-takeoff"></i> 프로젝트
+                            </span>
+                        {% elif it.item_type == "homework" %}
+                            <span class="tag-homework">
+                                <i class="bi bi-house-check"></i> 과제
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- 문제 제목 -->
+                    <td>{{ it.title }}</td>
+
+                    <!-- 완료 여부 -->
+                    <td>
+                        {% if done %}
+                            <span class="text-primary fw-semibold">
+                                <i class="bi bi-check-circle-fill"></i> 완료
+                            </span>
+                        {% else %}
+                            <span class="text-secondary">
+                                <i class="bi bi-circle"></i> 미완료
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- 학습 버튼 -->
+                    <td>
+                        <a href="{% url 'item_page' it.id %}"
+                           class="btn btn-sm {% if done %}btn-outline-primary{% else %}btn-primary{% endif %} w-100">
+                            시작하기 →
+                        </a>
+                    </td>
+
+                </tr>
+                {% endwith %}
+            {% endfor %}
+            </tbody>
+
+        </table>
+    </div>
+
+    <!-- 뒤로가기 -->
+    <div class="mt-3">
+        <a href="{% url 'course_home' program.id %}" class="btn btn-secondary">
+            ← 코스 목록으로
+        </a>
+    </div>
+
+</div>
+{% endblock %}

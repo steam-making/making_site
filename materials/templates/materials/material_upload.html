@@ -1,0 +1,11 @@
+<a href="{% url 'download_material_template' %}" class="btn btn-info mb-3">엑셀 템플릿 다운로드</a>
+
+<h3>엑셀 파일로 교구재 대량 등록</h3>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">업로드</button>
+</form>
+
+<a href="{% url 'material_list' %}" class="btn btn-secondary mt-2">목록으로 가기</a>

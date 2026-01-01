@@ -1,0 +1,140 @@
+<!-- 👉 예약 목록 (Bootstrap5 + 아이콘 포함) -->
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-center mb-3">
+    <i class="bi bi-calendar-check"></i> 예약 목록
+  </h3>
+
+  <!-- ✅ PC 테이블 -->
+  <div class="d-none d-md-block">
+    <table class="table table-striped align-middle">
+      <thead class="table-light text-center">
+        <tr>
+          <th><i class="bi bi-building"></i> 기관</th>
+          <th><i class="bi bi-journal-code"></i> 상품</th>
+          <th><i class="bi bi-calendar-event"></i> 일시</th>
+          <th><i class="bi bi-people"></i> 인원</th>
+          <th><i class="bi bi-geo-alt"></i> 장소</th>
+          <th><i class="bi bi-flag"></i> 상태</th>
+          <th class="text-center"><i class="bi bi-gear"></i> 관리</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reservations %}
+        <tr class="text-center">
+          <td>{{ r.institution }}</td>
+          <td>{{ r.product.name }}</td>
+          <td>{{ r.date }} <br> {{ r.start_time }}~{{ r.end_time }}</td>
+          <td>{{ r.headcount }}</td>
+          <td>{{ r.place|linebreaksbr }}</td>
+          <td>
+            <span class="badge 
+              {% if r.status == 'approved' %}bg-success
+              {% elif r.status == 'rejected' %}bg-danger
+              {% elif r.status == 'canceled' %}bg-secondary
+              {% else %}bg-dark{% endif %}">
+              <i class="bi bi-circle-fill"></i> {{ r.get_status_display }}
+            </span>
+          </td>
+          <!-- ✅ 관리 버튼 칸 (가로로 정렬 고정) -->
+          <td class="text-nowrap">
+            <div class="d-flex justify-content-center gap-2 flex-nowrap">
+              {% if request.user.is_staff %}
+                {% if r.status == 'approved' %}
+                  <a href="{% url 'reservation_confirm' r.id %}" 
+                     class="btn btn-sm btn-secondary">요청으로</a>
+                {% elif r.status == 'requested' %}
+                  <a href="{% url 'reservation_confirm' r.id %}" 
+                     class="btn btn-sm btn-success">확정</a>
+                {% endif %}
+                <a href="{% url 'reservation_edit' r.id %}" class="btn btn-sm btn-warning">수정</a>
+                <a href="{% url 'reservation_cancel' r.id %}" 
+                   class="btn btn-sm btn-danger"
+                   onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
+              {% else %}
+                {% if r.status != 'canceled' %}
+                  <a href="{% url 'reservation_edit' r.id %}" class="btn btn-sm btn-warning">수정</a>
+                  <a href="{% url 'reservation_cancel' r.id %}" 
+                     class="btn btn-sm btn-secondary"
+                     onclick="return confirm('예약을 취소하시겠습니까?')">취소</a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <i class="bi bi-inbox"></i> 예약이 없습니다.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ✅ 모바일 카드 -->
+  <div class="d-md-none">
+    {% for r in reservations %}
+    <div class="card mb-2 shadow-sm">
+      <div class="card-body">
+        <h5 class="text-truncate"><i class="bi bi-journal-code"></i> {{ r.product.name }}</h5>
+        <p class="mb-1"><i class="bi bi-building"></i> {{ r.institution }}</p>
+        <p class="mb-1"><i class="bi bi-calendar-event"></i> {{ r.date }} {{ r.start_time }}~{{ r.end_time }}</p>
+        <p class="mb-1"><i class="bi bi-people"></i> {{ r.headcount }}</p>
+        <p class="mb-1"><i class="bi bi-geo-alt"></i> {{ r.place }}</p>
+        <div class="my-2">
+          <span class="badge 
+            {% if r.status == 'approved' %}bg-success
+            {% elif r.status == 'rejected' %}bg-danger
+            {% elif r.status == 'canceled' %}bg-secondary
+            {% else %}bg-dark{% endif %}"> 
+            <i class="bi bi-circle-fill"></i> {{ r.get_status_display }}
+          </span>
+        </div>
+        <!-- ✅ 관리 버튼 (모바일: 가로 정렬 유지) -->
+        <div class="d-flex justify-content-center flex-wrap gap-2">
+          {% if request.user.is_staff %}
+            {% if r.status == 'approved' %}
+              <a href="{% url 'reservation_confirm' r.id %}" 
+                 class="btn btn-sm btn-secondary">대기</a>
+            {% elif r.status == 'requested' %}
+              <a href="{% url 'reservation_confirm' r.id %}" 
+                 class="btn btn-sm btn-success">확정</a>
+            {% endif %}
+            <a href="{% url 'reservation_edit' r.id %}" class="btn btn-sm btn-warning">수정</a>
+            <a href="{% url 'reservation_cancel' r.id %}" 
+               class="btn btn-sm btn-danger"
+               onclick="return confirm('정말 삭제하시겠습니까?')">삭제</a>
+          {% else %}
+            {% if r.status != 'canceled' %}
+              <a href="{% url 'reservation_edit' r.id %}" class="btn btn-sm btn-warning">수정</a>
+              <a href="{% url 'reservation_cancel' r.id %}" 
+                 class="btn btn-sm btn-secondary"
+                 onclick="return confirm('예약을 취소하시겠습니까?')">취소</a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+
+
+  /* 텍스트가 자동 줄바꿈 되도록 설정 */
+  .table td, .table th {
+    white-space: normal;
+    word-break: keep-all; /* 단어 단위로 줄바꿈 (한국어 가독성 ↑) */
+  }
+
+  /* 버튼은 가로로 붙여 표시 */
+  .table td .d-flex {
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,51 @@
+/* ===============================
+   모집공고 테이블 모바일 대응
+   =============================== */
+@media (max-width: 768px) {
+
+  .table-stack table,
+  .table-stack thead,
+  .table-stack tbody,
+  .table-stack th,
+  .table-stack td,
+  .table-stack tr {
+    display: block;
+    width: 100%;
+  }
+
+  .table-stack thead {
+    display: none; /* 헤더 숨김 */
+  }
+
+  .table-stack tr {
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  }
+
+  .table-stack td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border: none;
+    padding: 0.35rem 0;
+    font-size: 0.95rem;
+  }
+
+  .table-stack td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #555;
+    flex: 0 0 90px;
+  }
+
+  /* 버튼 영역 */
+  .table-stack td[data-label="관리"] {
+    justify-content: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+}

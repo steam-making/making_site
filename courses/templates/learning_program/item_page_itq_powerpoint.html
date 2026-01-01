@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-3">
+
+    <h4 class="fw-bold mb-3">
+        {{ item.chapter.number }}장 - {{ item.title }}
+    </h4>
+
+    <!-- 🔼 OneDrive PPTX VIEW -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-0">
+            <a href="{{ onedrive_url }}"
+            target="_blank"
+            class="btn btn-primary btn-lg w-100">
+                📊 파워포인트 열기 (편집)
+            </a>
+            {% if onedrive_url %}
+            <iframe 
+                src="{{ onedrive_url }}"
+                style="width:100%; height:600px; border:0;">
+            </iframe>
+            {% else %}
+                <p class="text-danger p-3">
+                    OneDrive 파일 경로를 찾을 수 없습니다.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 🔽 진도 버튼 -->
+    <div class="d-flex justify-content-between mt-4">
+
+        <!-- 이전 -->
+        {% if prev_item %}
+        <a href="{% url 'item_page' prev_item.id %}" class="btn btn-outline-secondary">
+            ← 이전
+        </a>
+        {% else %}
+        <button class="btn btn-outline-secondary" disabled>← 이전</button>
+        {% endif %}
+
+        <!-- 보류 -->
+        <form method="post" action="{% url 'update_progress' item.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="hold">
+            <button class="btn btn-warning">보류</button>
+        </form>
+
+        <!-- 완료 -->
+        <form method="post" action="{% url 'update_progress' item.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="status" value="done">
+            <button class="btn btn-success">완료</button>
+        </form>
+
+        <!-- 다음 -->
+        {% if next_item %}
+        <a href="{% url 'item_page' next_item.id %}" class="btn btn-primary">
+            다음 →
+        </a>
+        {% else %}
+        <button class="btn btn-primary" disabled>다음 →</button>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

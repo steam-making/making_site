@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4" style="max-width: 900px;">
+  <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+
+    <!-- 이미지 -->
+    {% if product.image %}
+      <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="max-height:300px; object-fit:cover;">
+    {% else %}
+      <div class="bg-light d-flex align-items-center justify-content-center" style="height:200px;">
+        <i class="bi bi-image text-muted" style="font-size:2rem;"></i>
+      </div>
+    {% endif %}
+
+    <div class="card-body">
+      <!-- 제목 & 카테고리 -->
+      <h3 class="mb-2">
+        <i class="bi bi-journal-code"></i> {{ product.name }}
+        {% if product.status == "private" %}
+          <span class="badge bg-secondary ms-2">비공개</span>
+        {% endif %}
+      </h3>
+      <p class="text-muted mb-3">
+        <i class="bi bi-tags"></i> {{ product.category|default:"카테고리 없음" }}
+      </p>
+
+      <!-- 설명 -->
+      <h5><i class="bi bi-card-text"></i> 설명</h5>
+      <p class="mb-3">{{ product.description|linebreaksbr }}</p>
+
+      <!-- 상세 정보 -->
+      <ul class="list-group list-group-flush mb-3">
+        <li class="list-group-item">
+          <i class="bi bi-clock-history"></i> 수업시간 : {{ product.duration_minutes }}분
+        </li>
+        <li class="list-group-item">
+          <i class="bi bi-cash-coin"></i> 기본 가격(인당) : {{ product.base_price|intcomma }}원
+        </li>
+        <li class="list-group-item">
+          <i class="bi bi-box"></i>
+          {% if product.include_material_cost %}
+            재료비 포함
+            {% if product.included_materials %}
+              <div class="small text-muted mt-1">포함 내용: {{ product.included_materials|linebreaksbr }}</div>
+            {% endif %}
+          {% else %}
+            재료비 별도
+            {% if product.materials.all %}
+              <div class="mt-2">
+                <table class="table table-sm">
+                  <thead>
+                    <tr><th>재료명</th><th>가격</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for m in product.materials.all %}
+                      <tr>
+                        <td>{{ m.name }}</td>
+                        <td>{{ m.price|intcomma }}원</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+                <p class="fw-bold text-end">재료비 합계: {{ material_total|intcomma }}원</p>
+              </div>
+            {% endif %}
+          {% endif %}
+        </li>
+        <li class="list-group-item bg-light fw-bold text-end">
+          <i class="bi bi-cash-stack"></i> 총 수강료: {{ total_price|intcomma }}원
+        </li>
+        <li class="list-group-item">
+          <i class="bi bi-calendar-check"></i> 등록일: {{ product.created_at|date:"Y-m-d H:i" }}
+        </li>
+      </ul>
+
+      <!-- 주제 -->
+      {% if product.topics %}
+        <h5><i class="bi bi-list-task"></i> 주제</h5>
+        <ul class="list-group mb-3">
+          {% for t in product.topics %}
+            <li class="list-group-item">{{ t }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <!-- 버튼 -->
+      <div class="d-flex justify-content-between mt-3">
+        <a href="{% url 'product_list' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left"></i> 목록
+        </a>
+        <div class="d-flex gap-2">
+          {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'product_update' product.id %}" class="btn btn-warning">
+              <i class="bi bi-pencil-square"></i> 수정
+            </a>
+            <form action="{% url 'product_delete' product.id %}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> 삭제
+              </button>
+            </form>
+          {% endif %}
+          <a href="{% url 'reservation_create' %}?product={{ product.id }}" class="btn btn-primary">
+            <i class="bi bi-calendar-plus"></i> 예약하기
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

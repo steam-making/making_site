@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="container">
+
+  <!-- 타이틀 -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      {% if mode == "add" %}
+        <i class="bi bi-plus-circle"></i> SourceSite 추가
+      {% else %}
+        <i class="bi bi-pencil-square"></i> SourceSite 수정
+      {% endif %}
+    </h4>
+  </div>
+
+  <!-- 카드 -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- 관리 지역 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">관리 지역</label>
+          {{ form.area|add_class:"form-select" }}
+          <div class="form-text">
+            SourceSite를 관리할 지역을 선택하세요
+          </div>
+        </div>
+
+
+        <!-- 사이트명 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">사이트명</label>
+          {{ form.name|add_class:"form-control" }}
+        </div>
+
+        <!-- URL -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">목록 URL</label>
+          {{ form.url|add_class:"form-control" }}
+        </div>
+
+        <!-- 활성 여부 -->
+        <div class="form-check form-switch mb-3">
+          {{ form.active|add_class:"form-check-input" }}
+          <label class="form-check-label fw-bold">
+            활성화
+          </label>
+        </div>
+
+        <!-- 수집기 유형 -->
+        <div class="mb-3">
+        <label class="form-label fw-bold">
+            수집기 유형
+        </label>
+        {{ form.collector|add_class:"form-select" }}
+        <div class="form-text">
+            사이트 구조에 맞는 수집 방식을 선택하세요
+        </div>
+        </div>
+
+        <!-- 요청 방식 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">요청 방식</label>
+          {{ form.request_method|add_class:"form-select" }}
+        </div>
+
+        <!-- 추가 파라미터 -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">
+            추가 파라미터 (JSON)
+          </label>
+          {{ form.extra_params|add_class:"form-control" }}
+          <div class="form-text">
+            예: <code>{"list_oper_rgn_lclsf_cd": "R0500"}</code>
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- 셀렉터 영역 -->
+        <h6 class="fw-bold mb-2">
+          <i class="bi bi-braces"></i> 크롤링 셀렉터
+        </h6>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">목록 셀렉터</label>
+            {{ form.list_selector|add_class:"form-control" }}
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label">제목 셀렉터</label>
+            {{ form.title_selector|add_class:"form-control" }}
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label">링크 셀렉터</label>
+            {{ form.link_selector|add_class:"form-control" }}
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label">날짜 셀렉터</label>
+            {{ form.date_selector|add_class:"form-control" }}
+          </div>
+        </div>
+
+        <!-- 버튼 -->
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save"></i> 저장
+          </button>
+          <a href="{% url 'linkhub:source_list' %}?area={{ area }}"
+            class="btn btn-outline-secondary">
+              취소
+          </a>
+
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

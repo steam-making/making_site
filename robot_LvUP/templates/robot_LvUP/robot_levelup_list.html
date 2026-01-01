@@ -1,0 +1,427 @@
+
+{% extends "base.html" %}
+{% load humanize %}
+{% load levelup_extras %}
+{% block content %}
+<div class="container mt-4">
+
+  <!-- 🔹 헤더 -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h4 class="m-0">
+      <i class="bi bi-bar-chart-steps me-2 text-primary"></i>
+      <span class="fw-semibold">{{ institution.name }}</span>
+      <small class="text-muted">({{ institution.program }}) 단계업 관리</small>
+    </h4>
+
+    <div class="d-flex align-items-center gap-2 flex-nowrap levelup-toolbar">
+
+      <!-- 월 필터 -->
+      <select class="form-select form-select-sm levelup-month"
+              onchange="filterMonth(this.value)">
+        <option value="">전체 월</option>
+        {% for ym in grouped_records.keys %}
+          <option value="{{ ym }}">{{ ym }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- 버튼들 -->
+      <a href="{% url 'robot_levelup_create' institution.id %}"
+        class="btn btn-success btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-plus-circle"></i> 단계업 등록
+      </a>
+
+      <a href="{% url 'levelup_dashboard' %}"
+        class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-bar-chart"></i> 통계 보기
+      </a>
+
+      <a href="{% url 'students:student_list' %}"
+        class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1">
+        <i class="bi bi-arrow-left"></i> 출강장소
+      </a>
+
+      <button class="btn btn-warning btn-sm d-flex align-items-center gap-1"
+              onclick="selectReleaseMonth()">
+        <i class="bi bi-box-arrow-up"></i> 출고등록
+      </button>
+
+    </div>
+  </div>
+
+  {% if undelivered_materials %}
+      <div class="card border-warning shadow-sm mb-4">
+        <div class="card-body">
+
+          <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+
+            <span class="badge bg-dark">
+              출고 완료 {{ release_done }}개 / 전달 미완료 교구 {{ undelivered_total_qty }}개)
+            </span>
+          </div>
+
+
+          <div class="d-flex flex-wrap gap-2">
+            {% for m in undelivered_materials %}
+              <span class="badge 
+                {% cycle 'bg-primary' 'bg-success' 'bg-warning text-dark' 'bg-danger' 'bg-info text-dark' 'bg-secondary' %}
+                px-3 py-2">
+                {{ m.material__name }} : {{ m.qty }}개
+              </span>
+            {% endfor %}
+          </div>
+
+        </div>
+      </div>
+  {% endif %}
+
+  <!-- 🔹 단계업 리스트 (records 유지 + 월 헤더 삽입) -->
+  <div class="table-responsive">
+    <table class="table table-striped table-hover table-stack align-middle text-center">
+      <thead class="table-light">
+        <tr>
+          <th>년월</th><th>교구명</th><th>부</th><th>학년</th><th>반</th><th>번호</th><th>학생명</th>
+          <th>안내</th><th>출고</th><th>전달</th><th>가격</th><th>비고</th><th>관리</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        {% for r in records %}
+          {# 🔹 월이 바뀔 때만 헤더 출력 #}
+          {% ifchanged r.year_month %}
+          <tr class="table-secondary month-header cursor-pointer"
+              data-month="{{ r.year_month }}"
+              onclick="toggleMonth('{{ r.year_month }}')">
+            <td colspan="13" class="text-start fw-semibold py-2">
+
+              <i class="bi bi-calendar-event me-2"></i>
+              <span class="me-3">{{ r.year_month }}</span>
+
+              {% if monthly_stats and monthly_stats.r_year_month %}
+              {% endif %}
+
+              {% with stat=monthly_stats.r_year_month %}
+              {% endwith %}
+
+              {% if monthly_stats %}
+                {% for ym, stat in monthly_stats.items %}
+                  {% if ym == r.year_month %}
+                    <!-- 안내 -->
+                    <span class="badge bg-success ms-1">
+                      안내 {{ stat.guide_done }}/{{ stat.total }}
+                    </span>
+
+                    <!-- 출고 -->
+                    <span class="badge bg-warning text-dark ms-1">
+                      출고 {{ stat.release_done }}/{{ stat.total }}
+                    </span>
+
+                    <!-- 전달 -->
+                    <span class="badge bg-info text-dark ms-1">
+                      전달 {{ stat.delivered }}/{{ stat.total }}
+                    </span>
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+
+            </td>
+          </tr>
+          {% endifchanged %}
+
+
+
+          <tr class="month-row d-none" data-month="{{ r.year_month }}">
+
+            <td>{{ r.year_month }}</td>
+            <td>{{ r.material.name }}</td>
+            <td>{{ r.section }}</td>
+            <td>{{ r.grade }}</td>
+            <td>{{ r.class_no }}</td>
+            <td>{{ r.student_no }}</td>
+            <td class="fw-semibold">{{ r.student_name }}</td>
+
+            <!-- 기존 토글 버튼 전부 유지 -->
+            <td class="text-center">
+              <button class="btn btn-sm toggle-btn {% if r.guide_done %}btn-success{% else %}btn-outline-success{% endif %}"
+                      data-id="{{ r.pk }}" data-field="guide">
+                {% if r.guide_done %}
+                  ✅ <small class="text-muted ms-1">{{ r.guide_date|date:"y.m.d" }}</small>
+                {% else %}
+                  안내
+                {% endif %}
+              </button>
+            </td>
+
+            <td class="text-center">
+              <button class="btn btn-sm toggle-btn {% if r.release_done %}btn-warning{% else %}btn-outline-warning{% endif %}"
+                      data-id="{{ r.pk }}" data-field="release">
+                {% if r.release_done %}
+                  ✅ <small class="text-muted ms-1">{{ r.release_date|date:"y.m.d" }}</small>
+                {% else %}
+                  출고
+                {% endif %}
+              </button>
+            </td>
+
+            <td class="text-center">
+              <button class="btn btn-sm toggle-btn {% if r.delivery_done %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                      data-id="{{ r.pk }}" data-field="delivery">
+                {% if r.delivery_done %}
+                  ✅ <small class="text-muted ms-1">{{ r.delivery_date|date:"y.m.d" }}</small>
+                {% else %}
+                  전달
+                {% endif %}
+              </button>
+            </td>
+
+            <td class="text-end">{{ r.price|intcomma }}원</td>
+            <td>{{ r.note|default:"-" }}</td>
+
+            <td>
+              <a href="{% url 'robot_levelup_update' r.pk %}" class="btn btn-sm btn-outline-secondary">수정</a>
+              <a href="{% url 'robot_levelup_delete' r.pk %}"
+                 class="btn btn-sm btn-outline-danger"
+                 onclick="return confirm('삭제하시겠습니까?');">
+                 <i class="bi bi-trash"></i>
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+        <tr>
+          <td colspan="13" class="text-center text-muted">
+            등록된 단계업 학생이 없습니다.
+          </td>
+        </tr>
+        {% endfor %}
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+.stat-card .fw-semibold {
+  font-size: 0.9rem;
+}
+
+.stat-card .fs-5 {
+  font-size: 1.1rem;
+}
+
+.stat-card .badge {
+  font-size: 0.85rem;
+  padding: 0.3em 0.5em;
+}
+
+.stat-card .col-6 {
+  margin-bottom: 0.5rem !important;
+}
+
+
+  .levelup-toolbar {
+  overflow-x: auto;          /* 화면 좁으면 가로 스크롤 */
+}
+
+.levelup-month {
+  width: 110px;              /* 너무 커지는 것 방지 */
+  min-width: 110px;
+  flex-shrink: 0;            /* 줄어들지 않게 */
+}
+
+.levelup-toolbar .btn {
+  flex-shrink: 0;            /* 버튼도 줄바꿈 방지 */
+}
+
+/* 🔹 버튼 전체 스타일 통일 */
+.btn { 
+  border-radius: 8px !important; 
+  font-weight: 500; 
+}
+.btn i { 
+  font-size: 1rem; 
+}
+
+/* 🔹 모바일 반응형 정렬 */
+@media (max-width: 768px) {
+  .container h4 { 
+    text-align: center; 
+    width: 100%; 
+  }
+  .container .d-flex.flex-wrap { 
+    justify-content: center !important; 
+  }
+}
+
+/* 🔹 뱃지 크기 조정 */
+.badge { 
+  font-size: 0.9rem; 
+  padding: 0.4em 0.6em; 
+}
+
+/* 🔹 muted small 기본 크기 */
+.text-muted small { 
+  font-size: 0.8rem; 
+}
+
+/* ✅ 단계업 토글 버튼 개선 */
+.toggle-btn {
+  display: inline-flex;              /* 한 줄로 정렬 */
+  align-items: center;               /* 수직 가운데 정렬 */
+  justify-content: center;
+  gap: 4px;                          /* 체크표시와 날짜 간격 */
+  min-width: 80px;                   /* 버튼 크기 균일하게 */
+  white-space: nowrap;               /* 줄바꿈 방지 */
+}
+
+.toggle-btn small {
+  font-size: 0.85rem;
+  color: #f8f9fa;                    /* 버튼 위에선 흰색 글씨 */
+}
+
+/* ✅ 체크가 안 된 상태일 때는 날짜가 없으므로 기본 색 유지 */
+.btn-outline-success small,
+.btn-outline-warning small,
+.btn-outline-primary small {
+  color: #6c757d;
+}
+</style>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const recordId = btn.dataset.id;
+      const field = btn.dataset.field;
+      const url = `/robot_LvUP/toggle/${recordId}/${field}/`;
+
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (!data.success) return;
+
+        // ✅ 날짜 엘리먼트 즉시 제거
+        let dateElem = btn.parentElement.querySelector('small');
+        if (dateElem) dateElem.remove();
+
+        // ✅ 상태 토글
+        if (data.done) {
+          // ✅ 한 줄로 표시 (체크 + 날짜)
+          const todayText = data.date ? `✅ ${data.date}` : '✅';
+          btn.innerHTML = todayText;
+
+          btn.classList.remove('btn-outline-success', 'btn-outline-warning', 'btn-outline-primary');
+          if (field === 'guide') btn.classList.add('btn-success');
+          if (field === 'release') btn.classList.add('btn-warning');
+          if (field === 'delivery') btn.classList.add('btn-primary');
+
+        } else {
+          // ❌ 해제 상태
+          if (field === 'guide') {
+            btn.className = 'btn btn-sm btn-outline-success toggle-btn';
+            btn.textContent = '안내';
+          } else if (field === 'release') {
+            btn.className = 'btn btn-sm btn-outline-warning toggle-btn';
+            btn.textContent = '출고';
+          } else if (field === 'delivery') {
+            btn.className = 'btn btn-sm btn-outline-primary toggle-btn';
+            btn.textContent = '전달';
+          }
+        }
+
+      } catch (err) {
+        console.error('토글 오류:', err);
+      }
+    });
+  });
+});
+
+function openReleaseMonthSelector() {
+    const today = new Date();
+
+    // ⭐ 다음달 계산
+    let year = today.getFullYear();
+    let month = today.getMonth() + 2; // 현재달 + 1 ⇒ JS는 0부터 시작이므로 +2
+
+    if (month === 13) {
+        month = 1;
+        year += 1;
+    }
+
+    const defaultYM = `${year}-${String(month).padStart(2, '0')}`;
+
+    // ⭐ 사용자에게 선택창 보여주기
+    const selected = prompt("출고할 년월을 선택하세요. (예: 2025-12)", defaultYM);
+
+    if (!selected) return;  // 취소하면 아무 것도 안함
+
+    // ⭐ 정규식 검증 (YYYY-MM)
+    if (!/^\d{4}-\d{2}$/.test(selected)) {
+        alert("형식이 잘못되었습니다. 예: 2025-12");
+        return;
+    }
+
+    // URL 이동
+    const institutionId = "{{ institution.id }}";
+    const url = `/robot_LvUP/${institutionId}/release_auto/${selected}/`;
+
+    if (confirm(`${selected} 단계업 교구를 자동 출고등록 하시겠습니까?`)) {
+        window.location.href = url;
+    }
+}
+
+function selectReleaseMonth() {
+
+    // 오늘 기준 다음달 기본값
+    const today = new Date();
+    let year = today.getFullYear();
+    let month = today.getMonth() + 2;
+
+    if (month === 13) {
+        month = 1;
+        year++;
+    }
+
+    const defaultYM = `${year}-${String(month).padStart(2, '0')}`;
+
+    // 사용자 입력
+    const ym = prompt("출고할 년월을 선택하세요 (예: 2025-12)", defaultYM);
+
+    if (!ym) return;
+
+    if (!/^\d{4}-\d{2}$/.test(ym)) {
+        alert("형식이 잘못되었습니다. 예: 2025-12");
+        return;
+    }
+
+    // 출고 미리보기 페이지로 이동
+    const institutionId = "{{ institution.id }}";
+    const url = `/robot_LvUP/${institutionId}/release_preview/${ym}/`;
+
+    window.location.href = url;
+}
+
+function toggleMonth(month) {
+  document.querySelectorAll(`.month-row[data-month="${month}"]`)
+    .forEach(tr => tr.classList.toggle('d-none'));
+}
+
+function filterMonth(month) {
+  document.querySelectorAll('.month-header, .month-row')
+    .forEach(el => {
+      if (!month || el.dataset.month === month) {
+        el.classList.remove('d-none');
+      } else {
+        el.classList.add('d-none');
+      }
+    });
+}
+</script>
+
+
+
+{% endblock %}

@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'linkhub/css/department.css' %}">
+<link rel="stylesheet" href="{% static 'linkhub/css/post_hub.css' %}">
+
+<div class="container">
+
+    <!-- ===== 상단 ===== -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+        <!-- 🔹 제목 -->
+        <h4 class="mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-megaphone"></i>
+            모집 / 공지 통합 보기
+        </h4>
+
+        {% if request.user.is_staff %}
+        <!-- 🔹 관리자 버튼 영역 -->
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+            <!-- 🔹 수집 기준일 -->
+           {% if request.user.is_staff %}
+            <span class="badge bg-secondary d-inline-flex align-items-center gap-1"
+                style="cursor:pointer;"
+                onclick="openCutoffEditor()">
+
+                <span id="cutoff-label">
+                    수집 기준일: {{ cutoff_date }}
+                </span>
+
+                <i class="bi bi-pencil"></i>
+            </span>
+
+            <input type="date"
+                id="cutoff-input"
+                value="{{ cutoff_date|date:'Y-m-d' }}"
+                class="form-control form-control-sm d-none"
+                style="width: 150px;"
+                onchange="saveCutoffDate(this.value)">
+            {% else %}
+            <span class="badge bg-secondary">
+                수집 기준일: {{ cutoff_date }}
+            </span>
+            {% endif %}
+
+
+            <!-- 🔹 최근 수집일 -->
+            <span class="badge bg-light text-dark border d-flex align-items-center px-2 py-1">
+                <i class="bi bi-clock-history me-1 text-secondary"></i>
+                <small class="text-muted">최근 수집</small>
+                <strong class="ms-1">
+                    {% if latest_collected_date %}
+                        {{ latest_collected_date }}
+                    {% else %}
+                        없음
+                    {% endif %}
+                </strong>
+            </span>
+
+            <!-- 늘봄 수집 -->
+            <form method="post"
+                action="{% url 'linkhub:collect' %}"
+                class="m-0">
+                {% csrf_token %}
+                <input type="hidden" name="area" value="{{ area }}">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-arrow-repeat"></i>
+                    늘봄수집
+                </button>
+            </form>
+
+            <!-- SourceSite 관리 -->
+            <a href="{% url 'linkhub:source_list' %}"
+            class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-gear"></i>
+                SourceSite
+            </a>
+
+            <!-- 모두 삭제 -->
+            <form method="post"
+                action="{% url 'linkhub:delete_all' %}"
+                class="m-0"
+                onsubmit="return confirm('정말 모두 삭제할까요? (복구 불가)');">
+                {% csrf_token %}
+                <input type="hidden" name="area" value="{{ area }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash"></i>
+                    전체삭제
+                </button>
+            </form>
+
+        </div>
+        {% endif %}
+    </div>
+        
+
+    {% if area == "jeonnam" %}
+
+        <form method="get" id="filterForm" class="mb-3">
+
+            <input type="hidden" name="area" value="{{ area }}">
+
+            <div class="card p-3 mb-3">
+                <div class="fw-bold mb-2">
+                    <i class="bi bi-diagram-3"></i> 공고 출처 선택
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <!-- 전체 -->
+                    <label class="form-check form-check-inline">
+                        <input class="form-check-input auto-submit"
+                            type="radio"
+                            name="source"
+                            value=""
+                            {% if not selected.source %}checked{% endif %}>
+                        <span class="badge bg-dark">전체</span>
+                    </label>
+
+                    {% for s in sources %}
+                    <label class="form-check form-check-inline">
+                        <input class="form-check-input auto-submit"
+                            type="radio"
+                            name="source"
+                            value="{{ s.id }}"
+                            {% if selected.source == s.id|stringformat:"s" %}checked{% endif %}>
+                            <span class="badge {{ s.badge_class }}">
+                                {{ s.name }}
+                            </span>
+                    </label>
+
+                    {% endfor %}
+                </div>
+            </div>
+
+        </form>
+
+        <!-- ===============================
+        전남 : 그룹 없는 리스트
+        =============================== -->
+        <div class="card mb-3">
+
+
+            <table class="table table-hover table-stack align-middle mb-0">
+                <colgroup>
+                    <col style="width:60%">
+                    <col style="width:10%">
+                    <col style="width:15%">
+                </colgroup>
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start">제목</th>
+                        <th class="text-center">파일</th>
+                        <th class="text-center">링크</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                        {% for post in group.posts %}
+                        <tr>
+                            <td data-label="제목" class="text-start">
+
+                                <!-- 🔹 제목 앞 메타 정보 -->
+                                <div class="mb-1 d-flex flex-wrap gap-1 align-items-center">
+
+                                    <!-- 🔥 공고 출처 사이트 -->
+                                    <span class="badge {{ post.source_badge_class }}">
+                                        {{ post.source.name }}
+                                    </span>
+
+
+
+                                    {% if post.post_date %}
+                                        <span class="badge bg-light text-dark border">
+                                            {{ post.post_date|cut:"등록일"|cut:"모집기간" }}
+                                        </span>
+                                    {% endif %}
+
+                                    {% if post.school_name %}
+                                        <span class="ms-1">
+                                            <i class="bi bi-building"></i>
+                                            {{ post.school_name }}
+                                        </span>
+                                    {% endif %}
+
+                                    {% if post.is_new_today %}
+                                        <span class="badge bg-danger ms-1">NEW</span>
+                                    {% endif %}
+                                </div>
+
+                                <!-- 🔹 실제 제목 -->
+                                <div class="fw-bold ps-1" style="font-size: 0.95rem;">
+                                    {{ post.highlighted_title|safe }}
+                                </div>
+
+
+
+
+                            </td>
+
+                            <td data-label="파일" class="text-center">
+                                {% if post.attachment_urls %}
+                                    {% for f in post.attachment_urls %}
+                                        <a href="{{ f.url }}"
+                                        target="_blank"
+                                        class="btn btn-sm btn-outline-success">
+                                            다운
+                                        </a>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                            <td data-label="링크" class="text-center">
+                                <a href="{{ post.link }}"
+                                target="_blank"
+                                class="btn btn-sm btn-primary">
+                                    바로가기
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+
+
+    {% else %}
+
+    <form method="get" id="filterForm" class="mb-3">
+
+            <!-- 지역 유지 -->
+            <input type="hidden" name="area" value="{{ area }}">
+
+            <div class="row g-2 mb-2">
+                <!-- 사이트 -->
+                <div class="col-md-3">
+                    <select name="source" class="form-select form-select-sm auto-submit">
+                        <option value="">전체 사이트</option>
+                        {% for s in sources %}
+                        <option value="{{ s.id }}"
+                            {% if selected.source == s.id|stringformat:"s" %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 학교명 검색 -->
+                <div class="col-md-3">
+                    <input type="text"
+                        name="school"
+                        class="form-control form-control-sm auto-submit"
+                        placeholder="학교명 검색"
+                        value="{{ selected.school }}">
+                </div>
+
+                
+            </div>
+
+            <!-- 🔥 부서 라디오 -->
+            <div class="d-flex flex-wrap gap-2">
+                <!-- 전체 -->
+                <label class="dept-radio dept-all">
+                    <input type="radio"
+                        name="department"
+                        value=""
+                        class="auto-submit"
+                        {% if not selected.department %}checked{% endif %}>
+                    <span class="dept-label">전체</span>
+                </label>
+
+                {% for dep in departments %}
+                <label class="dept-radio dept-{{ dep }}">
+                    <input type="radio"
+                        name="department"
+                        value="{{ dep }}"
+                        class="auto-submit"
+                        {% if selected.department == dep %}checked{% endif %}>
+                    <span class="dept-label">{{ dep }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+        </form>
+
+    <!-- 🏫 학교 그룹 -->
+    {% for group in groups %}
+    {% with group.posts.0 as first %}
+    <div class="card mb-3">
+
+        <!-- 헤더 -->
+        <div class="card-header bg-light school-toggle"
+             role="button"
+             data-target="school-{{ forloop.counter }}">
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+
+                <span class="badge bg-secondary">
+                    {{ first.region|default:"지역 없음" }}
+                </span>
+
+                {% with first.auto_status as st %}
+                    {% if st == "마감임박" %}
+                        <span class="badge bg-danger">마감임박</span>
+                    {% elif st == "모집중" %}
+                        <span class="badge bg-success">모집중</span>
+                    {% elif st == "예정" %}
+                        <span class="badge bg-info">모집예정</span>
+                    {% elif st == "마감" %}
+                        <span class="badge bg-secondary">모집마감</span>
+                    {% endif %}
+                {% endwith %}
+
+                <span class="badge bg-light text-dark border">
+
+                    {{ first.post_date|cut:"등록일"|cut:"모집기간" }}
+                </span>
+
+
+                <span class="fw-bold">
+                    <i class="bi bi-building"></i>
+                    {{ group.school }}
+                </span>
+
+                <span class="small text-secondary">
+                    {{ group.student_count }}
+                </span>
+
+                <span>
+                    {% if group.has_new %}
+                        <span class="badge bg-danger ms-2">NEW</span>
+                    {% endif %}
+                </span>
+
+                
+
+                <span class="badge bg-dark ms-auto">
+                    {{ group.posts|length }}건
+                </span>
+            </div>
+        </div>
+
+        <!-- 🔻 접힘 영역 -->
+        <div id="school-{{ forloop.counter }}"
+             class="school-body"
+             style="display:none;">
+
+            <table class="table table-hover table-stack mb-0 align-middle">
+                <colgroup>
+                    <col style="width:55%">
+                    <col style="width:15%">
+                    <col style="width:15%">
+                    <col style="width:15%">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="text-start">제목</th>
+                        <th class="text-center" style="width:140px;">요일</th>
+                        <th class="text-center" style="width:120px;">파일</th>
+                        <th class="text-center" style="width:100px;">링크</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in group.posts %}
+                    <tr>
+                        <td data-label="제목">
+                            {% if post.is_new_today %}
+                                <span class="badge bg-danger me-1">NEW</span>
+                            {% endif %}
+                            {{ post.highlighted_title|safe }}
+                            {% if post.is_our_program %}
+                                <span class="badge bg-success me-1">
+                                    <i class="bi bi-person-check-fill"></i> 메이킹
+                                </span>
+                            {% endif %}
+
+                            
+                        </td>
+
+
+                        <td data-label="요일" class="text-center weekday-cell">
+                            <div class="weekday-badges">
+                                {{ post.weekday_badges|safe }}
+                            </div>
+                        </td>
+
+
+                        <td data-label="공고파일" class="text-center">
+                            {% if "늘봄" in post.source.name %}
+                                {% if post.attachment_urls %}
+                                    <div class="d-flex justify-content-center gap-2">
+                                        {% for f in post.attachment_urls %}
+                                        <a href="{{ f.url }}"
+                                        target="_blank"
+                                        class="btn btn-sm btn-outline-success file-btn">
+                                            <i class="bi bi-file-earmark-arrow-down"></i> 다운
+                                        </a>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted small">첨부파일 없음</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+
+
+                        <td data-label="링크" class="text-center">
+                            <a href="{{ post.link }}"
+                            target="_blank"
+                            class="btn btn-sm btn-primary link-btn">
+                                바로가기
+                            </a>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="text-center text-muted py-5">
+        데이터 없음
+    </div>
+    {% endfor %}
+    {% endif %}
+    <!-- 페이지네이션 -->
+    <nav class="mt-4">
+        <ul class="pagination pagination-sm justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode|cut:'page=' }}">
+                    이전
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+                <span class="page-link">
+                    {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode|cut:'page=' }}">
+                    다음
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // 학교 접기/펼치기
+    document.querySelectorAll(".school-toggle").forEach(header => {
+        header.addEventListener("click", () => {
+            const body = document.getElementById(header.dataset.target);
+            if (!body) return;
+            body.style.display = body.style.display === "none" ? "block" : "none";
+        });
+    });
+
+    const form = document.getElementById("filterForm");
+    if (!form) return;
+
+    let typingTimer;
+    const TYPING_DELAY = 400;
+
+    // ✅ input (학교명) → 타이핑 멈추면 자동 submit
+    form.querySelectorAll("input.auto-submit").forEach(input => {
+        input.addEventListener("input", () => {
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                resetPage();
+                form.submit();
+            }, TYPING_DELAY);
+        });
+    });
+
+    // ✅ select / radio → 즉시 submit
+    form.querySelectorAll("select.auto-submit, input[type=radio].auto-submit").forEach(el => {
+        el.addEventListener("change", () => {
+            resetPage();
+            form.submit();
+        });
+    });
+
+    function resetPage() {
+        const url = new URL(window.location);
+        url.searchParams.delete("page");
+        window.history.replaceState({}, "", url);
+    }
+});
+</script>
+
+<script>
+function openCutoffEditor() {
+    const input = document.getElementById("cutoff-input");
+    const label = document.getElementById("cutoff-label");
+
+    label.classList.add("d-none");
+    input.classList.remove("d-none");
+    input.focus();
+}
+
+function saveCutoffDate(value) {
+    if (!value) return;
+
+    fetch("{% url 'linkhub:neulbom_cutoff_update' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ cutoff_date: value })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.ok) {
+            document.getElementById("cutoff-label").innerText =
+                "수집 기준일: " + data.cutoff_date;
+
+            document.getElementById("cutoff-label").classList.remove("d-none");
+            document.getElementById("cutoff-input").classList.add("d-none");
+        } else {
+            alert("저장 실패");
+        }
+    });
+}
+</script>
+
+
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4" style="max-width:720px;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3 fw-bold"><i class="bi bi-pencil-square me-2"></i> 수강신청 - {{ program.name }}</h4>
+      
+      <form method="post" class="vstack gap-3">
+        {% csrf_token %}
+
+        <!-- 🔥 폼 에러 표시 -->
+        {% if form.errors %}
+          <div class="alert alert-danger">
+            {% for field in form %}
+              {% for error in field.errors %}
+                <div>{{ field.label }}: {{ error }}</div>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        
+        <div>
+          <label class="form-label fw-bold"><i class="bi bi-book me-1"></i> 프로그램</label>
+          <input type="text" class="form-control" value="{{ program.name }}" disabled>
+        </div>
+
+        <div>
+          <label class="form-label fw-bold"><i class="bi bi-people-fill me-1"></i> 대상</label>
+          <input type="text" class="form-control" value="{{ program.get_target_range }}" disabled>
+        </div>
+
+        <div>
+          <label class="form-label fw-bold"><i class="bi bi-people me-1"></i> 반 선택</label>
+          <select name="class_id" class="form-select" required>
+            <option value="">-- 반을 선택하세요 --</option>
+            {% for cls in program.classes.all %}
+              {% with applicants=cls.applications.count capacity=cls.capacity %}
+                <option value="{{ cls.id }}" {% if applicants >= capacity %}disabled{% endif %}>
+                  {{ cls.name }} ({{ applicants }} / {{ capacity }}명)
+                  {% if applicants >= capacity %} - 정원 마감{% endif %}
+                </option>
+              {% endwith %}
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- 신청자 정보 (자동 입력) -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-person-fill me-1"></i> 신청자명</label>
+            <input type="text" class="form-control" value="{{ profile.user.first_name }}" readonly>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold"><i class="bi bi-telephone-fill me-1"></i> 연락처</label>
+            <input type="text" class="form-control" value="{{ profile.phone_number }}" readonly>
+          </div>
+        </div>
+
+        {% if profile.user_type == "parent" %}
+        <!-- ✅ 학부모 전용: 자녀 선택 -->
+        <div>
+          <label class="form-label fw-bold"><i class="bi bi-people-fill me-1"></i> 수강 신청할 자녀 선택</label>
+          <div class="border rounded p-3">
+            {% for child in children %}
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="children" value="{{ child.id }}" id="child{{ forloop.counter }}">
+                <label class="form-check-label" for="child{{ forloop.counter }}">
+                  {{ child.name }} ({{ child.birth_date|date:"Y.m.d" }})
+                </label>
+              </div>
+            {% empty %}
+              <p class="text-muted">등록된 자녀 정보가 없습니다. 마이페이지에서 자녀를 먼저 등록해주세요.</p>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- 요청사항 -->
+        <div>
+          <label class="form-label fw-bold"><i class="bi bi-chat-dots me-1"></i> 요청사항 (선택)</label>
+          {{ form.memo }}
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'program_detail' program.id %}" class="btn btn-outline-secondary">취소</a>
+          <button class="btn btn-primary">신청하기</button>
+        </div>
+      </form>
+
+      <p class="text-muted small mt-3">※ 신청 후 관리자가 승인하면 안내가 발송됩니다.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ 알림 모달 -->
+    {% if messages %}
+      {% for message in messages %}
+      <div class="modal fade" id="alertModal{{ forloop.counter }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-{{ message.tags|default:'secondary' }}">
+            <div class="modal-header bg-{{ message.tags|default:'secondary' }} text-white">
+              <h5 class="modal-title">
+                {% if message.tags == "success" %}✅ 성공
+                {% elif message.tags == "error" or message.tags == "danger" %}❌ 오류
+                {% elif message.tags == "warning" %}⚠️ 주의
+                {% else %}ℹ️ 알림{% endif %}
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              {{ message }}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">확인</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
+
+<style>
+select.form-select option:disabled {
+  color: #dc3545; /* 빨간색 */
+  font-weight: bold;
+}
+</style>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const alertModal = document.querySelector('.modal[id^="alertModal"]');
+  if (alertModal) {
+    const modal = new bootstrap.Modal(alertModal);
+    modal.show();
+  }
+});
+</script>
+{% endblock %}

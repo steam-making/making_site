@@ -1,0 +1,199 @@
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+
+body {
+    margin: 0;
+    background: #f4f6f8;
+    font-family: "Noto Sans KR", sans-serif;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+
+.panel {
+    padding: 20px;
+    overflow-y: auto;
+    border-right: 1px solid #ddd;
+    background: white;
+}
+
+.left {
+    width: 30%;
+}
+
+.center {
+    width: 40%;
+}
+
+.right {
+    width: 30%;
+}
+
+h2, h3 {
+    margin-top: 0;
+}
+
+.explain-box {
+    background: #fff9e6;
+    padding: 10px;
+    border-left: 4px solid #ffbb00;
+    border-radius: 5px;
+}
+
+/* Ace editor 기본 스타일 → 삭제된 400px 높이 버전 */
+/* (중복 제거됨) */
+
+/* 버튼 기본 스타일 */
+.btn {
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    margin-right: 8px;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.btn.run {
+    background: #2d8cff;
+    color: white;
+}
+
+.btn.grade {
+    background: #2ecc71;
+    color: white;
+}
+
+.btn.hint {
+    background: #f1c40f;
+    color: black;
+}
+
+.btn.answer {
+    background: #e67e22;
+    color: white;
+}
+
+/* 출력 영역 스타일 */
+.output,
+.answer-box,
+.hint-box,
+.grade-box {
+    padding: 10px;
+    background: #111;
+    color: #0f0;
+    border-radius: 5px;
+    font-family: Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+/* === LEFT PANEL 구조 === */
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    height: 95%;
+}
+
+/* 설명 박스 스크롤 */
+.explain-scroll {
+    flex: 1;                 
+    overflow-y: auto;        
+    padding-right: 6px;       
+}
+
+/* 왼쪽 하단 네비 버튼 */
+.left-bottom-nav {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+}
+
+/* 네비게이션 버튼 공통 */
+.nav-btn {
+    padding: 6px 14px;
+    background: #fafafa;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 14px;
+    color: #333;
+}
+
+.nav-btn:hover {
+    background: #eee;
+}
+
+.nav-btn.disabled {
+    background: #f3f3f3;
+    border-color: #ccc;
+    color: #aaa;
+    cursor: not-allowed;
+}
+
+/* === CENTER PANEL 구조 === */
+.center {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    height: 95vh;
+    overflow: hidden; /* 자체 스크롤 제거 */
+}
+
+
+/* 제목은 고정 */
+.editor-title {
+    margin-bottom: 10px;
+}
+
+/* 에디터 wrapper — panel 내 공간 전체 사용 */
+.editor-wrapper {
+    flex: 1;
+    min-height: 0;   /* flex 자식 스크롤 깨짐 방지 */
+    overflow: auto;  /* editor 내부 스크롤 */
+}
+
+/* Ace Editor — wrapper 전체 채움 */
+#editor {
+    width: 100%;
+    height: 100%;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+}
+
+/* 실행/채점 버튼 — 중앙 패널 맨 아래 고정 */
+.fixed-bottom-buttons {
+    flex-shrink: 0;                 /* 공간 줄어들지 않게 */
+    height: 60px;                   /* 고정 높이 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+.item-title {
+    white-space: nowrap; 
+    font-size: clamp(14px, 2.2vw, 30px);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.input-box {
+    width: 100%;
+    height: 60px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    padding: 8px;
+    font-family: Consolas, monospace;
+    margin-bottom: 15px;
+}

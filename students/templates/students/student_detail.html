@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+
+  <!-- 상단 제목 + 버튼 -->
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <div class="mb-2">
+      <h4 class="mb-0 d-inline-block">
+        <i class="bi bi-people me-2"></i>{{ institution.name }}
+        <small class="text-muted">({{ institution.program }})</small>
+      </h4>
+      <!-- ✅ 부서별 인원 표시 -->
+      <span class="ms-3">
+        <span class="badge bg-info text-dark">{{ division_summary }}</span>
+        <span class="badge bg-secondary">총 {{ total_students }}명</span>
+      </span>
+    </div>
+
+    <!-- 버튼 영역 -->
+    <div class="d-flex flex-wrap justify-content-end gap-2">
+      <a href="{% url 'students:student_create' institution.id %}" class="btn btn-success btn-sm">
+        <i class="bi bi-person-plus"></i> 학생 추가
+      </a>
+      <a href="{% url 'students:student_upload' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-upload me-1"></i> 엑셀 업로드
+      </a>
+      <a href="{% url 'students:student_reset' institution.id %}" class="btn btn-danger btn-sm">
+        <i class="bi bi-trash"></i> 전체 삭제
+      </a>
+      <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> 출강장소 목록으로
+      </a>
+    </div>
+  </div>
+
+  <!-- ✅ 여러 학생 부서 이동 FORM 시작 -->
+  <form method="post" action="{% url 'students:student_bulk_move' %}">
+    {% csrf_token %}
+    <input type="hidden" name="institution_id" value="{{ institution.id }}">
+
+    <!-- 부서 이동 컨트롤 -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <select name="target_division" class="form-select form-select-sm w-auto" required>
+        <option value="">이동할 부서 선택</option>
+        {% for div in divisions %}
+          <option value="{{ div.division }}">{{ div.division }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-warning btn-sm">
+        <i class="bi bi-arrow-right-circle"></i> 선택 학생 이동
+      </button>
+    </div>
+
+    <!-- 부서별 학생 리스트 -->
+    {% for div in divisions %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light fw-bold">
+          {{ div.division }} (인원: {{ div.students.count }}명)
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-bordered table-sm align-middle mb-0 text-center">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 40px;">
+                  <input type="checkbox" class="check-all">
+                </th>
+                <th style="width: 80px;">학년</th>
+                <th style="width: 80px;">반</th>
+                <th style="width: 80px;">번호</th>
+                <th style="width: 150px;">학생이름</th>
+                <th style="width: 180px;">학부모연락처</th>
+                <th style="width: 110px;">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for st in div.students.all %}
+                <tr>
+                  <td>
+                    <input type="checkbox" name="student_ids" value="{{ st.id }}">
+                  </td>
+                  <td>{{ st.grade }}</td>
+                  <td>{{ st.class_name }}</td>
+                  <td>{{ st.number }}</td>
+                  <td>{{ st.name }}</td>
+                  <td>{{ st.parent_contact }}</td>
+                  <td>
+                    <a href="{% url 'students:student_update' st.id %}"
+                       class="btn btn-outline-primary btn-sm me-1" title="수정">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'students:student_delete' st.id %}"
+                       class="btn btn-outline-danger btn-sm" title="삭제">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center text-muted">
+                    등록된 학생이 없습니다.
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% empty %}
+      <div class="alert alert-secondary text-center">
+        등록된 부서가 없습니다.
+      </div>
+    {% endfor %}
+  </form>
+</div>
+
+<!-- ✅ 체크박스 전체 선택 JS -->
+<script>
+document.querySelectorAll(".check-all").forEach(function (checkbox) {
+  checkbox.addEventListener("change", function () {
+    const table = this.closest("table");
+    table.querySelectorAll('input[name="student_ids"]').forEach(cb => {
+      cb.checked = this.checked;
+    });
+  });
+});
+</script>
+{% endblock %}

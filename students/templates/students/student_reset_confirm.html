@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+  <h4><i class="bi bi-exclamation-triangle text-danger me-2"></i>학생 전체 삭제</h4>
+  <p class="mt-3">
+    <strong class="text-danger">{{ institution.name }}</strong> 출강장소의 모든 학생 데이터를 삭제하시겠습니까?<br>
+    이 작업은 되돌릴 수 없습니다.
+  </p>
+
+  <form method="post" class="mt-4">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">
+      <i class="bi bi-trash"></i> 전체 삭제
+    </button>
+    <a href="{% url 'students:student_detail' institution.id %}" class="btn btn-secondary ms-2">
+      취소
+    </a>
+  </form>
+</div>
+{% endblock %}

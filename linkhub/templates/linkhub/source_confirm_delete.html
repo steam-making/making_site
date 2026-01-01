@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h4 class="mb-3">❗ SourceSite 삭제</h4>
+
+    <div class="alert alert-warning">
+        <strong>{{ source.name }}</strong> 사이트를 정말 삭제하시겠습니까?
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">삭제</button>
+        <a href="{% url 'linkhub:source_list' %}?area={{ area }}"
+            class="btn btn-secondary">
+                취소
+        </a>
+
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+<!-- upload.html -->
+<h2>📸 포토북 만들기</h2>
+
+<form action="/photobook/" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="file" name="photos" multiple /><br /><br />
+  <button type="submit">포토북 만들기</button>
+</form>

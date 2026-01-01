@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card p-4 shadow-sm">
+    <h4 class="mb-3">교구재 항목 수정</h4>
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- 거래처 종류 (읽기 전용) -->
+      <div class="mb-3">
+        <label class="form-label">거래처 종류</label>
+        <input type="text" class="form-control" value="{{ item.vendor.vendor_type.name }}" readonly id="vendor_type_name">
+      </div>
+
+      <!-- 거래처 (종류에 맞는 거래처만 표시) -->
+      <div class="mb-3">
+        <label class="form-label">거래처</label>
+        <select name="vendor" id="vendor_select" class="form-select" required>
+          <option value="">-- 거래처 선택 --</option>
+          {% for vendor in vendors %}
+            <option value="{{ vendor.id }}" data-type="{{ vendor.vendor_type.name }}"
+              {% if vendor.id == item.vendor.id %}selected{% endif %}
+              {% if vendor.vendor_type.name != item.vendor.vendor_type.name %}style="display: none;"{% endif %}>
+              {{ vendor.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 교구재 (거래처에 맞게 필터) -->
+      <div class="mb-3">
+        <label class="form-label">교구재</label>
+        <select name="material" id="material_select" class="form-select" required>
+          <option value="">-- 교구재 선택 --</option>
+          {% for material in materials %}
+            <option value="{{ material.id }}" data-vendor="{{ material.vendor.id }}"
+              {% if material.id == item.material.id %}selected{% endif %}
+              {% if material.vendor.id != item.vendor.id %}style="display: none;"{% endif %}>
+              {{ material.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- 수량 -->
+      <div class="mb-3">
+        <label class="form-label">수량</label>
+        <input type="number" name="quantity" class="form-control" value="{{ item.quantity }}" required min="1">
+      </div>
+
+      <div class="d-flex justify-content-end gap-2">
+        <button type="submit" class="btn btn-primary">저장</button>
+        <a href="{% url 'order_list' %}" class="btn btn-secondary">취소</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ 스크립트 -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const vendorTypeName = document.getElementById("vendor_type_name").value.trim();
+    const vendorSelect = document.getElementById("vendor_select");
+    const materialSelect = document.getElementById("material_select");
+
+    // 거래처 필터링: vendor_type 기준
+    Array.from(vendorSelect.options).forEach(option => {
+      const type = option.getAttribute("data-type");
+      if (!option.value || type === vendorTypeName) {
+        option.style.display = "";
+      } else {
+        option.style.display = "none";
+      }
+    });
+
+    // 거래처 선택 → 교구재 필터링
+    vendorSelect.addEventListener("change", function () {
+      const selectedVendorId = this.value;
+      Array.from(materialSelect.options).forEach(opt => {
+        const vendorId = opt.getAttribute("data-vendor");
+        opt.style.display = (!opt.value || vendorId === selectedVendorId) ? "" : "none";
+      });
+      materialSelect.value = "";
+    });
+  });
+</script>
+{% endblock %}

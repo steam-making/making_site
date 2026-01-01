@@ -1,0 +1,228 @@
+<!-- === 파일: templates/reservation/reservation_calendar.html === -->
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+  <h3 class="text-center mb-3">
+    <i class="bi bi-calendar-week"></i> 예약 달력
+  </h3>
+  <div class="card shadow-sm border-0 rounded-3 p-3">
+    <div id="calendar"></div>
+  </div>
+</div>
+
+<!-- ✅ 예약 상세 모달 -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="bi bi-info-circle"></i> 예약 상세</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p><i class="bi bi-journal-code"></i> <strong id="eventTitle"></strong></p>
+        <p><i class="bi bi-list-task"></i> 주제 : <span id="eventTopic"></span></p> 
+        <p><i class="bi bi-clock"></i> 시간 : <span id="eventTime"></span></p>
+        <p><i class="bi bi-people"></i> 인원 : <span id="eventHeadcount"></span></p>
+        <p><i class="bi bi-geo-alt"></i> 장소 : <span id="eventPlace"></span></p>
+        <p><i class="bi bi-flag"></i> 상태 : <span id="eventStatus"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FullCalendar -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<link href="{% static 'css/reservation_calendar.css' %}" rel="stylesheet"> 
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const calendarEl = document.getElementById('calendar');
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    locale: 'ko',
+    height: "auto",
+    dayMaxEventRows: true,
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,listMonth'
+    },
+    events: '{% url "reservation_events" %}',
+
+    // ✅ 24시간 형식 (오전/오후 제거)
+    eventTimeFormat: {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false  // ← 24시간제
+    },
+
+    // ✅ 뷰별 개별 제목 포맷
+    views: {
+      dayGridMonth: {
+        titleFormat: { year: 'numeric', month: 'long' }   // 2025년 9월
+      },
+      timeGridWeek: {
+        titleFormat: { year: 'numeric', month: '2-digit', day: '2-digit' } // 2025.09.12
+      },
+      listMonth: {
+        titleFormat: { year: 'numeric', month: 'long' } // 2025.09
+      },
+      timeGridDay: {
+        titleFormat: { year: 'numeric', month: '2-digit', day: '2-digit' } // 2025.09.12
+      }
+    },
+
+    datesSet: function(info) { 
+      console.log("📌 datesSet 실행됨:", info.view.type);
+
+      if (info.view.type.includes("list")) {
+        document.querySelectorAll('.fc-list-day').forEach(function(dayRow) {
+          const cushion = dayRow.querySelector(".fc-list-day-cushion"); // ✅ td 전체
+          const textEl = dayRow.querySelector(".fc-list-day-text");     // 날짜/요일 텍스트
+          if (!cushion || !textEl) return;
+
+          const dateStr = dayRow.getAttribute("data-date"); // "2025-09-11"
+          if (!dateStr) return;
+
+          const dateObj = new Date(dateStr + "T00:00:00");
+          const weekday = dateObj.getDay(); // 0=일 ~ 6=토
+          console.log("➡ 헤더:", textEl.innerText, "요일:", weekday);
+
+          // ✅ 공통 cushion 스타일
+          cushion.style.setProperty("font-weight", "700");
+          cushion.style.setProperty("font-size", "1rem");
+          cushion.style.setProperty("text-decoration", "none");
+          cushion.style.setProperty("color", "#fff", "important");
+          cushion.style.setProperty("text-align", "center");
+          cushion.style.setProperty("padding", "8px");
+          cushion.style.setProperty("border-radius", "6px");
+
+          // 요일별 배경색 (셀 전체에 적용)
+          switch (weekday) {
+            case 0: // 일요일
+              cushion.style.setProperty("background-color", "#e74c3c", "important");
+              cushion.style.setProperty("color", "#fff", "important");
+              break;
+            case 1: // 월요일
+              cushion.style.setProperty("background-color", "#f39c12", "important");
+              cushion.style.setProperty("color", "#000", "important");
+              break;
+            case 2: // 화요일
+              cushion.style.setProperty("background-color", "#27ae60", "important");
+              cushion.style.setProperty("color", "#fff", "important");
+              break;
+            case 3: // 수요일
+              cushion.style.setProperty("background-color", "#2980b9", "important");
+              cushion.style.setProperty("color", "#fff", "important");
+              break;
+            case 4: // 목요일
+              cushion.style.setProperty("background-color", "#8e44ad", "important");
+              cushion.style.setProperty("color", "#fff", "important");
+              break;
+            case 5: // 금요일
+              cushion.style.setProperty("background-color", "#16a085", "important");
+              cushion.style.setProperty("color", "#fff", "important");
+              break;
+            case 6: // 토요일
+              cushion.style.setProperty("background-color", "#2c3e50", "important");
+              cushion.style.setProperty("color", "#fff", "important");
+              break;
+          }
+        });
+      }
+    },
+
+
+
+    eventContent: function(arg) {
+      const props = arg.event.extendedProps;
+      const start = arg.event.start;
+      const end = arg.event.end;
+
+      // 날짜 (YYYY-MM-DD)
+      const dateStr = start ? start.toLocaleDateString("ko-KR", {
+        year: "numeric", month: "2-digit", day: "2-digit"
+      }) : "";
+
+      // 시간 (24시간 형식)
+      const startStr = start ? start.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+      const endStr   = end   ? end.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+
+      const prog   = arg.event.title || "";
+      const inst   = props.institution || "";
+      const status = props.status || "";
+      const statusCode = props.status_code || "";
+      const place  = props.place || "";
+
+      // ✅ list 뷰 → 테이블 한 줄 스타일
+      if (arg.view.type.startsWith("list")) {
+        return {
+          html: `
+            <div class="fc-event-custom-row">
+              <div class="col-status">
+                <span class="status-dot status-${statusCode}"></span>
+                ${status}
+              </div>
+              <div class="col-inst">${inst}</div>
+              <div class="col-prog">${prog}</div>
+              <div class="col-place">${place}</div>
+            </div>
+          `
+        };
+      }
+
+      // ✅ 월/주/일 뷰 → 시간 / 기관명 / 프로그램명 (세 줄)
+      return {
+        html: `
+          <div class="fc-event-custom">
+            <div class="fc-event-time"><strong>${startStr} ${inst}</strong></div>
+            <div class="fc-event-program">${prog}</div>
+          </div>
+        `
+      };
+    },
+
+
+    eventDidMount: function(info) {
+      // ✅ 기본 흰색 배경
+      info.el.style.backgroundColor = "#fff";
+      info.el.style.color = "#000"; // 기본 글씨는 검정
+
+      // 상태별 테두리/글씨색 강조
+      if (info.event.extendedProps.status === "예약확정") {
+        info.el.style.borderLeft = "6px solid #28a745"; // 초록 테두리
+        info.el.style.color = "#28a745";                // 글씨 초록
+      } else if (info.event.extendedProps.status === "예약요청") {
+        info.el.style.borderLeft = "6px solid #ffc107"; // 노랑 테두리
+        info.el.style.color = "#e67e22";                // 글씨 주황
+      } else if (info.event.extendedProps.status === "예약취소") {
+        info.el.style.borderLeft = "6px solid #dc3545"; // 빨강 테두리
+        info.el.style.color = "#dc3545";                // 글씨 빨강
+      }
+
+      info.el.classList.add("fc-event-clean");
+    },
+    eventClick: function(info) {
+      const props = info.event.extendedProps;
+      document.getElementById("eventTitle").textContent = info.event.title;
+      document.getElementById("eventTopic").textContent = props.topic || '-';
+      document.getElementById("eventHeadcount").textContent = props.headcount || '-';
+      document.getElementById("eventPlace").textContent = props.place || '-';
+      document.getElementById("eventStatus").textContent = props.status || '-';
+      document.getElementById("eventTime").textContent =
+        info.event.startStr.slice(11,16) + " ~ " + (info.event.endStr ? info.event.endStr.slice(11,16) : "");
+      new bootstrap.Modal(document.getElementById('eventDetailModal')).show();
+    }
+  });
+
+  calendar.render();
+});
+</script>
+<style></style>
+{% endblock %}

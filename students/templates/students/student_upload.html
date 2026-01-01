@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4><i class="bi bi-upload me-2"></i>학생 엑셀 업로드</h4>
+
+  {% if error %}
+    <div class="alert alert-danger mt-3">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="mt-3">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label class="form-label">출강장소 선택</label>
+      <select name="institution_id" class="form-select" required>
+        <option value="">출강장소를 선택하세요</option>
+        {% for inst in institutions %}
+          <option value="{{ inst.id }}">{{ inst.name }} - {{ inst.program }}</option>
+        {% empty %}
+          <option disabled>선택 가능한 출강장소가 없습니다.</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">엑셀 파일 선택</label>
+      <input type="file" name="excel_file" class="form-control" accept=".xlsx" required>
+    </div>
+
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i>등록하기</button>
+    <a href="{% url 'students:student_template' %}" class="btn btn-outline-success ms-2">
+      <i class="bi bi-download me-1"></i>양식 다운로드
+    </a>
+    <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary ms-2">
+      <i class="bi bi-arrow-left"></i> 돌아가기
+    </a>
+  </form>
+
+  <div class="alert alert-info mt-4 small">
+    ⚙️ 엑셀에는 반드시 다음 항목이 포함되어야 합니다.<br>
+    <strong>부서, 학년, 반, 번호, 학생이름, 학부모연락처</strong>
+  </div>
+</div>
+{% endblock %}

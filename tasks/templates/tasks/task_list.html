@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <!-- ✅ 제목 + 색상 범례 + 필터/버튼 정렬 -->
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+
+    <!-- ✅ 제목 + 색상 범례 함께 묶음 -->
+    <div class="d-flex align-items-center flex-wrap gap-3">
+      <h4 class="mb-0">
+        <i class="bi bi-list-task me-1"></i> 할 일 목록
+      </h4>
+
+      <!-- ✅ 색상 범례 (작게, 오른쪽 정렬) -->
+      <div class="small text-muted d-flex align-items-center flex-wrap gap-2">
+        <span class="badge bg-danger">&nbsp;</span> <span>지연</span>
+        <span class="badge bg-warning text-dark">&nbsp;</span> <span>임박</span>
+        <span class="badge bg-info text-dark">&nbsp;</span> <span>마감없음</span>
+        <span class="badge bg-secondary">&nbsp;</span> <span>완료</span>
+      </div>
+    </div>
+
+    <!-- ✅ 필터 + 새 할 일 버튼 -->
+    <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+      <form method="get" class="d-flex align-items-center gap-2 mb-0">
+        <select name="work_type" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">전체 업무</option>
+          {% for wt in work_types %}
+            <option value="{{ wt.id }}" {% if selected_work_type == wt.id|stringformat:'s' %}selected{% endif %}>
+              {{ wt.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+
+      <a href="{% url 'task_create' %}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i> 새 할 일
+      </a>
+    </div>
+  </div>
+
+  <!-- ✅ 테이블 -->
+  <div class="table-responsive table-stack">
+    <table class="table align-middle text-center">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 10%;">업무종류</th>
+          <th style="width: 10%;">작성일</th>
+          <th style="width: 32%;">제목</th>
+          <th style="width: 12%;">마감일자</th>
+          <th style="width: 8%;">반복</th>
+          <th style="width: 12%;">상태</th>
+          <th style="width: 16%;">관리</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+        <tr class="{{ task.row_class }}">
+          <td data-label="업무종류">{{ task.work_type.name|default:"-" }}</td>
+          <td data-label="작성일">{{ task.created_at|date:"Y-m-d" }}</td>
+          <td data-label="제목" class="text-start">
+            <span class="fw-semibold">
+              {% if task.completed %}<del>{% endif %}
+                {{ task.title }}
+              {% if task.completed %}</del>{% endif %}
+            </span><br>
+            <small class="text-muted">{{ task.description|truncatechars:80 }}</small>
+          </td>
+          <td data-label="마감일자">
+            {% if task.due_date %}
+              {{ task.due_date|date:"Y-m-d" }}
+            {% else %}
+              <span class="text-info fw-semibold">없음</span>
+            {% endif %}
+          </td>
+
+          <td data-label="반복">
+            {% if task.repeat == "daily" %}<span class="badge bg-info-subtle text-dark">매일</span>
+            {% elif task.repeat == "weekly" %}<span class="badge bg-success-subtle text-dark">매주</span>
+            {% elif task.repeat == "monthly" %}<span class="badge bg-warning-subtle text-dark">매월</span>
+            {% elif task.repeat == "yearly" %}<span class="badge bg-primary-subtle text-dark">매년</span>
+            {% else %}-{% endif %}
+          </td>
+
+          <td data-label="상태">
+            {% if task.completed %}
+              완료<br><small class="text-muted">{{ task.completed_at|date:"m/d H:i" }}</small>
+            {% elif not task.due_date %}
+              <span class="text-info">진행중</span>
+            {% elif task.row_class == "table-danger" %}
+              <span class="text-danger">지연</span>
+            {% elif task.row_class == "table-warning" %}
+              <span class="text-warning">임박</span>
+            {% else %}
+              진행중
+            {% endif %}
+          </td>
+
+          <td data-label="관리">
+            {% if not task.completed %}
+              <div class="btn-group btn-group-sm d-flex flex-nowrap justify-content-center" role="group" style="gap: 0.3rem;">
+                <a href="{% url 'task_complete' task.pk %}" class="btn btn-success">완료</a>
+                <a href="{% url 'task_update' task.pk %}" class="btn btn-warning">수정</a>
+                <a href="{% url 'task_delete' task.pk %}" class="btn btn-danger">삭제</a>
+              </div>
+            {% else %}
+              <button class="btn btn-secondary btn-sm w-100" disabled>완료됨</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">등록된 할 일이 없습니다.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ✅ 반응형 카드 스타일 (모바일 대응) -->
+<style>
+@media (max-width: 768px) {
+  .table-stack thead { display: none; }
+  .table-stack tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 0.5rem;
+  }
+  .table-stack td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border: none !important;
+  }
+  .table-stack td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #555;
+  }
+  .table-stack td[data-label="관리"] {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 0.3rem;
+  }
+  .table-stack td[data-label="관리"] .btn {
+    flex: 1 1 auto;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.4rem;
+  }
+
+  /* ✅ 모바일에서는 범례가 아래로 줄바꿈 */
+  .small.text-muted.d-flex {
+    flex-wrap: wrap;
+    gap: 0.4rem !important;
+  }
+}
+</style>
+
+{% endblock %}

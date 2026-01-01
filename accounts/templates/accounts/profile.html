@@ -1,0 +1,202 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        body { background: #f8f9fa; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .form-label { font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-7">
+            <div class="card p-4">
+                <h3 class="text-center mb-4">
+                  <i class="bi bi-person-circle me-2"></i> 마이페이지
+                </h3>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-success">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    {% if institution_profile %}
+                        <!-- ✅ 기관회원 전용 -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-building"></i> 기관명</label>
+                            <input type="text" name="institution_name" value="{{ institution_profile.institution_name }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-123"></i> 사업자등록번호</label>
+                            <input type="text" name="business_number" value="{{ institution_profile.business_number }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-briefcase"></i> 업종</label>
+                            <input type="text" name="industry" value="{{ institution_profile.industry }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-person-badge"></i> 담당자명</label>
+                            <input type="text" name="contact_name" value="{{ institution_profile.contact_name }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-telephone"></i> 담당자 휴대폰</label>
+                            <input type="text" name="contact_phone" value="{{ institution_profile.contact_phone }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-telephone-forward"></i> 기관 전화</label>
+                            <input type="text" name="office_phone" value="{{ institution_profile.office_phone }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-printer"></i> 팩스</label>
+                            <input type="text" name="fax" value="{{ institution_profile.fax }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-mailbox"></i> 우편번호</label>
+                            <input type="text" name="postcode" id="postcode" value="{{ institution_profile.postcode }}" class="form-control mb-1">
+                            <button type="button" class="btn btn-secondary w-100" onclick="execDaumPostcode()">
+                              <i class="bi bi-search"></i> 주소 찾기
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-geo-alt"></i> 주소</label>
+                            <input type="text" name="address" id="address" value="{{ institution_profile.address }}" class="form-control mb-1">
+                            <input type="text" name="detail_address" id="detailAddress" value="{{ institution_profile.detail_address }}" class="form-control" placeholder="상세주소">
+                        </div>
+
+                        
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-globe"></i> 홈페이지</label>
+                            <input type="url" name="website" value="{{ institution_profile.website }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-journal-text"></i> 비고</label>
+                            <textarea name="note" class="form-control">{{ institution_profile.note }}</textarea>
+                        </div>
+
+                    {% else %}
+                        <!-- ✅ 일반회원 (학부모/학생/강사) -->
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-person"></i> 이름</label>
+                            <input type="text" name="first_name" value="{{ user.first_name|default_if_none:'' }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-envelope"></i> 이메일(아이디)</label>
+                            <input type="email" value="{{ user.email|default_if_none:'' }}" class="form-control" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-people"></i> 회원 유형</label>
+                            <select name="user_type" class="form-select">
+                                <option value="parent" {% if user.profile.user_type == 'parent' %}selected{% endif %}>학부모</option>
+                                <option value="student" {% if user.profile.user_type == 'student' %}selected{% endif %}>학생</option>
+                                <option value="teacher" {% if user.profile.user_type == 'teacher' %}selected{% endif %}>강사</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-calendar-event"></i> 생년월일</label>
+                            <input type="date" name="birth_date" value="{{ user.profile.birth_date|date:'Y-m-d' }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-telephone"></i> 전화번호</label>
+                            <input type="text" name="phone_number" value="{{ user.profile.phone_number|default_if_none:'' }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-mailbox"></i> 우편번호</label>
+                            <div class="input-group">
+                                <input type="text" name="postcode" id="postcode" value="{{ user.profile.postcode|default_if_none:'' }}" class="form-control">
+                                <button type="button" class="btn btn-secondary" onclick="execDaumPostcode()">
+                                  <i class="bi bi-search"></i> 주소 찾기
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-geo-alt"></i> 주소</label>
+                            <input type="text" name="address" id="address" value="{{ user.profile.address|default_if_none:'' }}" class="form-control">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label"><i class="bi bi-house"></i> 상세주소</label>
+                            <input type="text" name="detail_address" id="detailAddress" value="{{ user.profile.detail_address|default_if_none:'' }}" class="form-control">
+                        </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary w-100 mt-2">
+                      <i class="bi bi-save me-1"></i> 정보 수정
+                    </button>
+                </form>
+
+                <a href="{% url 'change_password' %}" class="btn btn-warning w-100 mt-2">
+                  <i class="bi bi-key me-1"></i> 비밀번호 변경
+                </a>
+
+                <form method="post" action="{% url 'logout' %}" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger w-100">
+                      <i class="bi bi-box-arrow-right me-1"></i> 로그아웃
+                    </button>
+                </form>
+
+                {% if not institution_profile and not user.profile.withdrawal_requested %}
+                <form method="post" action="{% url 'request_withdrawal' %}" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                      <i class="bi bi-person-dash me-1"></i> 회원탈퇴 요청
+                    </button>
+                </form>
+                {% elif not institution_profile %}
+                <p class="text-center text-danger mt-2">
+                  <i class="bi bi-exclamation-triangle me-1"></i> 회원탈퇴 요청 대기 중입니다 (관리자 승인 필요)
+                </p>
+                {% endif %}
+
+                <a href="{% url 'home' %}" class="btn btn-secondary w-100 mt-3">
+                  <i class="bi bi-house-door me-1"></i> 홈으로 가기
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 카카오 주소 API -->
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+function execDaumPostcode() {
+    new daum.Postcode({
+        oncomplete: function(data) {
+            document.getElementById('postcode').value = data.zonecode;
+            document.getElementById('address').value = data.address;
+            document.getElementById('detailAddress').focus();
+        }
+    }).open();
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

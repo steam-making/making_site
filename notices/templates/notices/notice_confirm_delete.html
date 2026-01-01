@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5" style="max-width:600px;">
+  <div class="card shadow-sm">
+    <div class="card-body text-center">
+      <h4 class="mb-3">삭제 확인</h4>
+      <p>정말로 <strong>{{ notice.title }}</strong> 공지사항을 삭제하시겠습니까?</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-danger" type="submit">삭제</button>
+          <a href="{% url 'notice_detail' notice.pk %}" class="btn btn-outline-secondary">취소</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

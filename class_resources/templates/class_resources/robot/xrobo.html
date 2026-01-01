@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-4 mb-5" style="max-width:900px;">
+  <h3 class="mb-4 text-center">
+    <i class="bi bi-robot text-danger"></i> 엑스로보 수업자료
+  </h3>
+
+  <!-- ✅ 바로가기 버튼 4개 -->
+  <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+
+    <!-- 엑스로보 홈페이지 -->
+    <a href="https://xrobo.co.kr/" target="_blank"
+       class="btn btn-outline-primary btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-house-door"></i>
+      엑스로보 홈페이지
+    </a>
+
+    <!-- 엑스로보 쇼핑몰 -->
+    <a href="https://smartstore.naver.com/xrobo" target="_blank"
+       class="btn btn-outline-success btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-cart"></i>
+      엑스로보 쇼핑몰
+    </a>
+
+    <!-- 엑스로보 카페 -->
+    <a href="https://cafe.naver.com/xroboextreme" target="_blank"
+       class="btn btn-outline-warning btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-chat-dots"></i>
+      엑스로보 네이버카페
+    </a>
+
+    <!-- 엑스로보 웹하드 -->
+    <a href="https://1drv.ms/f/c/382cc15dda19e21d/Eh3iGdpdwSwggDgSNAEAAAABjc9fBZR0Rgaibj6S0DAPLw?e=xsTTYN" target="_blank"
+       class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-cloud-arrow-down"></i>
+      엑스로보 웹하드
+    </a>
+
+    <!-- MLink 다운 -->
+    <a href="https://dls-cdn.makeblock.com/download-site/mblock5/win32/mLink2-V2.1.1.exe?KEY1=e8d9b8bce9da78fb6e3522b712ffb436&KEY2=690B5B03&__cf_chl_tk=gQcqxU8X0wB_YlViKik.G.0.y7enUYCSXS8O3wijSzo-1762351886-1.0.1.1-0ZIanW54xT_XbNwpuRXSeaMyjJ6xZLXjXv5MRpOhVgw" target="_blank"
+       class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-gear-wide-connected"></i>
+      MLink 다운
+    </a>
+  </div>
+
+
+
+  <!-- ✅ 메인 다운로드 버튼 -->
+  <div class="text-center mb-4">
+
+    <!-- 🔹 엑스로보 로고 이미지 -->
+    <img src="{% static 'class_resources/robot/xrobo/images/xrobo.png' %}"
+        alt="엑스로보 로고"
+        class="img-fluid d-block mx-auto mb-3"
+        style="max-width:500px;">
+
+    <!-- 🔹 통합프로그램 다운로드 버튼 -->
+    <button class="btn btn-lg btn-danger mt-2" id="togglePrograms">
+      <i class="bi bi-download"></i>
+      통합프로그램 다운로드
+    </button>
+
+  </div>
+
+  <!-- ✅ 단계별 다운로드 목록 -->
+  <div id="programList" class="d-none">
+    <div class="list-group shadow-sm">
+
+      <!-- 🔴 안내 문구 -->
+      <div class="alert alert-danger fw-semibold text-center py-2 mb-0">
+        ※ MLink 다운 및 설치 후 이용하세요
+      </div>
+
+      <!-- ✅ 예시 1~3단계: 실제 다운로드 링크 -->
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676681"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 1단계 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676688"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 2단계 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676689"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 3단계 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676692"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 4단계 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676695"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 4단계 XB 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676697"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 4단계 SD 1~4 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676702"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 4단계 SD 5~8 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676704"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 5단계 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676705"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 5단계 XW 통합프로그램 다운받기
+      </a>
+
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676708"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        엑스로보 6단계 통합프로그램 다운받기
+      </a>
+
+    </div>
+  </div>
+</div>
+
+<!-- ✅ JS 토글 스크립트 -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const toggleBtn = document.getElementById("togglePrograms");
+  const list = document.getElementById("programList");
+
+  toggleBtn.addEventListener("click", function() {
+    list.classList.toggle("d-none");
+  });
+});
+</script>
+{% endblock %}

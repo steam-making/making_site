@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3">
+        <i class="bi bi-plus-circle me-2"></i> 모집공고 등록
+      </h4>
+
+      {% if copy_mode %}
+      <div class="alert alert-info">
+        📄 기존 모집공고를 복사했습니다.<br>
+        필요한 부분만 수정 후 <strong>등록하기</strong>를 누르세요.
+      </div>
+      {% endif %}
+
+      <form method="post" action="{% url 'recruit_add' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- ================= 제출방법 ================= -->
+        <div class="mb-3">
+          <label class="form-label">제출방법</label><br>
+
+          {% for option in submit_method_options %}
+            <div class="form-check form-check-inline">
+              <input class="form-check-input"
+                    type="checkbox"
+                    name="submit_method"
+                    value="{{ option }}"
+                    {% if option in selected_submit_methods %}checked{% endif %}>
+              <label class="form-check-label">{{ option }}</label>
+            </div>
+          {% endfor %}
+
+        </div>
+
+        <!-- ================= 학교 검색 ================= -->
+        <div class="mb-3 position-relative">
+          <label class="form-label">학교명</label>
+
+          <input type="text"
+                 id="school_search"
+                 class="form-control"
+                 autocomplete="off"
+                 value="{{ initial.school_name|default:'' }}">
+
+          <div id="school_result"
+               class="list-group position-absolute w-100"
+               style="z-index:2000; max-height:200px; overflow-y:auto;"></div>
+
+          <input type="hidden"
+                 name="school"
+                 id="school_id"
+                 value="{{ initial.school_id|default:'' }}">
+        </div>
+
+        <!-- ================= 지역 ================= -->
+        <div class="mb-3">
+          <label class="form-label">지역</label>
+          <input type="text"
+                 id="region"
+                 name="region"
+                 class="form-control"
+                 readonly
+                 value="{{ initial.region|default:'' }}">
+        </div>
+
+        <!-- ================= 학생수 ================= -->
+        <div class="mb-3">
+          <label class="form-label">학생수</label>
+          <input type="text"
+                 id="student_count"
+                 name="student_count"
+                 class="form-control"
+                 value="{{ initial.student_count|default:'' }}">
+        </div>
+
+        <!-- ================= 모집 프로그램 ================= -->
+        <div class="mb-3">
+          <label class="form-label">모집 프로그램</label>
+
+          <div id="programList">
+
+            {% if initial.programs %}
+              {% for p in initial.programs %}
+              <div class="row g-2 mb-2 program-row">
+
+                <div class="col-md-4">
+                  <input type="text"
+                        name="program_name[]"
+                        class="form-control"
+                        value="{{ p.name }}"
+                        placeholder="프로그램명">
+                </div>
+
+                <div class="col-md-4">
+                  <input type="text"
+                        name="program_mng_no[]"
+                        class="form-control"
+                        value="{{ p.mng_no }}"
+                        placeholder="mng_no">
+                </div>
+
+                <div class="col-md-3">
+                  <input type="text"
+                        name="program_fee[]"
+                        class="form-control"
+                        value="{{ p.fee }}"
+                        placeholder="강사료 예: 시간당 50,000">
+                </div>
+
+                <div class="col-md-1">
+                  <button type="button"
+                          class="btn btn-outline-danger w-100 btn-remove">
+                    삭제
+                  </button>
+                </div>
+
+              </div>
+              {% endfor %}
+            {% else %}
+
+            <!-- 기본 1줄 -->
+            <div class="row g-2 mb-2 program-row">
+              <div class="col-md-4">
+                <input type="text"
+                      name="program_name[]"
+                      class="form-control"
+                      placeholder="프로그램명">
+              </div>
+
+              <div class="col-md-4">
+                <input type="text"
+                      name="program_mng_no[]"
+                      class="form-control"
+                      placeholder="mng_no">
+              </div>
+
+              <div class="col-md-3">
+                <input type="text"
+                      name="program_fee[]"
+                      class="form-control"
+                      placeholder="강사료 예: 시간당 50,000">
+              </div>
+
+              <div class="col-md-1">
+                <button type="button"
+                        class="btn btn-outline-danger w-100 btn-remove">
+                  삭제
+                </button>
+              </div>
+            </div>
+          {% endif %}
+
+          </div>
+
+          <button type="button"
+                  class="btn btn-outline-primary mt-2"
+                  id="addProgramBtn">
+            + 프로그램 추가
+          </button>
+        </div>
+
+        <!-- ================= 접수기간 ================= -->
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">접수 시작일</label>
+            <input type="date"
+                   name="receive_date"
+                   class="form-control"
+                   value="{{ initial.receive_date|default:'' }}">
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label">접수 마감</label>
+            <input type="datetime-local"
+                   name="deadline"
+                   class="form-control"
+                   value="{{ initial.deadline|default:'' }}">
+          </div>
+        </div>
+
+        <!-- ================= 첨부파일 ================= -->
+        <div class="mb-3">
+          <label class="form-label">첨부파일 링크</label>
+          <textarea name="attachment_urls"
+                    class="form-control"
+                    rows="3">{{ initial.attachment_urls|default:'' }}</textarea>
+        </div>
+
+        <button class="btn btn-success w-100 mt-2">
+          <i class="bi bi-check-lg me-1"></i> 등록하기
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+const schoolInput  = document.getElementById("school_search");
+const schoolResult = document.getElementById("school_result");
+const schoolHidden = document.getElementById("school_id");
+
+schoolInput.addEventListener("input", function () {
+    const q = this.value.trim();
+    if (!q) {
+        schoolResult.innerHTML = "";
+        return;
+    }
+
+    fetch(`/schools/search/?q=` + encodeURIComponent(q))
+        .then(res => res.json())
+        .then(data => {
+            let html = "";
+            data.forEach(s => {
+                html += `
+                  <button type="button"
+                    class="list-group-item list-group-item-action"
+                    data-id="${s.id}"
+                    data-name="${s.name}"
+                    data-address="${s.address}"
+                    data-student="${s.student_count}">
+                    ${s.name} (${s.student_count})
+                  </button>`;
+            });
+            schoolResult.innerHTML = html;
+        });
+});
+
+schoolResult.addEventListener("click", function (e) {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const name = btn.dataset.name;
+    const address = btn.dataset.address;
+    const student = btn.dataset.student;
+
+    schoolInput.value = name;
+    schoolHidden.value = btn.dataset.id;
+
+    if (address) {
+        document.getElementById("region").value =
+            address.split(" ").slice(0, 2).join(" ");
+    }
+
+    document.getElementById("student_count").value = student || "";
+    schoolResult.innerHTML = "";
+});
+
+document.getElementById("addProgramBtn").addEventListener("click", function () {
+    const row = document.querySelector(".program-row").cloneNode(true);
+    row.querySelectorAll("input").forEach(i => i.value = "");
+    document.getElementById("programList").appendChild(row);
+});
+
+document.getElementById("programList").addEventListener("click", function (e) {
+    if (e.target.classList.contains("btn-remove")) {
+        e.target.closest(".program-row").remove();
+    }
+});
+</script>
+
+{% endblock %}

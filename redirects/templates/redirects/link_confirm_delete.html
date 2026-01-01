@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5" style="max-width:500px;">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5><i class="bi bi-trash"></i> 링크 삭제</h5>
+      <p class="mt-3">
+        정말 <strong>{{ link.title|default:link.key }}</strong> 링크를 삭제하시겠습니까?
+      </p>
+      <form method="post">
+        {% csrf_token %}
+        <a href="{% url 'redirects:link_list' %}" class="btn btn-outline-secondary">취소</a>
+        <button type="submit" class="btn btn-danger">삭제</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

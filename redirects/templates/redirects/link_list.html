@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+
+  <!-- 헤더 -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-qr-code"></i> QR 링크 관리</h4>
+    <a href="{% url 'redirects:link_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> 새 링크
+    </a>
+  </div>
+
+  <!-- 검색/필터 -->
+  <form method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="검색 (키, 제목, URL)">
+    </div>
+    <div class="col-md-auto d-flex align-items-center">
+      <input class="form-check-input me-2" type="checkbox" name="active" value="1" id="activeOnly" {% if only_active %}checked{% endif %}>
+      <label class="form-check-label" for="activeOnly">활성만</label>
+    </div>
+    <div class="col-md-auto">
+      <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+    </div>
+  </form>
+
+  <!-- 목록 -->
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>제목</th>
+          <th>키</th>
+          <th>URL</th>
+          <th class="text-center">상태</th>
+          <th class="text-center">QR 미리보기</th>
+          <th class="text-end">관리</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for link in links %}
+        <tr>
+          <td>{{ link.title|default:"-" }}</td>
+          <td><code>{{ link.key }}</code></td>
+          <td class="text-truncate" style="max-width:300px;">
+            <a href="{{ link.url }}" target="_blank">{{ link.url }}</a>
+          </td>
+          <td class="text-center">
+            {% if link.is_active %}
+              <span class="badge bg-success">ON</span>
+            {% else %}
+              <span class="badge bg-secondary">OFF</span>
+            {% endif %}
+          </td>
+
+          <!-- ✅ QR 미리보기 + 버튼 -->
+          <td class="text-center">
+            <img src="{% url 'redirects:qr_code' link.key %}" 
+                 alt="QR" 
+                 class="img-thumbnail mb-2" 
+                 style="height:80px; width:80px;">
+            <div class="d-flex justify-content-center gap-1">
+              <!-- 링크 복사 -->
+              <button class="btn btn-sm btn-outline-secondary"
+                      onclick="copyLink('{{ request.build_absolute_uri|slice:':-1' }}{% url 'redirects:dynamic_redirect' link.key %}')"
+                      title="링크 복사">
+                <i class="bi bi-clipboard"></i>
+              </button>
+              <!-- QR 다운로드 -->
+              <a class="btn btn-sm btn-outline-secondary"
+                 href="{% url 'redirects:qr_download' link.key %}"
+                 title="QR 다운로드">
+                <i class="bi bi-download"></i>
+              </a>
+            </div>
+          </td>
+
+          <!-- ✅ 수정/삭제 -->
+          <td class="text-end">
+            <a href="{% url 'redirects:link_update' link.pk %}" class="btn btn-sm btn-outline-primary me-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'redirects:link_delete' link.pk %}" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted py-4">등록된 링크가 없습니다.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ✅ 복사 기능 -->
+<script>
+async function copyLink(text){
+  try {
+    await navigator.clipboard.writeText(text);
+    alert("복사되었습니다:\n" + text);
+  } catch (err) {
+    prompt("복사 실패! 직접 복사하세요.", text);
+  }
+}
+</script>
+
+{% endblock %}

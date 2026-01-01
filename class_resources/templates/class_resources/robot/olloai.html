@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4 mb-5" style="max-width:900px;">
+  <h3 class="mb-4 text-center">
+    <i class="bi bi-robot text-primary"></i> 올로AI 수업자료
+  </h3>
+
+  <!-- ✅ 바로가기 버튼 3개 (가로 배열) -->
+  <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
+    
+
+    <!-- 스팀컵 바로가기 -->
+    <a href="https://enjoy.steamcup.org/" target="_blank"
+       class="btn btn-outline-primary btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-trophy"></i>
+      스팀컵 바로가기
+    </a>
+
+    <!-- 방과후 커뮤니티 가기 -->
+    <a href="https://enjoy.steamcup.org/circle/101" target="_blank"
+       class="btn btn-outline-success btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-people"></i>
+      방과후 커뮤니티 가기
+    </a>
+
+    <!-- 웹하드 바로가기 -->
+    <a href="https://1drv.ms/f/c/382cc15dda19e21d/Eh3iGdpdwSwggDgPNAEAAAABW_Vf6hBSTRhQBQVN_n5ipA?e=Sezg06" target="_blank"
+       class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2">
+      <i class="bi bi-cloud-arrow-down"></i>
+      올로AI 웹하드 바로가기
+    </a>
+  </div>
+
+  <!-- ✅ 메인 다운로드 버튼 -->
+  <div class="text-center mb-4">
+    <button class="btn btn-lg btn-primary" id="togglePrograms">
+      <i class="bi bi-download"></i> 통합프로그램 다운로드
+    </button>
+  </div>
+
+  <!-- ✅ 단계별 다운로드 목록 -->
+  <div id="programList" class="d-none">
+    <div class="list-group shadow-sm">
+
+      <!-- ✅ 1단계: 실제 링크 있음 -->
+      <a href="https://rblock.steamcup.org/?lang=ko&block=7120"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        올로AI 1단계 통합프로그램 다운받기
+      </a>
+
+      <!-- ✅ 2단계: 실제 링크 있음 -->
+      <a href="https://rblock.steamcup.org/?lang=ko&block=25916"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        올로AI 2단계 통합프로그램 다운받기
+      </a>
+
+      <!-- ✅ 3단계: 실제 링크 있음 -->
+      <a href="https://rblock.steamcup.org/?lang=ko&block=42588"
+         target="_blank"
+         class="list-group-item list-group-item-action fw-semibold">
+        <i class="bi bi-box-arrow-up-right me-2"></i>
+        올로AI 3단계 통합프로그램 다운받기 
+      </a>
+
+      <!-- ✅ 2~8단계: 추후 추가 예정 -->
+      {% for i in "345678" %}
+        <button class="list-group-item list-group-item-action fw-semibold" disabled>
+          <i class="bi bi-file-earmark-lock me-2"></i>
+          올로AI {{ i }}단계 통합프로그램 (준비중)
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ✅ JS 토글 스크립트 -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const toggleBtn = document.getElementById("togglePrograms");
+  const list = document.getElementById("programList");
+
+  toggleBtn.addEventListener("click", function() {
+    list.classList.toggle("d-none");
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+    <div class="container mt-5 text-center">
+
+        <!-- 🔹 CTA 버튼 -->
+        <div class="d-flex justify-content-center gap-3">
+        <!-- 공지사항 버튼 -->
+        <a href="{% url 'notice_list' %}" class="btn btn-outline-secondary btn-lg">
+            공지사항
+        </a>
+
+        <!-- 로그인/로그아웃 버튼 -->
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="btn btn-danger btn-lg">로그아웃</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg">로그인</a>
+        {% endif %}
+        </div>
+        <!-- 🔹 이미지 배너 (원하는 경우) -->
+        <img src="{% static 'images/main_1.png' %}" 
+            class="img-fluid rounded shadow-sm mb-4" 
+            alt="STEAM 융합 교육 이미지">
+    </div>
+
+    
+{% endblock %}

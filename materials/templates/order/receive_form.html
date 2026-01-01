@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card p-4 shadow-sm">
+        <h3 class="text-center mb-4">입고 처리</h3>
+
+        <div class="mb-4">
+            <p><strong>교구재:</strong> {{ order.material.name }}</p>
+            <p><strong>주문 수량:</strong> {{ order.quantity }}</p>
+            <p><strong>주문일:</strong> {{ order.ordered_date }}</p>
+            <p><strong>예상 입고일:</strong> {{ order.expected_date }}</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.received_quantity.id_for_label }}" class="form-label">입고 수량</label>
+                {{ form.received_quantity|add_class:"form-control"|attr:"placeholder:예: 10" }}
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-success">입고 완료</button>
+                <a href="{% url 'order_list' %}" class="btn btn-secondary ms-2">취소</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

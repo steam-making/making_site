@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 1100px;">
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-award-fill me-2"></i> 자격증 관리
+            </h4>
+            <a href="{% url 'certificate_create' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-plus-circle me-1"></i> 자격증 추가
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover table-striped mb-0 align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:25%"><i class="bi bi-award"></i> 자격증명</th>
+                        <th style="width:25%"><i class="bi bi-building"></i> 발급기관</th>
+                        <th style="width:15%"><i class="bi bi-calendar-date"></i> 발급일</th>
+                        <th style="width:15%"><i class="bi bi-calendar-x"></i> 만료일</th>
+                        <th style="width:20%"><i class="bi bi-gear"></i> 관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cert in certificates %}
+                    <tr>
+                        <td class="text-break">{{ cert.name }}</td>
+                        <td class="text-break">{{ cert.issued_by }}</td>
+                        <td class="text-nowrap">{{ cert.issued_date|date:"Y-m-d" }}</td>
+                        <td class="text-nowrap">
+                            {% if cert.expires_date %}
+                                {{ cert.expires_date|date:"Y-m-d" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'certificate_update' cert.id %}" 
+                               class="btn btn-sm btn-outline-primary me-1" title="수정">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form method="post" action="{% url 'certificate_delete' cert.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('정말 삭제하시겠습니까?');" title="삭제">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="bi bi-info-circle me-1"></i> 등록된 자격증이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+/* ✅ 단어 단위로 줄바꿈 허용 */
+.table td.text-break {
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* ✅ 날짜는 줄바꿈 방지 */
+.table td.text-nowrap {
+  white-space: nowrap;
+}
+</style>
+{% endblock %}

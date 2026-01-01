@@ -1,0 +1,9 @@
+<h3>거래처 등록</h3>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">등록</button>
+</form>
+
+<a href="{% url 'vendor_list' %}">거래처 목록으로 이동</a>

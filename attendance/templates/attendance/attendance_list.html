@@ -1,0 +1,200 @@
+{% load static %}
+{% load extra_filters %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>출석 체크</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="container mt-4">
+
+    
+
+    <!-- ✅ 학교 선택 드롭다운 -->
+    <form method="get" class="mb-2 d-flex align-items-center">
+        <select name="school" onchange="this.form.submit()" class="form-select w-auto">
+            {% for school in schools %}
+                <option value="{{ school.id }}" {% if selected_school.id == school.id %}selected{% endif %}>
+                    {{ school.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <h2 class="mb-2"> 출석 체크</h2>
+    </form>
+
+
+    <a href="{% url 'student_create' %}?school={{ selected_school.id }}" class="btn btn-success mb-2">학생 등록</a>
+    <a href="{% url 'upload_students_excel' %}?school={{ selected_school.id }}" class="btn btn-warning mb-2">엑셀 업로드</a>
+    <button type="button" class="btn btn-danger mb-2" onclick="deleteSelectedStudents()">선택 삭제</button>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="container mt-5">
+        
+
+        {% for department, students in departments.items %}
+        <h4 class="mt-5">{{ department }} ({{ students|length }}명)</h4>
+        <table class="table table-striped text-center align-middle">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+                    <th>부서</th>
+                    <th>학년</th>
+                    <th>반</th>
+                    <th>번호</th>
+                    <th>이름</th>
+                    <th>학부모연락처</th>
+                    <th>출석시간</th>
+                    <th>출석</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td><input type="checkbox" class="student-checkbox" value="{{ student.id }}"></td>
+                    <td>{{ student.department}}</td>
+                    <td>{{ student.grade }}</td>
+                    <td>{{ student.classroom }}</td>
+                    <td>{{ student.number }}</td>
+                    <td>{{ student.name }}</td>
+                    <td>{{ student.phone }}</td>
+                    <td id="time-cell-{{ student.id }}">
+                        {% with attendances|dict_get:student.id as attendance %}
+                            {% if attendance %}
+                                {{ attendance.created_at|date:"H:i:s" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+
+                    <td id="attendance-cell-{{ student.id }}">
+                        {% if student.id in attendances %}
+                            <button onclick="cancelAttendance({{ student.id }}, 'attendance-cell-{{ student.id }}')" class="btn btn-outline-danger btn-sm ms-2">취소</button>
+                            <a href="sms:{{ student.phone }}?body={{ student.name }}님 오늘 출석 확인되었습니다." class="btn btn-sm btn-outline-primary ms-2">문자 보내기</a>
+                        {% else %}
+                            <button onclick="checkAttendance({{ student.id }}, '출석', 'attendance-cell-{{ student.id }}')" class="btn btn-success btn-sm">출석</button>
+                            <button onclick="checkAttendance({{ student.id }}, '지각', 'attendance-cell-{{ student.id }}')" class="btn btn-warning btn-sm">지각</button>
+                            <button onclick="checkAttendance({{ student.id }}, '결석', 'attendance-cell-{{ student.id }}')" class="btn btn-danger btn-sm">결석</button>
+                        {% endif %}
+
+
+                        <a href="{% url 'student_update' student.id %}" class="btn btn-sm btn-outline-warning ms-1">수정</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center">등록된 학생이 없습니다.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endfor %}
+    </div>
+
+    <script>
+    function checkAttendance(studentId, status, rowId) {
+        fetch(`/attendance/ajax/check/${studentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: status })  // ✅ 상태값 전송
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("응답:", data);  // ✅ 디버깅용
+            if (data.status === 'success') {
+                const phone = data.phone;
+                const name = data.student;
+                const createdAt = data.created_at;  // ✅ 출석시간
+                const message = `${name}님 오늘 ${status} 처리되었습니다.`;
+                                
+                // ✅ UI 변경 (문자 링크 포함)
+                const smsUrl = `sms:${phone}?body=${encodeURIComponent(message)}`;
+
+                // ✅ 버튼 영역 업데이트
+                document.getElementById(rowId).innerHTML = `
+                    <button onclick="cancelAttendance(${studentId}, '${rowId}')" class="btn btn-outline-danger btn-sm ms-2">취소</button>
+                    <a href="${smsUrl}" class="btn btn-sm btn-outline-primary ms-2">문자 보내기</a>
+                    <a href="/attendance/student/update/${studentId}/" class="btn btn-sm btn-outline-warning ms-2">수정</a>
+                `;
+
+                // ✅ 출석시간도 함께 업데이트
+                const timeCell = document.getElementById(`time-cell-${studentId}`);
+                if (timeCell) {
+                    timeCell.innerText = createdAt;
+                }
+                } else if (data.status === 'already_checked') {
+                    alert("이미 출석 처리되었습니다.");
+                }
+        });
+    }
+
+    function cancelAttendance(studentId, rowId) {
+        fetch(`/attendance/ajax/cancel/${studentId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'canceled') {
+                document.getElementById(rowId).innerHTML = `
+                    <button onclick="checkAttendance(${studentId}, '${rowId}')" class="btn btn-primary btn-sm">출석</button>
+                `;
+
+                // ✅ 새로고침으로 화면 즉시 반영
+                window.location.reload();
+            }
+        });
+    }
+
+    // CSRF 토큰을 fetch 요청에 넣기 위함
+    const csrfToken = '{{ csrf_token }}';
+
+    function toggleAll(source) {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = source.checked);
+    }
+
+    function deleteSelectedStudents() {
+        const selected = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+
+        if (selected.length === 0) {
+            alert("삭제할 학생을 선택하세요.");
+            return;
+        }
+
+        if (!confirm("정말 선택한 학생들을 삭제하시겠습니까?")) return;
+
+        fetch("{% url 'delete_selected_students' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ student_ids: selected })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`${data.deleted_count}명의 학생이 삭제되었습니다.`);
+                window.location.reload();
+            } else {
+                alert("삭제 중 오류가 발생했습니다.");
+            }
+        });
+    }
+
+    </script>
+
+</body>
+</html>

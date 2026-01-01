@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4">
+
+  <h4>🆕 Recent60 부스팅 백테스트</h4>
+
+  <form class="row g-2 mb-3" method="get" action="">
+    <div class="col-auto">
+      <label for="draw_no" class="col-form-label">회차 선택</label>
+    </div>
+    <div class="col-auto">
+      <input type="number" min="2" max="{{ max_draw }}" class="form-control" id="draw_no" name="draw_no"
+             value="{{ selected_draw|default:max_draw }}">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-danger">Recent60 실행</button>
+    </div>
+    <div class="col-auto">
+      <a href="{% url 'lotto_recommend' %}" class="btn btn-outline-secondary">추천 페이지</a>
+    </div>
+  </form>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% else %}
+
+  <div class="card mb-3 border-danger">
+    <div class="card-body">
+      <h6 class="card-title mb-2">🎯 {{ selected_draw }}회차 실제 당첨번호</h6>
+      <p class="mb-0">
+        {% for n in actual %}
+          <span class="badge bg-success">{{ n }}</span>
+        {% endfor %}
+      </p>
+    </div>
+  </div>
+
+  <h5 class="mt-4 text-danger">추천 10세트 & 적중 현황 (Recent60)</h5>
+  <ul class="list-group mb-4">
+    {% for r in results %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <span class="badge bg-danger me-2">세트 {{ r.rank }}</span>
+          {% for n in r.numbers %}
+            {% if n in actual %}
+              <span class="badge bg-primary">{{ n }}</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ n }}</span>
+            {% endif %}
+          {% endfor %}
+          <span class="ms-2">
+            <strong class="text-success">🎯 {{ r.hit_cnt }}개</strong>
+            {% if r.hit_cnt > 0 %}
+              <small class="text-muted">(
+                {% for h in r.hit_nums %}
+                  {{ h }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              )</small>
+            {% endif %}
+          </span>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <div class="alert alert-warning small mt-4">
+    <div>• 알고리즘: <strong>최근 60회 빈도 기반</strong> + <strong>미출현 보정(0.3)</strong> + <strong>Shape(합 155±15)</strong> 필터</div>
+    <div>• 목표: <strong>빠른 수렴 + 고빈도/미출현 균형</strong>으로 현실적 적중 가능성 극대화</div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h4>출고 품목 수정</h4>
+    <form method="post">
+        {% csrf_token %}
+        
+        <!-- ✅ 주문년도 / 주문월 (출고 모델) -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label d-flex align-items-center gap-1">
+                    <i class="bi bi-calendar-event"></i> 주문년도
+                </label>
+                <input type="number" name="order_year" class="form-control"
+                       min="2020" max="2100"
+                       value="{{ item.release.order_month|slice:':4' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-flex align-items-center gap-1">
+                    <i class="bi bi-calendar-event"></i> 주문월
+                </label>
+                <input type="number" name="order_month" class="form-control"
+                       min="1" max="12"
+                       value="{{ item.release.order_month|slice:'5:' }}" required>
+            </div>
+        </div>
+
+        <!-- 거래처 선택 -->
+        <div class="mb-3">
+            <label>거래처</label>
+            <select name="vendor" class="form-select">
+                {% for v in vendors %}
+                    <option value="{{ v.id }}" {% if v.id == item.vendor.id %}selected{% endif %}>
+                        {{ v.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 교구재 선택 -->
+        <div class="mb-3">
+            <label>교구재</label>
+            <select name="material" class="form-select">
+                {% for m in materials %}
+                    <option value="{{ m.id }}" {% if m.id == item.material.id %}selected{% endif %}>
+                        {{ m.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label>납품가</label>
+            <input type="number" name="unit_price" class="form-control" value="{{ item.unit_price }}">
+        </div>
+
+        <div class="mb-3">
+            <label>수량</label>
+            <input type="number" name="quantity" class="form-control" value="{{ item.quantity }}">
+        </div>
+
+        <div class="mb-3">
+            <label>출고방법</label>
+            <select name="release_method" class="form-select">
+                <option value="택배" {% if item.release_method == '택배' %}selected{% endif %}>택배</option>
+                <option value="센터수령" {% if item.release_method == '센터수령' %}selected{% endif %}>센터수령</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">저장</button>
+        <a href="{% url 'release_list' %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" class="btn btn-secondary">취소</a>
+    </form>
+</div>
+{% endblock %}

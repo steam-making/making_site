@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <!-- 🔹 헤더 카드 -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <h4 class="mb-1">
+          <i class="bi bi-list-ol text-primary me-1"></i>
+          {{ program.name }}
+        </h4>
+        <small class="text-muted">
+          커리큘럼 차시(수업계획서) 관리
+        </small>
+      </div>
+
+      {% if request.user.is_staff %}
+        <div class="d-flex">
+            <a href="{% url 'curriculum_syllabus_create' program.id %}"
+            class="btn btn-primary btn-sm me-2">
+            <i class="bi bi-plus-circle me-1"></i>
+            차시 추가
+            </a>
+
+            <a href="{% url 'curriculum_syllabus_excel_upload' program.id %}"
+            class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>
+            엑셀 등록
+            </a>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- 🔹 차시 테이블 카드 -->
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+
+      <table class="table table-bordered table-hover table-stack mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:80px">차시</th>
+            <th style="width:30%">주제</th>
+            <th>수업 내용</th>
+            {% if request.user.is_staff %}
+                <th style="width:140px" class="text-center">관리</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in syllabus_list %}
+          <tr>
+            <td data-label="차시">
+              <span class="badge bg-secondary">
+                {{ s.week }}차시
+              </span>
+            </td>
+
+            <td data-label="주제" class="fw-semibold">
+              {{ s.title }}
+            </td>
+
+            <td data-label="수업 내용" class="text-muted">
+              {{ s.content|truncatechars:60 }}
+            </td>
+
+            {% if request.user.is_staff %}
+                <td class="text-center" data-label="관리">
+                <a href="{% url 'curriculum_syllabus_update' s.id %}"
+                    class="btn btn-sm btn-outline-secondary me-1">
+                    <i class="bi bi-pencil"></i>
+                </a>
+
+                <a href="{% url 'curriculum_syllabus_delete' s.id %}"
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('이 차시를 삭제할까요?')">
+                    <i class="bi bi-trash"></i>
+                </a>
+                </td>
+            {% endif %}
+
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+              <i class="bi bi-info-circle me-1"></i>
+              등록된 차시(수업계획서)가 없습니다.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <!-- 🔹 하단 네비 -->
+  <div class="mt-3">
+    <a href="{% url 'curriculum_program_list' %}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i>
+      커리큘럼 프로그램 목록으로
+    </a>
+  </div>
+
+</div>
+
+{% endblock %}

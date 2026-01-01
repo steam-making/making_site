@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h4 class="mb-0">가입 승인 대기자</h4>
+      </div>
+
+      {# Django messages -> Bootstrap #}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- 가입 승인 대기자 목록 -->
+      <div class="table-responsive mb-4">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>이름</th>
+              <th>이메일</th>
+              <th>유형</th>
+              <th>가입일</th>
+              <th class="text-center">승인/거절</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if inactive_users %}
+              {% for user in inactive_users %}
+                <tr>
+                  <td>{{ user.first_name|default:user.username }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    {% with ut=user.profile.user_type %}
+                      {% if ut == 'teacher' %}
+                        <span class="badge bg-primary">강사</span>
+                      {% elif ut == 'student' %}
+                        <span class="badge bg-info text-dark">학생</span>
+                      {% elif ut == 'parent' %}
+                        <span class="badge bg-secondary">학부모</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">미지정</span>
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                  <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                  <td class="text-center">
+                    <div class="d-inline-flex gap-1">
+                      <!-- 개별 승인 -->
+                      <form method="post" class="d-inline" onsubmit="return confirm('이 사용자를 승인하시겠습니까?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                        <input type="hidden" name="action" value="approve">
+                        <button type="submit" class="btn btn-success btn-sm">승인</button>
+                      </form>
+                      <!-- 개별 거절 -->
+                      <form method="post" class="d-inline" onsubmit="return confirm('이 사용자를 거절하시겠습니까?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="btn btn-danger btn-sm">거절</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">승인 대기 중인 사용자가 없습니다.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- 회원탈퇴 요청자 목록 -->
+      <h4 class="mb-3">회원탈퇴 요청자</h4>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>이름</th>
+              <th>이메일</th>
+              <th>유형</th>
+              <th>가입일</th>
+              <th class="text-center">탈퇴 승인</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if withdrawal_users %}
+              {% for user in withdrawal_users %}
+                <tr>
+                  <td>{{ user.first_name|default:user.username }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    {% with ut=user.profile.user_type %}
+                      {% if ut == 'teacher' %}
+                        <span class="badge bg-primary">강사</span>
+                      {% elif ut == 'student' %}
+                        <span class="badge bg-info text-dark">학생</span>
+                      {% elif ut == 'parent' %}
+                        <span class="badge bg-secondary">학부모</span>
+                      {% elif ut == 'institution' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-building"></i> 기관</span>
+                      {% elif ut == 'pre_teacher' %}
+                        <span class="badge bg-success">예비강사</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">미지정</span>
+                      {% endif %}
+                    {% endwith %}
+                  </td>
+                  <td>{{ user.date_joined|date:"Y-m-d H:i" }}</td>
+                  <td class="text-center">
+                    <form method="post" onsubmit="return confirm('정말 탈퇴를 승인하시겠습니까?');">
+                      {% csrf_token %}
+                      <input type="hidden" name="user_id" value="{{ user.id }}">
+                      <input type="hidden" name="action" value="withdraw_approve">
+                      <button type="submit" class="btn btn-danger btn-sm">탈퇴 승인</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">탈퇴 요청자가 없습니다.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

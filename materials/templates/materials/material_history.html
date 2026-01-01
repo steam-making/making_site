@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-secondary text-white">
+      <h4 class="mb-0">📜 {{ material.name }} 수량 변경 이력</h4>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered table-hover text-center align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>일시</th>
+            <th>사용자</th>
+            <th>변경 타입</th>
+            <th>이전 수량</th>
+            <th>변경 후 수량</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in histories %}
+          <tr>
+            <td>{{ h.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ h.user.username|default:"-" }}</td>
+            <td>{{ h.get_change_type_display }}</td>
+            <td>{{ h.old_value|default:"-" }}</td>
+            <td>{{ h.new_value|default:"-" }}</td>
+            <td>{{ h.note }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-muted">변경 이력이 없습니다.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

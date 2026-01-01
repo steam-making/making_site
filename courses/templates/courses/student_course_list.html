@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <h3 class="mb-4">수강 프로그램</h3>
+
+  <div class="row">
+
+    {% for p in programs %}
+    <div class="col-md-3 mb-4">
+        <div class="card shadow-sm">
+            {% if p.image %}
+            <img src="{{ p.image.url }}" class="card-img-top">
+            {% endif %}
+
+            <div class="card-body">
+                <h5 class="card-title">{{ p.name }}</h5>
+                <p class="card-text">{{ p.description }}</p>
+
+                {% if p.id in enrolled %}
+                <a href="{{ p.get_url }}" class="btn btn-success w-100">계속 학습하기 →</a>
+                {% else %}
+                <a href="{% url 'student_course_apply' p.id %}"
+                   class="btn btn-primary w-100"
+                   onclick="return confirm('수강 신청하시겠습니까?');">
+                    수강 신청하기
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% endblock %}

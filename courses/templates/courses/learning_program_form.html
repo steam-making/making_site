@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+
+    <h3 class="mb-4">
+        {% if mode == "edit" %}
+            학습 프로그램 수정
+        {% else %}
+            새 학습 프로그램 추가
+        {% endif %}
+    </h3>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-success">
+            저장하기
+        </button>
+
+        <a href="{% url 'learning_program_list' %}" class="btn btn-secondary">취소</a>
+    </form>
+
+</div>
+{% endblock %}

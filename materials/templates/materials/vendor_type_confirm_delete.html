@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card p-4">
+    <h4>삭제 확인</h4>
+    <p>정말로 <strong>{{ type.name }}</strong> 종류를 삭제하시겠습니까?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">삭제</button>
+        <a href="{% url 'vendor_type_list' %}" class="btn btn-secondary">취소</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-3 text-center">회원 목록 (관리자 전용)</h4>
+
+      <!-- 검색/필터 -->
+      <form method="get" class="row g-2 align-items-end mb-3">
+        <div class="col-12 col-md-4">
+          <label class="form-label">검색 (이름/아이디/이메일)</label>
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="예: 홍길동, user@example.com">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">회원 유형</label>
+          <select name="user_type" class="form-select">
+            <option value="">전체</option>
+            {% for val,label in USER_TYPE_CHOICES %}
+              <option value="{{ val }}" {% if user_type == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">상태</label>
+          <select name="status" class="form-select">
+            <option value="">전체</option>
+            <option value="approved" {% if status == 'approved' %}selected{% endif %}>승인</option>
+            <option value="pending" {% if status == 'pending' %}selected{% endif %}>대기</option>
+            <option value="active" {% if status == 'active' %}selected{% endif %}>활성</option>
+            <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>비활성</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label">정렬</label>
+          <select name="order" class="form-select">
+            <option value="-date_joined" {% if order == '-date_joined' %}selected{% endif %}>최근 가입순</option>
+            <option value="date_joined" {% if order == 'date_joined' %}selected{% endif %}>오래된 가입순</option>
+            <option value="username" {% if order == 'username' %}selected{% endif %}>아이디(오름차)</option>
+            <option value="-username" {% if order == '-username' %}selected{% endif %}>아이디(내림차)</option>
+            <option value="first_name" {% if order == 'first_name' %}selected{% endif %}>이름(오름차)</option>
+            <option value="-first_name" {% if order == '-first_name' %}selected{% endif %}>이름(내림차)</option>
+          </select>
+        </div>
+        <div class="col-6 col-md-2 d-grid">
+          <button class="btn btn-primary">적용</button>
+        </div>
+      </form>
+
+      <!-- 목록 -->
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>이름</th>
+              <th>아이디(이메일)</th>  {# ← 이메일 칼럼 제거, 통합 표기 #}
+              <th>유형</th>
+              <th>승인</th>
+              <th>활성</th>
+              <th>가입일</th>
+              <th class="text-center">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in page_obj %}
+            <tr>
+              <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+              <td>{{ u.first_name|default:u.username }}</td>
+
+              {# 아이디(이메일) 표기: username을 기본으로, username과 email이 다르면 괄호로 email 병기 #}
+              <td>
+                {{ u.username }}
+                {% if u.email and u.email != u.username %}
+                  <span class="text-muted">({{ u.email }})</span>
+                {% endif %}
+              </td>
+
+              <td>{{ u.profile.user_type|default:"-" }}</td>
+              <td>
+                {% if u.profile.is_approved %}
+                  <span class="badge bg-success">승인</span>
+                {% else %}
+                  <span class="badge bg-secondary">대기</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                  <span class="badge bg-primary">활성</span>
+                {% else %}
+                  <span class="badge bg-danger">비활성</span>
+                {% endif %}
+              </td>
+              <td>{{ u.date_joined|date:"Y-m-d H:i" }}</td>
+
+              <td class="text-center">
+                <div class="d-flex justify-content-center gap-1 flex-wrap">
+                  {# 강사인 경우만 '경력', '자격증' 버튼 노출 #}
+                  {% if u.profile.user_type == 'teacher' or u.profile.user_type == 'center_teacher'%}
+                    <a class="btn btn-sm btn-outline-secondary"
+                       href="{% url 'teacher_career_list' u.id %}">경력</a>
+                    <a class="btn btn-sm btn-outline-secondary"
+                       href="{% url 'teacher_certificate_list' u.id %}">자격증</a>
+                  {% endif %}
+                  <a class="btn btn-sm btn-outline-secondary"
+                     href="/admin/auth/user/{{ u.id }}/change/" target="_blank">관리</a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">검색 조건에 해당하는 회원이 없습니다.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 페이지네이션 -->
+      <nav aria-label="pagination">
+        <ul class="pagination justify-content-center">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?q={{ q }}&user_type={{ user_type }}&status={{ status }}&order={{ order }}&page={{ page_obj.previous_page_number }}">이전</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">이전</span></li>
+          {% endif %}
+
+          <li class="page-item disabled">
+            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+          </li>
+
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?q={{ q }}&user_type={{ user_type }}&status={{ status }}&order={{ order }}&page={{ page_obj.next_page_number }}">다음</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">다음</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+{% endblock %}

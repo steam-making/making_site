@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load custom_filters %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-5" style="max-width: 720px;">
+  <!-- ✅ 카드형 폼 -->
+  <div class="card shadow-sm border-0 rounded-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-pencil-square me-2"></i>
+        {% if form.instance.pk %}할 일 수정{% else %}새 할 일 등록{% endif %}
+      </h5>
+    </div>
+
+    <div class="card-body p-4">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- ✅ 필드별 정리 -->
+
+        <div class="mb-3">
+          <label for="id_work_type" class="form-label fw-semibold">업무 종류</label>
+          {{ form.work_type|add_class:"form-select" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_title" class="form-label fw-semibold">업무 제목</label>
+          {{ form.title|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_due_date" class="form-label fw-semibold">마감일자</label>
+          {{ form.due_date|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+          <label for="id_repeat" class="form-label fw-semibold">반복 주기</label>
+          {{ form.repeat|add_class:"form-select" }}
+          <div class="form-text text-muted">
+            ※ “반복 없음” 선택 시 단일 업무로 등록됩니다.<br>
+            ※ 반복 설정된 업무는 완료 시 자동으로 다음 주기 일정이 생성됩니다.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="id_description" class="form-label fw-semibold">상세 내용</label>
+          {{ form.description|add_class:"form-control" }}
+        </div>
+
+        <!-- ✅ 버튼 영역 -->
+        <div class="d-flex justify-content-end mt-4 gap-2">
+          <a href="{% url 'task_list' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left-circle me-1"></i> 취소
+          </a>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i> 저장
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ 추가 스타일 -->
+<style>
+  .card {
+    background-color: #fff;
+    border-radius: 1rem;
+  }
+  @media (max-width: 576px) {
+    .card-body {
+      padding: 1.2rem;
+    }
+  }
+</style>
+
+{% endblock %}

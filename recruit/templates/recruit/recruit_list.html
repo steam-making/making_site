@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load recruit_tags %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">
+        <i class="bi bi-megaphone-fill me-1"></i> 늘봄 모집공고
+    </h3>
+
+    <div class="card mb-3">
+      <div class="card-body">
+
+          
+
+          <div class="d-flex flex-wrap gap-2">
+              <i class="bi bi-link-45deg"></i>
+
+              <a href="https://neulbomhub.kosac.re.kr/prrg/dash/dashDetail.do"
+                target="_blank"
+                class="btn btn-primary btn-sm">
+                  늘봄허브
+              </a>
+
+              <a href="https://after.gen.go.kr/index.php?cate=003001001001"
+                target="_blank"
+                class="btn btn-primary btn-sm">
+                  신나는방과후
+              </a>
+
+              <a href="https://www.jne.go.kr/aftersc/na/ntt/selectNttList.do?mi=762&bbsId=367"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  전남늘봄지원
+              </a>
+
+              <a href="https://njed.jne.go.kr/njed/na/ntt/selectNttList.do?mi=11822&bbsId=11822"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  나주
+              </a>
+
+              <a href="https://yged.jne.go.kr/yged/na/ntt/selectNttList.do?mi=16354&bbsId=16354"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  영광
+              </a>
+
+              <a href="https://dyed.jne.go.kr/dyed/na/ntt/selectNttList.do?mi=12558&bbsId=12558"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  담양
+              </a>
+
+              <a href="https://jsed.jne.go.kr/jsed/na/ntt/selectNttList.do?mi=16631&bbsId=16748"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  장성
+              </a>
+
+              <a href="https://hped.jne.go.kr/hped/na/ntt/selectNttList.do?mi=15937&bbsId=15937"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  함평
+              </a>           
+
+              <a href="https://hsed.jne.go.kr/hsed/na/ntt/selectNttList.do?mi=14192&bbsId=14192"
+                target="_blank"
+                class="btn btn-success btn-sm">
+                  화순
+              </a>
+
+              <a href="https://www.schoolinfo.go.kr/Main.do"
+                target="_blank"
+                class="btn btn-secondary btn-sm">
+                  학교알리미
+              </a>
+
+
+              <!-- ⭐ 관리자만 보임 -->
+              {% if request.user.is_staff %}
+              <a href="{% url 'recruit_add' %}" class="btn btn-warning btn-sm ms-auto">
+                  <i class="bi bi-plus-circle"></i> 모집공고 등록
+              </a>
+              {% endif %}
+
+          </div>
+
+      </div>
+  </div>
+
+</div>
+
+  <!-- 필터 영역 -->
+  <form method="get" class="row g-2 mb-3 align-items-end">
+
+    <!-- 상태 -->
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">상태 전체</option>
+        <option value="진행" {% if request.GET.status == "진행" %}selected{% endif %}>진행</option>
+        <option value="마감임박" {% if request.GET.status == "마감임박" %}selected{% endif %}>마감임박</option>
+        <option value="대기" {% if request.GET.status == "대기" %}selected{% endif %}>대기</option>
+        <option value="마감" {% if request.GET.status == "마감" %}selected{% endif %}>마감</option>
+      </select>
+    </div>
+
+    <!-- 지역 -->
+    <div class="col-md-2">
+      <input type="text"
+            name="region"
+            class="form-control"
+            placeholder="지역"
+            value="{{ request.GET.region }}">
+    </div>
+
+    <!-- 학교 -->
+    <div class="col-md-3">
+      <input type="text"
+            name="school"
+            class="form-control"
+            placeholder="학교명"
+            value="{{ request.GET.school }}">
+    </div>
+
+    <!-- 프로그램 -->
+    <div class="col-md-3">
+      <input type="text"
+            name="program"
+            class="form-control"
+            placeholder="프로그램"
+            value="{{ request.GET.program }}">
+    </div>
+
+    <!-- 검색 버튼 -->
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100">
+        <i class="bi bi-search me-1"></i> 검색
+      </button>
+    </div>
+
+  </form>
+
+
+  <!-- 모집공고 리스트 -->
+  <div class="table-responsive table-stack">
+    <table class="table table-bordered table-hover align-middle small">
+      <thead class="table-light">
+        <tr>
+          <th>상태</th>
+          <th>접수기간</th>
+          <th>제출방법</th>
+          <th>지역</th>
+          <th>학교명</th>
+          <th>학생수</th>
+          <th>모집프로그램</th>
+          <th class="text-nowrap">첨부파일</th>
+          {% if request.user.is_staff %}
+          <th>관리</th>
+          {%endif%}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for n in notices %}
+        <tr>
+
+          <!-- 상태 -->
+          <td data-label="상태">
+
+                {% if n.computed_status == "마감임박" %}
+                    <span class="badge bg-danger">마감임박</span>
+
+                {% elif n.computed_status == "진행" %}
+                    <span class="badge bg-success">진행</span>
+
+                {% elif n.computed_status == "대기" %}
+                    <span class="badge bg-warning text-dark">대기</span>
+
+                {% else %}
+                    <span class="badge bg-secondary">마감</span>
+                {% endif %}
+
+            </td>
+
+
+
+          <!-- 접수기간 -->
+          <td data-label="접수기간">
+            {{ n.receive_date|date:"Y-m-d" }}<br>
+            ~ {{ n.deadline|date:"Y-m-d H:i" }}
+          </td>
+
+          <!-- 제출방법 -->
+          <td data-label="제출방법">
+            <div class="d-flex flex-wrap gap-1">
+              {% for m in n.submit_method_list %}
+                <span class="badge rounded-pill 
+                  {% if m == '늘봄허브' %}bg-primary
+                  {% elif m == '방문' %}bg-success
+                  {% elif m == '우편' %}bg-secondary
+                  {% else %}bg-info{% endif %}
+                  text-white px-2">
+                  {{ m }}
+                </span>
+              {% endfor %}
+
+            </div>
+          </td>
+
+          <!-- 지역 -->
+          <td data-label="지역">
+            {% for word in n.region.split %}
+              {{ word }}<br>
+            {% endfor %}
+          </td>
+
+          <!-- 학교명 -->
+          <td data-label="학교명">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <strong>{{ n.school.name }}</strong>
+
+              {% if n.is_our_school %}
+                <span class="badge bg-success">
+                  <i class="bi bi-person-check-fill me-1"></i>
+                </span>
+              {% endif %}
+            </div>
+          </td>
+
+
+          <!-- 학생수 -->
+          <td data-label="학생수">{{ n.student_count }}</td>
+          
+          <!-- 모집프로그램 (자동 색상 태그 적용) -->
+          <td data-label="모집프로그램">
+
+          {% for p in n.checked_programs %}
+            <div class="mb-2 d-flex align-items-center gap-2">
+
+              {% if "늘봄허브" in n.submit_method_list %}
+                <!-- 늘봄허브 제출 → 링크 버튼 -->
+                <a href="https://neulbomhub.kosac.re.kr/prrg/papr/papr/paprDetail.do?mode=E&prgrm_pbanc_mng_no={{ p.mng_no }}"
+                  target="_blank"
+                  class="btn btn-sm btn-outline-primary flex-grow-1 text-start">
+
+                  {{ p.name }}
+                  {% if p.fee %}
+                    — {{ p.fee }}
+                  {% endif %}
+                </a>
+              {% else %}
+                <!-- 텍스트 형태 -->
+                <span class="badge bg-secondary flex-grow-1 text-start">
+                  {{ p.name }}
+                  {% if p.fee %}
+                    — {{ p.fee }}
+                  {% endif %}
+                </span>
+              {% endif %}
+
+              <!-- ⭐ 우리강사 출강 프로그램 표시 -->
+              {% if p.is_our_program %}
+                <span class="badge bg-success">
+                  <i class="bi bi-person-check-fill me-1"></i>메이킹
+                </span>
+              {% endif %}
+
+            </div>
+          {% endfor %}
+
+        </td>
+
+
+
+          <!-- 첨부파일 -->
+          <td data-label="첨부파일">
+            {% if n.attachment_urls %}
+                {% for link in n.attachment_urls %}
+                <a href="{{ link }}" target="_blank" class="btn btn-sm btn-outline-primary d-block mb-1">
+                    링크 {{ forloop.counter }}
+                </a>
+                {% endfor %}
+            {% else %}
+                -
+            {% endif %}
+          </td>
+
+          {% if request.user.is_staff %}
+          <td data-label="관리">
+            <div class="d-flex justify-content-center gap-2">
+
+              <!-- 수정 -->
+              <a href="{% url 'recruit_edit' n.id %}"
+                class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="tooltip"
+                title="수정">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+
+              <!-- 복사 -->
+              <a href="{% url 'recruit_copy' n.id %}"
+                class="btn btn-sm btn-outline-success"
+                data-bs-toggle="tooltip"
+                title="복사">
+                <i class="bi bi-files"></i>
+              </a>
+
+              <!-- 삭제 -->
+              <a href="{% url 'recruit_delete' n.id %}"
+                class="btn btn-sm btn-outline-danger"
+                data-bs-toggle="tooltip"
+                title="삭제"
+                onclick="return confirm('정말 삭제하시겠습니까?');">
+                <i class="bi bi-trash"></i>
+              </a>
+
+            </div>
+          </td>
+          {% endif %}
+
+        </tr>
+        {% endfor %}
+      </tbody>
+
+    </table>
+  </div>
+
+</div>
+{% endblock %}

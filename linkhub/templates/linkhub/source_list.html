@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>⚙ SourceSite 관리</h4>
+        <a href="{% url 'linkhub:source_add' %}?area={{ area }}"
+        class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> 추가
+        </a>
+    </div>
+
+    <!-- 🔥 지역 탭 -->
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <a class="nav-link {% if area == 'gwangju' %}active{% endif %}"
+            href="?area=gwangju">
+                광주
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if area == 'jeonnam' %}active{% endif %}"
+            href="?area=jeonnam">
+                전남
+            </a>
+        </li>
+    </ul>
+
+
+    <table class="table table-hover table-stack">
+        <thead>
+            <tr>
+                <th>사이트명</th>
+                <th>URL</th>
+                <th>활성</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sources %}
+            <tr>
+                <td data-label="사이트명">{{ s.name }}</td>
+                <td data-label="URL" class="text-break">{{ s.url }}</td>
+                <td data-label="활성">
+                    <button
+                        class="btn btn-sm toggle-active-btn {% if s.active %}btn-success{% else %}btn-outline-secondary{% endif %}"
+                        data-id="{{ s.id }}"
+                    >
+                        {% if s.active %}ON{% else %}OFF{% endif %}
+                    </button>
+                </td>
+                <td>
+                    <a href="{% url 'linkhub:source_edit' s.pk %}"
+                       class="btn btn-sm btn-outline-primary">
+                        수정
+                    </a>
+                    <a href="{% url 'linkhub:source_delete' s.pk %}"
+                       class="btn btn-sm btn-outline-danger">
+                        삭제
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted">등록된 사이트 없음</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".toggle-active-btn").forEach(btn => {
+        btn.addEventListener("click", function () {
+            const siteId = this.dataset.id;
+
+            fetch(`/linkhub/source/${siteId}/toggle/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.active) {
+                    this.classList.remove("btn-outline-secondary");
+                    this.classList.add("btn-success");
+                    this.textContent = "ON";
+                } else {
+                    this.classList.remove("btn-success");
+                    this.classList.add("btn-outline-secondary");
+                    this.textContent = "OFF";
+                }
+            });
+        });
+    });
+});
+</script>
+
+{% endblock %}

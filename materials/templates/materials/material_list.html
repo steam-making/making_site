@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4">
+  <div class="card p-4 shadow-sm">
+    <h3 class="mb-4 text-center">📦 교구재 목록</h3>
+
+    <!-- 필터 -->
+    <form method="get" class="row g-2 align-items-center mb-4">
+      <div class="col-auto">
+        <label for="vendor" class="col-form-label fw-bold">거래처:</label>
+      </div>
+      <div class="col-auto">
+        <select name="vendor" id="vendor" class="form-select" onchange="this.form.submit()">
+          <option value="">전체</option>
+          {% for vendor in vendors %}
+            <option value="{{ vendor.id }}" {% if vendor.id|stringformat:"s" == selected_vendor_id %}selected{% endif %}>
+              {{ vendor.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <input type="text" name="q" class="form-control" placeholder="교구재명 또는 거래처명 검색" value="{{ search_query }}">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-primary">🔍 검색</button>
+      </div>
+    </form>
+
+    <!-- 상단 버튼 -->
+    <div class="mb-3 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+      <div>
+         <a href="{% url 'material_create' %}?next={{ request.get_full_path }}" 
+          class="btn btn-primary">
+          <i class="bi bi-plus-circle me-1"></i> 교구재 등록
+        </a>
+        <a href="{% url 'material_bulk_upload' %}" class="btn btn-secondary">📁 엑셀 등록</a>
+        <a href="{% url 'download_material_template' %}" class="btn btn-outline-info">📄 엑셀 템플릿</a>
+        <a href="{% url 'vendor_create' %}" class="btn btn-outline-secondary">🏷 거래처 등록</a>
+        <a href="{% url 'vendor_list' %}" class="btn btn-outline-secondary">📋 거래처 목록</a>
+        
+      </div>
+      <div>
+      <!-- ✅ 순서변경/순서저장 토글 버튼 -->
+      <button id="toggleOrderBtn" class="btn btn-outline-primary">
+        🔄 순서변경
+      </button>
+  </div>
+    </div>
+
+    <!-- 거래처별 표 -->
+    {% regroup materials by vendor as vendor_list %}
+    {% for group in vendor_list %}
+    <h5 class="mt-4">🏷 {{ group.grouper.name }}</h5>
+    <form id="materialDeleteForm_{{ group.grouper.id }}" action="{% url 'material_bulk_delete' %}" method="post">
+      {% csrf_token %}
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover text-center align-middle">
+          <thead class="table-light">
+            <tr>
+              <th><input type="checkbox" class="selectAll" data-vendor="{{ group.grouper.id }}"></th>
+              <th>교구재명</th>
+              <th>소비자가</th>
+              <th>학교납품가</th>
+              <th>기관납품가</th>
+              <th>공급가</th>
+              <th>재고</th>
+              <th colspan="3">관리</th>
+            </tr>
+          </thead>
+          <tbody class="sortable" data-vendor="{{ group.grouper.id }}">
+            {% for material in group.list %}
+            <tr data-id="{{ material.id }}">
+              <td><input type="checkbox" name="material_ids" value="{{ material.pk }}" class="material-checkbox" data-vendor="{{ group.grouper.id }}"></td>
+              <td>{{ material.name }}</td>
+              <td>{{ material.consumer_price|intcomma }}원</td>
+              <td>{{ material.school_price|intcomma }}원</td>
+              <td>{{ material.institute_price|intcomma }}원</td>
+              <td>{{ material.supply_price|intcomma }}원</td>
+              <td>{{ material.stock }}</td>
+              <td>
+                  <a href="{% url 'material_edit' material.pk %}?next={{ request.get_full_path }}"
+                    class="btn btn-sm btn-warning">
+                      <i class="bi bi-pencil-square"></i> 수정
+                  </a>
+              </td>
+              <td>
+                <button type="submit"
+                        formaction="{% url 'material_delete' material.pk %}?next={{ request.get_full_path }}"
+                        class="btn btn-sm btn-outline-danger"
+                        onclick="return confirm('정말 삭제하시겠습니까?');">
+                    <i class="bi bi-trash"></i> 삭제
+                </button>
+
+              </td>
+              <td>
+                {% if material.pk %}
+                <a href="{% url 'material_history' material.pk %}" class="btn btn-sm btn-outline-info">
+                  <i class="bi bi-clock-history"></i> 이력
+                </a>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- === 하단 JS === -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const toggleBtn = document.getElementById("toggleOrderBtn");
+  let orderingMode = false;   // 현재 순서변경 모드 여부
+  let sortables = [];         // Sortable 인스턴스 보관
+  let currentOrder = {};      // 순서 저장용
+
+  // 각 테이블 tbody에 Sortable 초기화 (처음에는 disabled)
+  document.querySelectorAll(".sortable").forEach(function(tbody) {
+    const sortable = new Sortable(tbody, {
+      handle: "tr",
+      animation: 150,
+      disabled: true, // ✅ 기본은 비활성화
+      onEnd: function () {
+        const vendorId = tbody.dataset.vendor;
+        let order = [];
+        tbody.querySelectorAll("tr").forEach((row, index) => {
+          order.push({id: row.dataset.id, vendor: vendorId, position: index + 1});
+        });
+        currentOrder[vendorId] = order;
+      }
+    });
+    sortables.push(sortable);
+  });
+
+  // 버튼 클릭 이벤트
+  toggleBtn.addEventListener("click", function() {
+    if (!orderingMode) {
+      // === 순서변경 모드 ON ===
+      orderingMode = true;
+      toggleBtn.textContent = "💾 순서저장";
+      sortables.forEach(s => s.option("disabled", false)); // 드래그 활성화
+      alert("이제 행을 드래그해서 순서를 변경할 수 있습니다.");
+    } else {
+      // === 순서저장 실행 ===
+      orderingMode = false;
+      toggleBtn.textContent = "🔄 순서변경";
+      sortables.forEach(s => s.option("disabled", true)); // 드래그 비활성화
+
+      // 모든 벤더 순서 합치기
+      const orders = [];
+      for (const vendorId in currentOrder) {
+        orders.push(...currentOrder[vendorId]);
+      }
+
+      if (orders.length === 0) {
+        alert("변경된 순서가 없습니다.");
+        return;
+      }
+
+      fetch("{% url 'reorder_materials' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(orders)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "success") {
+          alert("순서가 저장되었습니다.");
+          window.location.reload();
+        } else {
+          alert("순서 저장 실패: " + data.message);
+        }
+      })
+      .catch(err => alert("오류 발생: " + err));
+    }
+  });
+});
+</script>
+
+{% endblock %}

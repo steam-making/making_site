@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="d-flex align-items-center gap-2">
+        <i class="bi bi-journal"></i> 메이킹 프로그램
+
+        {% if request.user.is_staff %}
+        <a href="{% url 'target_list' %}" class="btn btn-outline-secondary btn-sm ms-3">
+          <i class="bi bi-people"></i> 대상 관리
+        </a>
+        <a href="{% url 'program_create' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-circle"></i> 프로그램 등록
+        </a>
+        {% endif %}
+    </h4>
+
+    <!-- 모집 방식 별 탭 -->
+    <div class="d-flex gap-2 mb-3">
+          <a href="{% url 'program_list_always' %}"
+            class="btn {% if active_tab == 'always' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            상시수업
+          </a>
+
+          <a href="{% url 'program_list_event' %}"
+            class="btn {% if active_tab == 'event' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            이벤트
+          </a>
+
+          <a href="{% url 'program_list_short' %}"
+            class="btn {% if active_tab == 'short' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            단기수업
+          </a>
+
+          <a href="{% url 'program_list' %}"
+            class="btn {% if not active_tab %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            전체보기
+          </a>
+    </div>   
+  </div>
+   
+  <div class="d-flex justify-content-center flex-wrap gap-2 py-2 mb-3">
+    {% for pt in program_types %}
+      <a href="?program_type={{ pt.id }}"
+        class="btn d-flex align-items-center gap-1 px-3
+                {% if program_type == pt.id %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        style="white-space: nowrap; border-radius: 20px;">
+        
+        {% if pt.name == "로봇" %}
+          <i class="bi bi-robot"></i>
+        {% elif pt.name == "코딩" %}
+          <i class="bi bi-code-slash"></i>
+        {% elif pt.name == "3D펜" %}
+          <i class="bi bi-cube"></i>
+        {% elif pt.name == "항공드론" %}
+          <i class="bi bi-airplane"></i>
+        {% elif pt.name == "창의수학" %}
+          <i class="bi bi-calculator"></i>
+        {% elif pt.name == "과학" %}
+          <i class="bi bi-flask"></i>
+        {% elif pt.name|lower == "컴퓨터" %}
+          <i class="bi bi-cpu"></i>
+        {% else %}
+          <i class="bi bi-folder"></i>
+        {% endif %}
+
+        {{ pt.name }}
+      </a>
+    {% endfor %}
+  </div>
+
+
+
+
+  <!-- 카드형 -->
+  {% if view_type == "cards" %}
+  <div class="row g-4">
+    {% for p in programs %}
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card h-100 shadow-sm border-0 rounded-3 overflow-hidden small-card">
+        {% if p.image %}
+          <div class="ratio ratio-1x1">
+            <img src="{{ p.image.url }}" class="card-img-top object-fit-cover" alt="{{ p.name }}">
+          </div>
+        {% else %}
+          <div class="ratio ratio-1x1 bg-light d-flex align-items-center justify-content-center">
+            <span class="text-muted">이미지 없음</span>
+          </div>
+        {% endif %}
+
+        <div class="card-body d-flex flex-column">
+
+          <h5 class="card-title fw-bold text-truncate mb-2">
+            {{ p.name }}
+            <span class="badge 
+                  {% if p.status == 'open' and p.is_full %} bg-danger
+                  {% elif p.status == 'open' %} bg-success
+                  {% else %} bg-secondary {% endif %}">
+              {{ p.display_status }}
+            </span>
+          </h5>
+
+          {% if p.recruit_type != "always" %}
+          <div class="text-muted small mb-3">
+            <i class="bi bi-calendar-range me-1"></i>모집기간:
+            {% if p.recruit_start_date and p.recruit_end_date %}
+              {{ p.recruit_start_date|date:"Y.m.d" }} ~ {{ p.recruit_end_date|date:"Y.m.d" }}
+            {% else %}
+              <span class="text-muted">미지정</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
+
+          <table class="table table-sm mb-3">
+            <tbody>
+              <!-- 프로그램 유형 -->
+              <tr>
+                <th><i class="bi bi-list-task me-1"></i> 유형</th>
+                <td>
+                  {% for t in p.program_types.all %}
+                    <span class="badge type-{{ t.name }}">{{ t.name }}</span>
+                  {% empty %}
+                    <span class="text-muted">없음</span>
+                  {% endfor %}
+                </td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-people-fill me-1"></i>대상</th>
+                <td>{{ p.get_target_range }}</td>
+              </tr>
+              {% if p.recruit_type != "always" %}
+              <tr>
+                <th class="nowrap"><i class="bi bi-calendar-event me-1"></i>수업기간</th>
+                <td>
+                  {% if p.start_date %}{{ p.start_date|date:"Y.m.d" }}{% else %}<span class="text-muted">미지정</span>{% endif %}
+                  ~
+                  {% if p.end_date %}{{ p.end_date|date:"Y.m.d" }}{% else %}<span class="text-muted">미지정</span>{% endif %}
+                </td>
+              </tr>
+              {% endif %}
+              <tr>
+                <th><i class="bi bi-list-ol me-1"></i>수업횟수</th>
+                <td>
+                  {% if p.get_schedule_summary %}
+                    {{ p.get_schedule_summary }}
+                  {% else %}
+                    <span class="text-muted">미지정</span>
+                  {% endif %}
+                </td>
+              </tr>
+
+              <tr>
+                <th><i class="bi bi-collection me-1"></i>수업시간</th>
+                <td class="class-list">
+                  {% if p.classes.all %}
+                    {% for c in p.classes.all %}
+                      <span class="badge class-badge-{{ forloop.counter }}">{{ c.name }}</span>
+                    {% empty %}
+                      <span class="text-muted">없음</span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="text-muted">없음</span>
+                  {% endif %}
+                </td>
+              </tr>
+
+              <tr>
+                <th><i class="bi bi-list-ol me-1"></i>총수업</th>
+                <td>
+                  {% if p.session_count %}
+                    {{ p.session_count }}회
+                  {% else %}
+                    <span class="text-muted">미지정</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th><i class="bi bi-person-badge me-1"></i>강사</th>
+                <td>
+                  {% if p.teacher %}
+                    {{ p.teacher.user.get_full_name|default:p.teacher.user.username }}
+                  {% else %}
+                    <span class="text-muted">미지정</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <!-- 교구재 -->
+              <tr>
+                <th><i class="bi bi-tools me-1"></i>교구재</th>
+                <td>
+                  {% if p.material %}
+                    {{ p.material }}
+                    {% if p.include_materials %}
+                      <span class="text-success">(교구재포함)</span>
+                    {% else %}
+                      <span class="text-muted">(교구재별도)</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">없음</span>
+                  {% endif %}
+                </td>
+              </tr>
+
+              <tr>
+                <th><i class="bi bi-cash-coin me-1"></i>수강료(월)</th>
+                <td class="text-end">
+                  {% if p.tuition %}
+                    {{ p.tuition|intcomma }}원
+                  {% else %}
+                    <span class="text-muted">미지정</span>
+                  {% endif %}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="mt-auto d-flex gap-2">
+            <a href="{% url 'program_detail' p.id %}" class="btn btn-outline-primary btn-sm flex-fill">상세보기</a>
+            {% if can_apply and p.status == 'open' and not p.is_full %}
+              <a href="{% url 'program_apply' p.id %}" class="btn btn-primary btn-sm flex-fill">수강신청</a>
+            {% else %}
+              <button class="btn btn-secondary btn-sm flex-fill" disabled>신청 불가</button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="alert alert-light border text-center">표시할 프로그램이 없습니다.</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <!-- 표 보기 -->
+  <div class="table-responsive">
+    <table class="table table-striped align-middle table-stack">
+      <thead class="table-light">
+        <tr>
+          <th class="nowrap">프로그램명</th>
+          <th class="nowrap"><i class="bi bi-people-fill me-1"></i>대상</th>
+          <th class="nowrap"><i class="bi bi-calendar-event me-1"></i>수업기간</th>
+          <th class="nowrap"><i class="bi bi-clock me-1"></i>수업시간</th>
+          <th class="nowrap"><i class="bi bi-people me-1"></i>정원</th>
+          <th class="nowrap"><i class="bi bi-person-badge me-1"></i>강사</th>
+          <th class="nowrap"><i class="bi bi-cash-coin me-1"></i>수업료</th>
+          <th class="nowrap"><i class="bi bi-flag me-1"></i>상태</th>
+          <th class="nowrap text-center">동작</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in programs %}
+        <tr>
+          <td>{{ p.name }}</td>
+          <td>{{ p.get_target_range }}</td>
+          {% if p.recruit_type != "always" %}
+          <td>
+            {{ p.start_date|date:"Y.m.d" }} ~ {{ p.end_date|date:"Y.m.d" }}
+          </td>
+          {% else %}
+          <td><span class="text-muted">-</span></td>
+          {% endif %}
+          <td>
+            {% if p.classes.all %}
+              {% for c in p.classes.all %}
+                <span class="badge class-badge-{{ forloop.counter }}">{{ c.name }}</span>
+              {% empty %}
+                <span class="text-muted">없음</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted">없음</span>
+            {% endif %}
+          </td>
+          <td>{{ p.current_applicants }} / {{ p.capacity }}명</td>
+          <td>
+              {% if p.teacher %}
+                {{ p.teacher.user.get_full_name|default:p.teacher.user.username }}
+              {% else %}
+                <span class="text-muted">미지정</span>
+              {% endif %}
+            </td>
+
+          <td class="text-end">{{ p.tuition|intcomma }}원</td>
+          <td>
+            <span class="badge 
+                  {% if p.status == 'open' and p.is_full %} bg-danger
+                  {% elif p.status == 'open' %} bg-success
+                  {% else %} bg-secondary {% endif %}">
+              {{ p.display_status }}
+            </span>
+          </td>
+          <td class="text-center">
+            <a href="{% url 'program_detail' p.id %}" class="btn btn-outline-primary btn-sm">상세</a>
+            {% if can_apply and p.status == 'open' and not p.is_full %}
+              <a href="{% url 'program_apply' p.id %}" class="btn btn-primary btn-sm">수강신청</a>
+            {% else %}
+              <button class="btn btn-secondary btn-sm" disabled>신청 불가</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  // 보기방식 localStorage 저장
+  const viewSelect = document.getElementById("viewSelect");
+  if (viewSelect) {
+    const saved = localStorage.getItem("courses_view_type");
+    if (saved && !new URLSearchParams(location.search).get("view")) {
+      const params = new URLSearchParams(location.search);
+      params.set("view", saved);
+      location.search = params.toString();
+    }
+    viewSelect.addEventListener("change", function(){
+      localStorage.setItem("courses_view_type", this.value);
+    });
+  }
+</script>
+
+<style>
+  /* 가로 스크롤 부드럽게 */
+.d-flex::-webkit-scrollbar {
+  height: 6px;
+}
+.d-flex::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 10px;
+}
+
+th.nowrap {
+  white-space: nowrap;
+}
+.card-img-top {
+  object-fit: cover;
+}
+.card-title {
+  font-size: 1.1rem;
+}
+.card table th {
+  background: #f8f9fa;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.card table td {
+  font-size: 0.85rem;
+}
+.small-card .card-body {
+  padding: 0.75rem 1rem;   
+}
+.small-card .card-title {
+  font-size: 1rem;         
+  margin-bottom: 0.5rem;
+}
+.small-card table th,
+.small-card table td {
+  font-size: 0.8rem;       
+  padding: 0.25rem 0.5rem; 
+}
+.small-card .btn {
+  font-size: 0.8rem;       
+  padding: 0.3rem 0.5rem;
+}
+/* 수업료 숫자 오른쪽 정렬 */
+.small-card table td:last-child {
+  text-align: right;
+}
+/* 표 보기 모드 - 모든 셀 가운데 정렬 */
+.table-stack th,
+.table-stack td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* 반별 배지 색상 다양화 */
+.class-badge-1 { background-color: #0d6efd !important; }  /* 파랑 */
+.class-badge-2 { background-color: #198754 !important; }  /* 초록 */
+.class-badge-3 { background-color: #fd7e14 !important; }  /* 주황 */
+.class-badge-4 { background-color: #6f42c1 !important; }  /* 보라 */
+.class-badge-5 { background-color: #20c997 !important; }  /* 청록 */
+.class-badge-6 { background-color: #d63384 !important; }  /* 핑크 */
+.class-badge-7 { background-color: #0dcaf0 !important; }  /* 하늘 */
+.class-badge-8 { background-color: #ffc107 !important; }  /* 노랑 */
+.class-badge-9 { background-color: #6610f2 !important; }  /* 보라2 */
+.class-badge-10 { background-color: #e83e8c !important; } /* 마젠타 */
+
+/* ✅ 데이터 셀(td)은 단어 단위로 줄바꿈 허용 */
+.table td {
+  word-break: keep-all;   /* 단어 단위로만 줄바꿈 */
+  white-space: normal;    /* 줄바꿈 허용 */
+}
+
+/* ✅ 헤더 셀(th)은 한 줄 유지 */
+.table th {
+  white-space: nowrap;    /* 줄바꿈 금지 */
+  word-break: normal;     /* 단어 단위 강제 안함 */
+}
+
+/* 이름 기반 유형 색상 */
+.type-로봇 { background-color: #0d6efd !important; }   /* 파랑 */
+.type-과학 { background-color: #198754 !important; }   /* 초록 */
+.type-3D펜 { background-color: #fd7e14 !important; }   /* 주황 */
+.type-항공드론 { background-color: #6f42c1 !important; } /* 보라 */
+.type-코딩 { background-color: #20c997 !important; }   /* 청록 */
+.type-창의수학 { background-color: #d63384 !important; } /* 핑크 */
+.type-it교재 { background-color: #0dcaf0 !important; }  /* 하늘 */
+
+</style>
+{% endblock %}

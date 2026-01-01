@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <h3 class="mb-3">
+    <i class="bi bi-file-earmark-text"></i>
+    자동 생성된 블로그 글 미리보기
+  </h3>
+
+  <!-- 제목 -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h4>{{ post.main_title }}</h4>
+      <p class="text-muted mb-0">
+        카테고리: {{ post.get_category_display }}
+      </p>
+    </div>
+  </div>
+
+  <!-- 썸네일 -->
+  {% if post.thumbnail %}
+    <div class="mb-4 text-center">
+      <img src="{{ post.thumbnail.url }}" class="img-fluid rounded" style="max-width:380px;">
+    </div>
+  {% endif %}
+
+  <!-- 본문 -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="mb-3">본문 내용</h5>
+      <div style="white-space: pre-wrap; line-height:1.6;">
+        {{ post.content|safe }}
+      </div>
+    </div>
+  </div>
+
+  <!-- 키워드 -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="mb-2">키워드</h5>
+      {% for kw in post.keywords %}
+        <span class="badge bg-secondary">{{ kw }}</span>
+      {% empty %}
+        <p class="text-muted">키워드 없음</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- CTA -->
+  {% if post.cta %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="mb-2">CTA 문구</h5>
+      <p>{{ post.cta }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 발행 버튼 -->
+  <form method="post" action="{% url 'blog_auto:publish_now' post.id %}">
+    {% csrf_token %}
+    <button class="btn btn-success btn-lg">
+      <i class="bi bi-upload"></i> 즉시 발행
+    </button>
+  </form>
+
+</div>
+{% endblock %}
