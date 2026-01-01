@@ -16,12 +16,25 @@
             모집 / 공지 통합 보기
         </h4>
 
-        {% if request.user.is_staff %}
+        
         <!-- 🔹 관리자 버튼 영역 -->
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- 🔹 최근 수집일 -->
+            <span class="badge bg-light text-dark border d-flex align-items-center px-2 py-1">
+                <i class="bi bi-clock-history me-1 text-secondary"></i>
+                <small class="text-muted">최근 수집</small>
+                <strong class="ms-1">
+                    {% if latest_collected_date %}
+                        {{ latest_collected_date }}
+                    {% else %}
+                        없음
+                    {% endif %}
+                </strong>
+            </span>
 
-            <!-- 🔹 수집 기준일 -->
-           {% if request.user.is_staff %}
+            {% if request.user.is_staff %}
+            
+           
             <span class="badge bg-secondary d-inline-flex align-items-center gap-1"
                 style="cursor:pointer;"
                 onclick="openCutoffEditor()">
@@ -39,25 +52,6 @@
                 class="form-control form-control-sm d-none"
                 style="width: 150px;"
                 onchange="saveCutoffDate(this.value)">
-            {% else %}
-            <span class="badge bg-secondary">
-                수집 기준일: {{ cutoff_date }}
-            </span>
-            {% endif %}
-
-
-            <!-- 🔹 최근 수집일 -->
-            <span class="badge bg-light text-dark border d-flex align-items-center px-2 py-1">
-                <i class="bi bi-clock-history me-1 text-secondary"></i>
-                <small class="text-muted">최근 수집</small>
-                <strong class="ms-1">
-                    {% if latest_collected_date %}
-                        {{ latest_collected_date }}
-                    {% else %}
-                        없음
-                    {% endif %}
-                </strong>
-            </span>
 
             <!-- 늘봄 수집 -->
             <form method="post"
@@ -90,9 +84,16 @@
                     전체삭제
                 </button>
             </form>
+            
+            {% else %}
+            <span class="badge bg-secondary">
+                수집 기준일: {{ cutoff_date }}
+            </span>
+            {% endif %}
+
+            
 
         </div>
-        {% endif %}
     </div>
         
 
