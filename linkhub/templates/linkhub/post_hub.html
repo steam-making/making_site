@@ -35,7 +35,7 @@
             {% if request.user.is_staff %}
             
            
-            <span class="badge bg-secondary d-inline-flex align-items-center gap-1"
+            <span class="badge bg-dark text-white d-inline-flex align-items-center gap-1"
                 style="cursor:pointer;"
                 onclick="openCutoffEditor()">
 
@@ -86,7 +86,7 @@
             </form>
             
             {% else %}
-            <span class="badge bg-secondary">
+            <span class="badge bg-dark text-white">
                 수집 기준일: {{ cutoff_date }}
             </span>
             {% endif %}
