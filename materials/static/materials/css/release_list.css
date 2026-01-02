@@ -1,0 +1,129 @@
+/* =====================================================
+   출고처리 컬럼 버튼 정렬 (table-stack 영향 무력화)
+   ===================================================== */
+
+.table-stack td[data-label="출고처리"] {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.table-stack td[data-label="출고처리"] .release-actions {
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 4px !important;
+  flex-wrap: wrap !important;
+}
+
+.table-stack td[data-label="출고처리"] .release-actions form,
+.table-stack td[data-label="출고처리"] .release-actions a,
+.table-stack td[data-label="출고처리"] .release-actions span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+}
+
+.table-stack td[data-label="출고처리"] .release-actions .btn,
+.table-stack td[data-label="출고처리"] .release-actions .badge {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding: 0 10px !important;
+  white-space: nowrap !important;
+}
+
+
+/* =====================================================
+   하단 그룹 액션 (견적서 / 세금계산서 / 전체삭제)
+   ===================================================== */
+
+.table-stack td .group-actions {
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+}
+
+.table-stack td .group-actions form,
+.table-stack td .group-actions a,
+.table-stack td .group-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+}
+
+.table-stack td .group-actions .btn {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding: 0 10px !important;
+  white-space: nowrap !important;
+}
+
+
+/* =====================================================
+   합계 행 (수금 상태 포함) 정렬 – 핵심
+   ===================================================== */
+
+/* 합계 행 자체 */
+.table-stack tr.table-secondary {
+  height: 48px;
+}
+
+/* 합계 행의 모든 셀은 테이블 셀 기준 */
+.table-stack tr.table-secondary td {
+  vertical-align: middle !important;
+  padding: 6px 8px !important;
+}
+
+/* ❗ td를 flex로 만들지 않는다 (중요) */
+.table-stack tr.table-secondary td[colspan="4"] {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  padding: 6px 8px !important;
+}
+
+/* 수금 상태 내부만 flex */
+.table-stack tr.table-secondary td[colspan="4"] form {
+  margin: 0;
+}
+
+.table-stack tr.table-secondary td[colspan="4"] form > div {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px;
+}
+
+/* 날짜 input / 버튼 높이 통일 */
+.table-stack tr.table-secondary input[type="date"],
+.table-stack tr.table-secondary .btn {
+  height: 32px !important;
+  line-height: 32px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+
+/* =====================================================
+   PC 화면: table-stack 해제 (진짜 테이블 유지)
+   ===================================================== */
+
+@media (min-width: 769px) {
+
+  .table-stack th,
+  .table-stack td {
+    display: table-cell !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+  }
+
+  .table-stack th {
+    text-align: center !important;
+  }
+
+  .table-stack td::before {
+    display: none !important;
+  }
+}

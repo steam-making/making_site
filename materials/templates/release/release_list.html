@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% load custom_filters %}
+{% load static %}
 {% block content %}
+<link rel="stylesheet" href="{% static 'materials/css/release_list.css' %}">
 <div class="container mt-4">
 
   <div class="bg-light pb-2 mb-3 sticky-top" style="top:60px; z-index:1020;">
@@ -140,30 +142,30 @@
                     {% endif %}
                   </td>
                   <td data-label="출고처리">
-                    <div class="d-flex justify-content-center align-items-center gap-1 flex-nowrap">
+                    <div class="release-actions d-flex flex-wrap justify-content-center align-items-center gap-1">
 
                       {% if item.status == 'released' %}
                         {% if user.is_staff or user.is_superuser %}
                           <!-- 출고취소 -->
-                          <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"  method="post" style="display:inline;">
+                          <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"  method="post">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            <button type="submit" class="btn btn-sm btn-outline-secondary release-action-btn"
                                     onclick="return confirm('출고 완료를 취소하시겠습니까?');">
                               출고취소 ({{ item.released_at|date:"Y-m-d H:i" }})
                             </button>
                           </form>
                         {% else %}
                           <!-- 강사용 출고완료 표시 -->
-                          <span class="badge bg-success">
-                            출고완료 ({{ item.released_at|date:"Y-m-d H:i" }})
-                          </span>
+                            <span class="badge bg-success release-action-badge">
+                              출고완료 ({{ item.released_at|date:"Y-m-d H:i" }})
+                            </span>
                         {% endif %}
 
                         <!-- ✅ 반납 버튼 (세금계산서 발행 전, 관리자/강사 모두 가능) -->
                         {% if not group.tax_invoice_sent %}
-                          <form method="post" action="{% url 'return_release_item' item.id %}" style="display:inline;">
+                          <form method="post" action="{% url 'return_release_item' item.id %}">
                             {% csrf_token %}
-                            <button type="button" class="btn btn-sm btn-outline-primary"
+                            <button type="button" class="btn btn-sm btn-outline-primary release-action-btn"
                                     data-bs-toggle="modal" data-bs-target="#returnModal-{{ item.id }}">
                               반납
                             </button>
@@ -195,25 +197,25 @@
                       {% else %}
                         {% if user.is_staff or user.is_superuser %}
                           <!-- 출고 -->
-                          <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" style="display:inline;">
+                          <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-success"
+                            <button type="submit" class="btn btn-sm btn-success release-action-btn"
                                     onclick="return confirm('출고 처리 하시겠습니까?');">
                               출고
                             </button>
                           </form>
-                          <a href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"class="btn btn-sm btn-warning">수정</a>
-                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" style="display:inline;"
+                          <a href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"class="btn btn-sm btn-warning release-action-btn">수정</a>
+                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post"
                                 onsubmit="return confirm('정말 이 출고 항목을 삭제하시겠습니까?');">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger">삭제</button>
+                            <button type="submit" class="btn btn-sm btn-danger release-action-btn">삭제</button>
                           </form>
                         {% else %}
-                          <a href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"class="btn btn-sm btn-warning">수정</a>
-                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" style="display:inline;"
+                          <a href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"class="btn btn-sm btn-warning release-action-btn">수정</a>
+                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post"
                                 onsubmit="return confirm('정말 이 출고 항목을 삭제하시겠습니까?');">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger">삭제</button>
+                            <button type="submit" class="btn btn-sm btn-danger release-action-btn">삭제</button>
                           </form>
                         {% endif %}
                       {% endif %}
@@ -256,11 +258,12 @@
               <td class="text-end">{{ group.total_price|intcomma }}원</td>
               <td>{{ group.total_qty }}</td>
               <td colspan="2" class="text-center">
-                 <div class="d-flex gap-2 justify-content-center align-items-center flex-wrap">
+                <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-wrap">
+
                   {# ✅ 견적서 발행 → 발송완료로 대체 #}
                   {% if group.estimate_sent %}
                     <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" 
-                      class="btn btn-sm btn-success">견적서 발행완료</a>
+                      class="btn btn-sm btn-success">견적서 완료</a>
                   {% else %}
                     <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" 
                       class="btn btn-sm btn-primary">견적서 발행</a>
@@ -268,7 +271,7 @@
 
                   {# 세금계산서 발행 버튼 영역 #}
                   {% if group.tax_invoice_sent %}
-                    <button type="button" class="btn btn-sm btn-success" disabled>세금계산서 발행완료</button>
+                    <button type="button" class="btn btn-sm btn-success" disabled>세금계산서 완료</button>
                   {% else %}
                     {% if user.is_staff %}
                       <button type="button"

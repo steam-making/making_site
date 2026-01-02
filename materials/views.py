@@ -1980,8 +1980,8 @@ def release_material_item(request, item_id):
     material = item.material
 
     if item.status == 'released':
-        # ✅ 출고 취소: 재고 복구 + 상태 되돌림
-        if material and hasattr(material, 'stock'):
+        # ✅ 출고 취소: 센터수령만 재고 복구 + 상태 되돌림
+        if item.release_method == '센터수령' and material and hasattr(material, 'stock'):
             old_stock = material.stock
             material.stock = F('stock') + (item.quantity or 0)
             material.save(update_fields=['stock'])
