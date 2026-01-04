@@ -1,8 +1,11 @@
 
 {% extends "base.html" %}
+{% load static %}
 {% load humanize %}
 {% load levelup_extras %}
+
 {% block content %}
+<link rel="stylesheet" href="{% static 'robot_LvUP/css/robot_levelup.css' %}">
 <div class="container mt-4">
 
   <!-- 🔹 헤더 -->
@@ -120,6 +123,19 @@
                     <span class="badge bg-info text-dark ms-1">
                       전달 {{ stat.delivered }}/{{ stat.total }}
                     </span>
+
+                    {% if stat.release_materials %}
+                      <span class="month-material-scroll ms-2">
+                        {% for name, qty in stat.release_materials.items %}
+                          <span class="material-chip 
+                            {% cycle 'mc-blue' 'mc-green' 'mc-yellow' 'mc-red' 'mc-cyan' 'mc-gray' %}">
+                            <span class="material-name">{{ name }}</span>
+                            <span class="material-qty">{{ qty }}</span>
+                          </span>
+                        {% endfor %}
+                      </span>
+                    {% endif %}
+
                   {% endif %}
                 {% endfor %}
               {% endif %}
@@ -198,93 +214,6 @@
     </table>
   </div>
 </div>
-
-<style>
-.stat-card .fw-semibold {
-  font-size: 0.9rem;
-}
-
-.stat-card .fs-5 {
-  font-size: 1.1rem;
-}
-
-.stat-card .badge {
-  font-size: 0.85rem;
-  padding: 0.3em 0.5em;
-}
-
-.stat-card .col-6 {
-  margin-bottom: 0.5rem !important;
-}
-
-
-  .levelup-toolbar {
-  overflow-x: auto;          /* 화면 좁으면 가로 스크롤 */
-}
-
-.levelup-month {
-  width: 110px;              /* 너무 커지는 것 방지 */
-  min-width: 110px;
-  flex-shrink: 0;            /* 줄어들지 않게 */
-}
-
-.levelup-toolbar .btn {
-  flex-shrink: 0;            /* 버튼도 줄바꿈 방지 */
-}
-
-/* 🔹 버튼 전체 스타일 통일 */
-.btn { 
-  border-radius: 8px !important; 
-  font-weight: 500; 
-}
-.btn i { 
-  font-size: 1rem; 
-}
-
-/* 🔹 모바일 반응형 정렬 */
-@media (max-width: 768px) {
-  .container h4 { 
-    text-align: center; 
-    width: 100%; 
-  }
-  .container .d-flex.flex-wrap { 
-    justify-content: center !important; 
-  }
-}
-
-/* 🔹 뱃지 크기 조정 */
-.badge { 
-  font-size: 0.9rem; 
-  padding: 0.4em 0.6em; 
-}
-
-/* 🔹 muted small 기본 크기 */
-.text-muted small { 
-  font-size: 0.8rem; 
-}
-
-/* ✅ 단계업 토글 버튼 개선 */
-.toggle-btn {
-  display: inline-flex;              /* 한 줄로 정렬 */
-  align-items: center;               /* 수직 가운데 정렬 */
-  justify-content: center;
-  gap: 4px;                          /* 체크표시와 날짜 간격 */
-  min-width: 80px;                   /* 버튼 크기 균일하게 */
-  white-space: nowrap;               /* 줄바꿈 방지 */
-}
-
-.toggle-btn small {
-  font-size: 0.85rem;
-  color: #f8f9fa;                    /* 버튼 위에선 흰색 글씨 */
-}
-
-/* ✅ 체크가 안 된 상태일 때는 날짜가 없으므로 기본 색 유지 */
-.btn-outline-success small,
-.btn-outline-warning small,
-.btn-outline-primary small {
-  color: #6c757d;
-}
-</style>
 
 
 <script>

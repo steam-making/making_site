@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Sum
@@ -253,12 +253,23 @@ def levelup_by_institution(request, institution_id):
                 name = i.material.name
                 undelivered[name] = undelivered.get(name, 0) + 1
 
+        # ✅ 월별 출고 교구 집계
+        release_materials = {}
+        for i in items:
+            if i.release_done:
+                name = i.material.name
+                release_materials[name] = release_materials.get(name, 0) + 1
+
+        # ⭐ 교구명 오름차순 정렬
+        release_materials = dict(sorted(release_materials.items()))
+
         monthly_stats[ym] = {
             "total": total_cnt,
             "guide_done": guide_cnt,        # ✅ 추가
             "release_done": release_cnt,    # ✅ 추가
             "delivered": delivered_cnt,
             "undelivered": undelivered,
+            "release_materials": release_materials,
         }
 
 

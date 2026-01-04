@@ -1,0 +1,218 @@
+/* ===============================
+   디버그용 (확인 후 제거 가능)
+   =============================== */
+/*
+body {
+  border: 5px solid red !important;
+}
+*/
+
+/* ===============================
+   통계 카드
+   =============================== */
+.stat-card .fw-semibold {
+  font-size: 0.9rem;
+}
+
+.stat-card .fs-5 {
+  font-size: 1.1rem;
+}
+
+.stat-card .badge {
+  font-size: 0.85rem;
+  padding: 0.3em 0.5em;
+}
+
+.stat-card .col-6 {
+  margin-bottom: 0.5rem !important;
+}
+
+/* ===============================
+   상단 툴바
+   =============================== */
+.levelup-toolbar {
+  overflow-x: auto;
+}
+
+.levelup-month {
+  width: 110px;
+  min-width: 110px;
+  flex-shrink: 0;
+}
+
+.levelup-toolbar .btn {
+  flex-shrink: 0;
+}
+
+/* ===============================
+   버튼 공통
+   =============================== */
+.btn {
+  border-radius: 8px !important;
+  font-weight: 500;
+}
+
+.btn i {
+  font-size: 1rem;
+}
+
+/* ===============================
+   반응형
+   =============================== */
+@media (max-width: 768px) {
+  .container h4 {
+    text-align: center;
+    width: 100%;
+  }
+  .container .d-flex.flex-wrap {
+    justify-content: center !important;
+  }
+}
+
+/* ===============================
+   뱃지 / 텍스트
+   =============================== */
+.badge {
+  font-size: 0.9rem;
+  padding: 0.4em 0.6em;
+}
+
+.text-muted small {
+  font-size: 0.8rem;
+}
+
+/* ===============================
+   단계업 토글 버튼
+   =============================== */
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 80px;
+  white-space: nowrap;
+}
+
+.toggle-btn small {
+  font-size: 0.85rem;
+  color: #f8f9fa;
+}
+
+.btn-outline-success small,
+.btn-outline-warning small,
+.btn-outline-primary small {
+  color: #6c757d;
+}
+
+/* ===============================
+   월 헤더 – 교구 요약 (전달 옆)
+   =============================== */
+.month-material-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow-x: auto;        /* 짤리지 않고 스크롤 */
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.month-material-inline::-webkit-scrollbar {
+  height: 4px;
+}
+
+.month-material-inline::-webkit-scrollbar-thumb {
+  background: #adb5bd;
+  border-radius: 4px;
+}
+
+/* ===============================
+   교구 Chip 공통 (완전 둥근 pill)
+   =============================== */
+.material-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 4px 10px; 
+  border-radius: 9999px;   /* 🔥 완전 둥근 pill */
+
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* 교구명 */
+.material-name {
+  color: inherit;
+}
+
+/* 수량 (동그라미 강조) */
+.material-qty {
+  min-width: 18px;
+  height: 18px;
+
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+
+  border-radius: 9999px;
+  padding: 0 6px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+/* ===============================
+   교구 색상 세트 (cycle용)
+   =============================== */
+.mc-blue {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.mc-green {
+  background: #198754;
+  color: #fff;
+}
+
+.mc-yellow {
+  background: #ffc107;
+  color: #212529;
+}
+
+.mc-red {
+  background: #dc3545;
+  color: #fff;
+}
+
+.mc-cyan {
+  background: #0dcaf0;
+  color: #212529;
+}
+
+.mc-gray {
+  background: #6c757d;
+  color: #fff;
+}
+
+/* ===============================
+   모바일 미세 조정
+   =============================== */
+@media (max-width: 768px) {
+  .material-chip {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+
+  .material-qty {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+  }
+}
