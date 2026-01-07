@@ -14,9 +14,7 @@ urlpatterns = [
     path("programs/new/", views.program_create, name="program_create"),  # 프로그램 등록
     path('<int:pk>/edit/', views.program_edit, name='program_edit'),  # ✅ 수정
     path('<int:pk>/delete/', views.program_delete, name='program_delete'),# ✅ 삭제
-    
-    path("program/<int:pk>/applications/manage/", views.approve_applications, name="approve_applications"),#신청자 관리 요청
-    
+        
     # 목록/상세
     path("products/", views.product_list, name="product_list"),
     path("products/<int:pk>/", views.product_detail, name="product_detail"),
@@ -145,6 +143,42 @@ urlpatterns = [
         "curriculum/syllabus/excel/template/",
         views.curriculum_syllabus_excel_template,
         name="curriculum_syllabus_excel_template",
+    ),
+
+    path(
+        "applications/<int:app_id>/enroll/",
+        views.convert_to_enrollment,
+        name="convert_to_enrollment"
+    ),
+
+    path(
+        "applications/<int:app_id>/reject/",
+        views.reject_application,
+        name="reject_application"
+    ),
+
+    path(
+        "applications/<int:app_id>/delete/",
+        views.delete_application,
+        name="delete_application"
+    ),
+
+    path(
+        "programs/<int:program_id>/enroll/",
+        views.program_enrollment_add_global,
+        name="program_enrollment_add_global"
+    ),
+
+    path(
+        "api/members/search/",
+        views.search_members,
+        name="search_members"
+    ),
+
+    path(
+        "enrollments/<int:enrollment_id>/cancel/",
+        views.cancel_enrollment,
+        name="cancel_enrollment",
     ),
 
 ]

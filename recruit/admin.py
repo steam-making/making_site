@@ -27,3 +27,11 @@ class RecruitNoticeAdmin(admin.ModelAdmin):
         return ", ".join([p["name"] for p in obj.programs])
 
     display_programs.short_description = "모집 프로그램"
+
+from django.contrib import admin
+from .models import RecruitProgram
+
+@admin.register(RecruitProgram)
+class RecruitProgramAdmin(admin.ModelAdmin):
+    list_display = ("name", "get_day_display", "start_time", "end_time", "capacity")
+    list_filter = ("day",)

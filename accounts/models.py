@@ -3,8 +3,8 @@ from django.contrib.auth.models import User
 
 class Profile(models.Model):
     USER_TYPES = (
-        ('parent', '학부모'),
         ('student', '학생'),
+        ('parent', '학부모'),
         ("pre_teacher", "예비강사"),
         ('teacher', '강사'),
         ('center_teacher', '센터강사'),
@@ -24,14 +24,24 @@ class Profile(models.Model):
     def __str__(self):
         return f'{self.user.username} 프로필'
     
-# ✅ 학부모 - 자녀 1:N 관계
 class Child(models.Model):
     parent = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name="children")
     name = models.CharField("자녀 이름", max_length=50)
     birth_date = models.DateField("자녀 생년월일")
 
+    # ⭐ 추가 (학생 회원 계정 연결)
+    student_profile = models.OneToOneField(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="child_student",
+        verbose_name="학생 계정"
+    )
+
     def __str__(self):
         return f"{self.parent.user.username} - {self.name}"
+
 
 class KakaoToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

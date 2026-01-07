@@ -86,3 +86,28 @@ from .models import LearningProgram
 @admin.register(LearningProgram)
 class LearningProgramAdmin(admin.ModelAdmin):
     list_display = ("id", "name")
+
+
+from django.contrib import admin
+from .models import ProgramEnrollment
+
+@admin.register(ProgramEnrollment)
+class ProgramEnrollmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "program",
+        "program_class",
+        "student",
+        "is_active",
+        "enrolled_at",
+    )
+    list_filter = (
+        "program",
+        "program_class",
+        "is_active",
+    )
+    search_fields = (
+        "student__user__username",
+        "student__user__first_name",
+    )
+    ordering = ("-enrolled_at",)

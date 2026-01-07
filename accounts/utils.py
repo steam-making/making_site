@@ -7,6 +7,83 @@ from accounts.models import KakaoToken
 KAKAO_MEMO_SEND_URL = "https://kapi.kakao.com/v2/api/talk/memo/default/send"
 KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 
+def get_korean_initials(name: str) -> str:
+    """
+    한글 이름 → 영문 이니셜 (학생 계정용, 안정화 버전)
+    예:
+      박서준 → psj
+      박서율 → psy
+      이서준 → ysj
+    """
+
+    CHO = [
+        "g",   # ㄱ
+        "kk",  # ㄲ
+        "n",   # ㄴ
+        "d",   # ㄷ
+        "tt",  # ㄸ
+        "r",   # ㄹ
+        "m",   # ㅁ
+        "p",   # ㅂ
+        "pp",  # ㅃ
+        "s",   # ㅅ
+        "ss",  # ㅆ
+        "",    # ㅇ (무음 처리, 첫 글자만 별도 보정)
+        "j",   # ㅈ
+        "jj",  # ㅉ
+        "ch",  # ㅊ
+        "k",   # ㅋ
+        "t",   # ㅌ
+        "p",   # ㅍ
+        "h",   # ㅎ
+    ]
+
+
+    result = []
+
+    for idx, char in enumerate(name):
+        if "가" <= char <= "힣":
+            code = ord(char) - 0xAC00
+            cho = code // 588
+            initial = CHO[cho]
+
+            # ⭐ 핵심 보정
+            if initial == "":
+                # 이름 첫 글자의 ㅇ → y
+                if idx == 0:
+                    result.append("y")
+                # 그 외 ㅇ은 생략
+            else:
+                result.append(initial)
+
+        elif char.isalpha():
+            result.append(char.lower())
+
+    return "".join(result)
+
+
+# -------------------------------------------------
+# 학생용 username 생성 (중복 체크 포함)
+# psj210427@steam-making.com
+# psj210427_2@steam-making.com
+# -------------------------------------------------
+def generate_unique_student_username(child):
+    initials = get_korean_initials(child.name)
+    birth = child.birth_date.strftime("%y%m%d")
+
+    base = f"{initials}{birth}"
+    domain = "@steam-making.com"
+
+    username = f"{base}{domain}"
+    idx = 1
+
+    while User.objects.filter(username=username).exists():
+        idx += 1
+        username = f"{base}_{idx}{domain}"
+
+    return username
+
+
 def _kakao_headers(access_token: str):
     return {
         "Authorization": f"Bearer {access_token}",
@@ -76,3 +153,47 @@ def send_kakao_message(user, text, local_test=False):
         print("[카카오 알림 오류]", e)
         return {"error": str(e)}
 
+
+from django.contrib.auth.models import User
+from django.db import transaction
+from accounts.models import Profile, Child
+
+@transaction.atomic
+def create_student_account(child):
+    # ✅ 1. 같은 이름 + 생년월일 자녀 중 이미 학생 계정 있는지 확인
+    existing_child = (
+        Child.objects
+        .select_related("student_profile")
+        .filter(
+            name=child.name,
+            birth_date=child.birth_date,
+            student_profile__isnull=False
+        )
+        .first()
+    )
+
+    if existing_child:
+        # 🔥 현재 child에도 연결해줌 (동기화)
+        child.student_profile = existing_child.student_profile
+        child.save(update_fields=["student_profile"])
+        return existing_child.student_profile
+
+    # ✅ 2. 정말 없을 때만 생성
+    username = generate_unique_student_username(child)
+
+    user = User.objects.create_user(
+        username=username,
+        email=username,
+        password="m123456*",
+        first_name=child.name.strip()
+    )
+
+    profile = Profile.objects.create(
+        user=user,
+        user_type="student"
+    )
+
+    child.student_profile = profile
+    child.save(update_fields=["student_profile"])
+
+    return profile

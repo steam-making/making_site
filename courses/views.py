@@ -304,22 +304,20 @@ def program_list_short(request):
 
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
-from .models import Program
+from .models import Program, ProgramEnrollment
 
 def program_detail(request, pk):
     program = get_object_or_404(Program, pk=pk)
 
-    # ✅ Profile 안전 처리
     profile = getattr(request.user, "profile", None) if request.user.is_authenticated else None
     user_type = getattr(profile, "user_type", "") if profile else ""
 
-    # ✅ 비공개 접근 권한 체크
     if program.status == "hidden":
         if request.user.is_authenticated:
             if request.user.is_staff:
-                pass  # 관리자 허용
+                pass
             elif user_type == "center_teacher" and profile and program.teacher == profile:
-                pass  # 센터강사 본인 프로그램 허용
+                pass
             else:
                 messages.error(request, "비공개 프로그램입니다.")
                 return redirect("program_list")
@@ -327,16 +325,35 @@ def program_detail(request, pk):
             messages.error(request, "비공개 프로그램입니다.")
             return redirect("program_list")
 
-    # ✅ 수강신청 가능 여부
     can_apply = (
         request.user.is_authenticated
         and (request.user.is_superuser or user_type in ["parent", "student"])
     )
 
+    # ✅ 핵심: 반 목록을 직접 만들고, 필요한 데이터 붙이기
+    classes = (
+        program.classes
+        .all()
+        .prefetch_related("applications", "enrollments")
+    )
+
+    for cls in classes:
+        # 🔹 신청접수만 카운트
+        cls.pending_applications = cls.applications.filter(status="pending")
+
+        # 🔹 실제 수강중인 학생만
+        cls.active_enrollments = cls.enrollments.filter(is_active=True)\
+            .select_related("student", "student__user")
+
     return render(request, "courses/program_detail.html", {
         "program": program,
         "can_apply": can_apply,
+        "classes": classes,  # ❗ program.classes 쓰지 말 것
     })
+
+
+
+
 
 @login_required
 def program_apply(request, pk):
@@ -441,38 +458,6 @@ def program_delete(request, pk):
         return redirect('program_list')
     return render(request, "courses/program_confirm_delete.html", {"program": program})
 
-@user_passes_test(lambda u: u.is_staff)
-@login_required
-@user_passes_test(lambda u: u.is_staff)
-def approve_applications(request, pk):
-    """특정 프로그램의 신청자 관리 (승인/반려/삭제 처리)"""
-    program = get_object_or_404(Program, pk=pk)
-
-    if request.method == "POST":
-        app_id = request.POST.get("app_id")
-        action = request.POST.get("action")
-
-        try:
-            app = ProgramApplication.objects.get(id=app_id, program=program)
-        except ProgramApplication.DoesNotExist:
-            messages.error(request, "신청 정보를 찾을 수 없습니다.")
-            return redirect("program_detail", pk=pk)
-
-        if action == "approve":
-            app.status = "approved"
-            app.save()
-            messages.success(request, f"{app.applicant_name}님의 신청이 승인되었습니다.")
-        elif action == "reject":
-            app.status = "rejected"
-            app.save()
-            messages.warning(request, f"{app.applicant_name}님의 신청이 반려되었습니다.")
-        elif action == "delete":
-            app.delete()
-            messages.success(request, f"{app.applicant_name}님의 신청이 삭제되었습니다.")
-
-        return redirect("program_detail", pk=pk)
-
-    return redirect("program_detail", pk=pk)
 
 #프로그램 예약
 @login_required
@@ -1635,3 +1620,207 @@ def curriculum_syllabus_excel_template(request):
 
     wb.save(response)
     return response
+
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.admin.views.decorators import staff_member_required
+from accounts.utils import create_student_account
+from .models import ProgramApplication, ProgramEnrollment
+
+
+@staff_member_required
+def convert_to_enrollment(request, app_id):
+    app = get_object_or_404(ProgramApplication, id=app_id)
+
+    # ✅ 1️⃣ 이미 승인된 신청이면 차단
+    if app.status == "approved":
+        messages.warning(request, "이미 승인된 신청입니다.")
+        return redirect("program_detail", pk=app.program.id)
+
+    # ❌ 자녀 없는 신청은 승인 불가
+    if not app.child:
+        messages.error(request, "자녀 정보가 없는 신청은 승인할 수 없습니다.")
+        return redirect("program_detail", pk=app.program.id)
+
+    child = app.child
+    program = app.program
+    program_class = app.program_class
+
+    # ✅ 2️⃣ 학생 계정 생성 or 재사용
+    student_profile = create_student_account(child)
+
+    # ✅ 3️⃣ 중복 수강 방지 (DB + 로직 이중 보호)
+    if ProgramEnrollment.objects.filter(
+        program_class=program_class,
+        student=student_profile,
+        is_active=True
+    ).exists():
+        messages.warning(
+            request,
+            f"{child.name} 학생은 이미 수강 중입니다."
+        )
+        return redirect("program_detail", pk=program.id)
+
+    # ✅ 4️⃣ 수강생 등록
+    ProgramEnrollment.objects.create(
+        program=program,
+        program_class=program_class,
+        student=student_profile
+    )
+
+    # ✅ 5️⃣ 신청 → 승인 처리
+    app.status = "approved"
+    app.save(update_fields=["status"])
+
+    #app.delete()
+
+    messages.success(
+        request,
+        f"{child.name} 학생 계정 생성 및 수강 등록이 완료되었습니다."
+    )
+    return redirect("program_detail", pk=program.id)
+
+
+
+@staff_member_required
+def program_enrollment_add_global(request, program_id):
+    if request.method != "POST":
+        return redirect("program_detail", pk=program_id)
+
+    program = get_object_or_404(Program, id=program_id)
+
+    class_id = request.POST.get("class_id")
+    student_id = request.POST.get("student_id")
+
+    if not class_id or not student_id:
+        messages.error(request, "반과 학생을 모두 선택해주세요.")
+        return redirect("program_detail", pk=program_id)
+
+    program_class = get_object_or_404(
+        ProgramClass,
+        id=class_id,
+        program=program
+    )
+
+    # ✅ 학생 = 회원 Profile
+    student = get_object_or_404(
+        Profile,
+        id=student_id,
+        user_type="student"
+    )
+
+    # ✅ 중복 등록 방지
+    if ProgramEnrollment.objects.filter(
+        program_class=program_class,
+        student=student,
+        is_active=True
+    ).exists():
+        messages.warning(
+            request,
+            f"{student.user.get_full_name() or student.user.username} 님은 이미 등록되어 있습니다."
+        )
+        return redirect("program_detail", pk=program_id)
+
+    # ✅ 수강생 등록
+    ProgramEnrollment.objects.create(
+        program=program,
+        program_class=program_class,
+        student=student
+    )
+
+    messages.success(
+        request,
+        f"{student.user.get_full_name() or student.user.username} 님이 수강생으로 등록되었습니다."
+    )
+    return redirect("program_detail", pk=program_id)
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+from courses.models import ProgramEnrollment, ProgramApplication
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+
+from courses.models import ProgramEnrollment, ProgramApplication
+from accounts.models import Child
+
+
+@staff_member_required
+def cancel_enrollment(request, enrollment_id):
+    enrollment = get_object_or_404(ProgramEnrollment, id=enrollment_id)
+
+    program = enrollment.program
+    program_class = enrollment.program_class
+    student_profile = enrollment.student
+
+    # 🔹 1. 해당 학생의 Child 찾기
+    child = Child.objects.filter(
+        student_profile=student_profile
+    ).first()
+
+    # 🔹 2. 연결된 신청 삭제
+    if child:
+        ProgramApplication.objects.filter(
+            program=program,
+            program_class=program_class,
+            child=child
+        ).delete()
+
+    # 🔹 3. 수강생 삭제
+    enrollment.delete()
+
+    messages.success(request, "수강이 취소되었습니다.")
+    return redirect("program_detail", pk=program.id)
+
+
+
+
+@staff_member_required
+def reject_application(request, app_id):
+    app = get_object_or_404(ProgramApplication, id=app_id)
+    app.status = "rejected"
+    app.save()
+    return redirect("program_detail", app.program.id)
+
+@staff_member_required
+def delete_application(request, app_id):
+    app = get_object_or_404(ProgramApplication, id=app_id)
+    program_id = app.program.id
+    app.delete()
+    return redirect("program_detail", program_id)
+
+from django.http import JsonResponse
+from django.db.models import Q
+from accounts.models import Profile
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def search_members(request):
+    q = request.GET.get("q", "").strip()
+    user_type = request.GET.get("user_type", "").strip()
+
+    profiles = Profile.objects.select_related("user")
+
+    # ✅ 회원유형 필터
+    if user_type:
+        profiles = profiles.filter(user_type=user_type)
+
+    # ✅ 검색어
+    if q:
+        profiles = profiles.filter(
+            Q(user__first_name__icontains=q) |
+            Q(user__username__icontains=q)
+        )
+
+    data = []
+    for p in profiles[:20]:
+        data.append({
+            "id": p.id,   # ⭐ Profile.id
+            "name": p.user.get_full_name() or p.user.username,
+            "user_type": p.user_type,
+        })
+
+    return JsonResponse(data, safe=False)
+

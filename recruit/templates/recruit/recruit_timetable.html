@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'recruit/css/recruit_timetable.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- ✅ 제목 고정 -->
+    <h3 class="fw-bold mb-3 sticky-title">
+        📅 메이킹 프로그램 시간표
+    </h3>
+
+    <!-- ✅ 스크롤 컨테이너 -->
+    <div class="table-responsive timetable-wrapper">
+        <table class="table table-bordered table-stack text-center align-middle timetable-table">
+            <thead class="table-light">
+                <tr>
+                    <th class="time-col">시간</th>
+                    {% for code, label in days %}
+                        <th class="day-col">{{ label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for row in rows %}
+                <tr>
+                    <!-- ⏰ 시간 고정 -->
+                    <th class="time-col" data-label="시간">
+                        {{ row.time|time:"H:i" }}<br>
+                        {% if row.time_end %} ~ {{ row.time_end|time:"H:i" }}{% endif %}
+                    </th>
+
+                    {% for cell in row.cells %}
+                    <td data-label="{{ cell.label }}" class="align-top">
+                        <div class="timetable-cell">
+                            {% for c in cell.items %}
+                                <a href="{% url 'program_detail' c.program_id %}"
+                                   class="text-decoration-none text-reset">
+
+                                    <div class="card mb-2 shadow-sm {{ c.color_class }}">
+                                        <div class="card-body p-2">
+                                            <div class="fw-bold timetable-title">
+                                                {{ c.program_name }}
+                                            </div>
+                                            <div class="small">
+                                                ({{ c.current_count }} / {{ c.capacity }})
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </a>
+                            {% empty %}
+                                <span class="text-muted small">-</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{% endblock %}

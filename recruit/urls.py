@@ -9,4 +9,6 @@ urlpatterns = [
 
     # ⭐ 복사
     path("<int:pk>/copy/", views.recruit_copy, name="recruit_copy"),
+
+    path("timetable/", views.recruit_timetable, name="recruit_timetable"),
 ]

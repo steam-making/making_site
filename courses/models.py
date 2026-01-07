@@ -279,6 +279,9 @@ class Program(models.Model):
     def current_applicants(self):
         return self.applications.filter(status__in=["pending", "approved"]).count()
     
+    def current_students(self):
+        return self.enrollments.filter(is_active=True).count()
+    
     # ✅ 총 수업횟수 자동 계산
     def calculate_session_count(self):
         if self.months == 0:
@@ -367,6 +370,50 @@ class ProgramApplication(models.Model):
         if self.child:
             return f"{base} - {self.child.name} (부모:{self.applicant.user.username if self.applicant else ''})"
         return f"{base} - {self.applicant.user.username if self.applicant else ''}"
+
+
+from accounts.models import Profile
+
+class ProgramEnrollment(models.Model):
+    """
+    ✅ 실제 수강생 (회원 기준)
+    - 관리자 직접 등록
+    - 신청 승인 후 자동 등록
+    """
+
+    program = models.ForeignKey(
+        Program,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+        verbose_name="프로그램"
+    )
+
+    program_class = models.ForeignKey(
+        ProgramClass,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+        verbose_name="반"
+    )
+
+    # 🔥 핵심 변경: Child → Profile
+    student = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="program_enrollments",
+        limit_choices_to={"user_type": "student"},
+        verbose_name="학생(회원)"
+    )
+
+    enrolled_at = models.DateTimeField("등록일", auto_now_add=True)
+    is_active = models.BooleanField("수강중", default=True)
+
+    class Meta:
+        unique_together = ("program_class", "student")
+        verbose_name = "프로그램 수강생"
+        verbose_name_plural = "프로그램 수강생 목록"
+
+    def __str__(self):
+        return f"{self.student.user.get_full_name()} - {self.program.name} ({self.program_class.name})"
 
 
 

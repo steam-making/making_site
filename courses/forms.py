@@ -399,3 +399,19 @@ class SyllabusUploadForm(forms.Form):
             attrs={"class": "form-control"}
         )
     )
+
+# ✅ 실제 수강생 등록용 Form (관리자 전용)
+
+from .models import ProgramEnrollment
+from accounts.models import Child
+
+class ProgramEnrollmentForm(forms.ModelForm):
+    student = forms.ModelChoiceField(
+        queryset=Child.objects.all(),
+        label="학생 선택",
+        widget=forms.Select(attrs={"class": "form-select"})
+    )
+
+    class Meta:
+        model = ProgramEnrollment
+        fields = ["student"]

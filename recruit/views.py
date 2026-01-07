@@ -439,3 +439,91 @@ from django.http import JsonResponse
 #         })
 
 #     return JsonResponse(data, safe=False)
+from django.shortcuts import render
+from django.db.models import Count, Q
+from courses.models import ProgramClass
+
+# =========================
+# 요일 / 색상 설정
+# =========================
+DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat"]
+DAY_LABELS = {
+    "mon": "월",
+    "tue": "화",
+    "wed": "수",
+    "thu": "목",
+    "fri": "금",
+    "sat": "토",
+}
+
+COLOR_CLASSES = [
+    "bg-primary text-white",
+    "bg-success text-white",
+    "bg-warning text-dark",
+    "bg-info text-dark",
+    "bg-danger text-white",
+    "bg-secondary text-white",
+]
+
+def get_color_class(program_id):
+    return COLOR_CLASSES[program_id % len(COLOR_CLASSES)]
+
+
+def recruit_timetable(request):
+    classes = (
+        ProgramClass.objects
+        .select_related("program")
+        .annotate(
+            current_count=Count(
+                "enrollments",
+                filter=Q(enrollments__is_active=True)
+            )
+        )
+        .order_by("start_time")
+    )
+
+    # ⏰ 시간대 수집 (시작 시간 기준)
+    time_slots = sorted({c.start_time for c in classes})
+
+    rows = []
+    for t in time_slots:
+        # 🔹 해당 시간대의 최대 종료시간 (행 표시용)
+        end_times = [c.end_time for c in classes if c.start_time == t]
+        time_end = max(end_times) if end_times else None
+
+        row = {
+            "time": t,
+            "time_end": time_end,
+            "cells": []
+        }
+
+        for day in DAY_ORDER:
+            cell_items = []
+
+            for cls in classes:
+                if cls.start_time == t and day in cls.days:
+                    cell_items.append({
+                        "program_id": cls.program.id,          # 🔥 추가
+                        "program_name": cls.program.name,
+                        "class_name": cls.name,
+                        "start_time": cls.start_time,
+                        "end_time": cls.end_time,
+                        "current_count": cls.current_count,
+                        "capacity": cls.capacity,
+                        "color_class": get_color_class(cls.program.id),
+                    })
+
+
+            row["cells"].append({
+                "day": day,
+                "label": DAY_LABELS[day],
+                "items": cell_items
+            })
+
+        rows.append(row)
+
+    return render(request, "recruit/recruit_timetable.html", {
+        "rows": rows,
+        "days": [(d, DAY_LABELS[d]) for d in DAY_ORDER],
+    })
+

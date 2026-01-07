@@ -18,11 +18,11 @@ admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
 
-# ✅ Child를 Profile 밑에 인라인으로 보여주기
 class ChildInline(admin.TabularInline):
     model = Child
-    extra = 1   # 기본 입력칸 1개 추가
-    fields = ("name", "birth_date")  # 표시할 필드
+    fk_name = "parent"   # ⭐ 핵심
+    extra = 0
+
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):

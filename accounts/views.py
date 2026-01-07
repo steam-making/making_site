@@ -24,7 +24,7 @@ from datetime import timedelta
 from .models import Profile, Child
 from .forms import ChildForm
 from .forms import InstitutionSignUpForm
-
+from django.views.decorators.http import require_POST
 
 def kakao_login(request):
     client_id = settings.KAKAO_REST_API_KEY  # settings.py에 등록 필요
@@ -265,14 +265,13 @@ def is_admin(user):
 def admin_user_list(request):
     q = request.GET.get('q', '').strip()
     user_type = request.GET.get('user_type', '')
-    status = request.GET.get('status', '')  # 'approved', 'pending', 'active', 'inactive'
-    order = request.GET.get('order', '-date_joined')  # 정렬 키
+    order = request.GET.get('order', '-date_joined')
     page = request.GET.get('page', 1)
 
     queryset = (
         User.objects.select_related('profile')
         .all()
-        .order_by(order if order else '-date_joined')
+        .order_by(order)
     )
 
     if q:
@@ -286,15 +285,6 @@ def admin_user_list(request):
     if user_type:
         queryset = queryset.filter(profile__user_type=user_type)
 
-    if status == 'approved':
-        queryset = queryset.filter(profile__is_approved=True)
-    elif status == 'pending':
-        queryset = queryset.filter(Q(profile__is_approved=False) | Q(profile__is_approved__isnull=True))
-    elif status == 'active':
-        queryset = queryset.filter(is_active=True)
-    elif status == 'inactive':
-        queryset = queryset.filter(is_active=False)
-
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(page)
 
@@ -302,11 +292,11 @@ def admin_user_list(request):
         'page_obj': page_obj,
         'q': q,
         'user_type': user_type,
-        'status': status,
         'order': order,
-        'USER_TYPE_CHOICES': Profile.USER_TYPES,  # ✅ 여기에 모델 choices 그대로 전달
+        'USER_TYPE_CHOICES': Profile.USER_TYPES,
     }
     return render(request, 'accounts/admin_user_list.html', context)
+
 
 @login_required
 def request_withdrawal(request):
@@ -378,3 +368,52 @@ def institution_signup(request):
     else:
         form = InstitutionSignUpForm()
     return render(request, 'accounts/institution_signup.html', {'form': form})
+
+@staff_member_required
+@require_POST
+def admin_user_activate(request, user_id):
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({"success": False, "error": "user_not_found"})
+
+    user.is_active = True
+    user.save(update_fields=["is_active"])
+
+    return JsonResponse({"success": True})
+
+@staff_member_required
+@require_POST
+def admin_user_bulk_create(request):
+    emails = request.POST.getlist("email[]")
+    names = request.POST.getlist("first_name[]")
+    types = request.POST.getlist("user_type[]")
+    passwords = request.POST.getlist("password[]")
+
+    created = 0
+
+    for email, name, utype, pw in zip(emails, names, types, passwords):
+        if not email:
+            continue
+
+        if User.objects.filter(username=email).exists():
+            continue
+
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=pw or "m123456*",
+            first_name=name,
+            is_active=True,
+        )
+
+        Profile.objects.create(
+            user=user,
+            user_type=utype
+        )
+
+        created += 1
+
+    messages.success(request, f"{created}명 회원이 등록되었습니다.")
+    return redirect("admin_user_list")
+

@@ -28,4 +28,16 @@ urlpatterns = [
     path("password_reset/done/", auth_views.PasswordResetDoneView.as_view(template_name="registration/password_reset_done.html"),name="password_reset_done"),
     path("reset/<uidb64>/<token>/", auth_views.PasswordResetConfirmView.as_view(template_name="registration/password_reset_confirm.html"), name="password_reset_confirm"),
     path("reset/done/",auth_views.PasswordResetCompleteView.as_view(template_name="registration/password_reset_complete.html"), name="password_reset_complete"),
+
+    path(
+        "admin/activate/<int:user_id>/",
+        views.admin_user_activate,
+        name="admin_user_activate",
+    ),
+
+    path(
+        "members/bulk-create/",
+        views.admin_user_bulk_create,
+        name="admin_user_bulk_create",
+    ),
 ]

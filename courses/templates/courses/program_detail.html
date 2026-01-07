@@ -167,87 +167,222 @@
   {% if user.is_staff %}
     <div class="card mt-4 shadow-sm">
       <div class="card-body">
-        <h5 class="fw-bold mb-3"><i class="bi bi-diagram-3 me-1"></i> 반별 신청 현황</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0">
+            <i class="bi bi-people-check me-1"></i>
+            프로그램 신청 및 수강 현황
+          </h5>
+
+          <!-- ✅ 수강생 등록 버튼 -->
+          <button class="btn btn-sm btn-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#addStudentGlobalModal">
+            <i class="bi bi-person-plus-fill"></i>
+            수강생 등록
+          </button>
+        </div>
+        
+        <!-- ================= 수강생 등록 모달 ================= -->
+        <div class="modal fade" id="addStudentGlobalModal" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+
+              <form method="post" action="{% url 'program_enrollment_add_global' program.id %}">
+                {% csrf_token %}
+
+                <div class="modal-header">
+                  <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> 수강생 등록
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                  <!-- ✅ 반 선택 -->
+                  <div class="mb-3">
+                    <label class="form-label fw-bold">반 선택</label>
+                    <select name="class_id" class="form-select" required>
+                      <option value="">-- 반 선택 --</option>
+                      {% for cls in program.classes.all %}
+                        <option value="{{ cls.id }}">
+                          {{ cls.name }} ({{ cls.enrollments.count }}/{{ cls.capacity }})
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+
+                  <!-- ✅ 회원 검색 -->
+                  <div class="row g-2 mb-3">
+                    <div class="col-4">
+                      <select id="memberType" class="form-select form-select-sm">
+                        <option value="">전체 유형</option>
+                        <option value="student">학생</option>
+                        <option value="parent">학부모</option>
+                        <option value="pre_teacher">예비강사</option>
+                        <option value="teacher">강사</option>
+                        <option value="center_teacher">센터강사</option>
+                        <option value="institution">기관</option>
+                      </select>
+                    </div>
+                    <div class="col-8">
+                      <input type="text"
+                            id="memberSearch"
+                            class="form-control form-control-sm"
+                            placeholder="이름 또는 아이디 검색">
+                    </div>
+                  </div>
+
+
+                  <!-- ✅ 검색 결과 -->
+                  <ul class="list-group mb-3" id="memberResult"></ul>
+
+                  <!-- ✅ 학부모 선택 시 자녀 선택 -->
+                  <div id="childSelectBox" class="mt-3 d-none">
+                    <label class="form-label fw-bold">자녀 선택</label>
+                    <select id="childStudentSelect" class="form-select"></select>
+
+                  </div>
+
+                  <!-- hidden -->
+                  <input type="hidden" name="student_id" id="directStudentId">
+                  <input type="hidden" name="student_type" id="studentType">
+
+                  <div class="alert alert-warning small mt-3 mb-0">
+                    ⚠ 신청 없이 바로 수강생으로 등록됩니다.
+                  </div>
+
+                </div>
+
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-success">
+                    등록
+                  </button>
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    취소
+                  </button>
+                </div>
+
+              </form>
+            </div>
+          </div>
+        </div>
+
+
+
 
         {% if program.classes.all %}
-          {% for cls in program.classes.all %}
+          {% for cls in classes %}
             <h6 class="fw-bold mt-3">
               {{ cls.name }}
-              <span class="badge bg-secondary">
-                {{ cls.applications.count }} / {{ cls.capacity }}명
+              <span class="badge bg-warning text-dark me-1">
+                신청 {{ cls.pending_applications|length }}명
               </span>
+              <span class="badge bg-success me-1">
+                수강 {{ cls.enrollments.count }}명
+              </span>
+              <span class="badge bg-secondary">
+                정원 {{ cls.capacity }}명
+              </span>
+
             </h6>
             <div class="table-responsive mb-3">
               <table class="table table-bordered table-sm text-center align-middle">
                 <thead class="table-light">
                   <tr>
-                    <th>신청자명</th>
+                    <th>학생</th>
                     <th>연락처</th>
-                    <th>자녀</th>
+                    <th>구분</th>
                     <th>상태</th>
-                    <th>신청일</th>
-                    <th>관리</th>   <!-- ✅ 관리 버튼 열 추가 -->
+                    <th>등록일</th>
+                    <th>관리</th>
                   </tr>
                 </thead>
+
                 <tbody>
-                  {% for app in cls.applications.all %}
-                    <tr>
-                      <td>{{ app.applicant_name }}</td>
-                      <td>{{ app.phone }}</td>
+                  {% for enroll in cls.enrollments.all %}
+                    <tr class="table-success">
+                      <td>{{ enroll.student.user.get_full_name|default:enroll.student.user.username }}</td>
+                      <td>-</td>
+                      <td><span class="badge bg-success">수강중</span></td>
+                      <td>정상</td>
+                      <td>{{ enroll.enrolled_at|date:"Y.m.d" }}</td>
                       <td>
-                        {% if app.child %}
-                          {{ app.child.name }} ({{ app.child.birth_date|date:"Y.m.d" }})
-                        {% else %}
-                          -
-                        {% endif %}
+                        <form method="post"
+                              action="{% url 'cancel_enrollment' enroll.id %}"
+                              onsubmit="return confirm('정말 수강을 취소하시겠습니까?');"
+                              class="m-0">
+                          {% csrf_token %}
+                          <button class="btn btn-sm btn-outline-danger">
+                            수강취소
+                          </button>
+                        </form>
                       </td>
-                      <td>
-                        <span class="badge 
-                              {% if app.status == 'pending' %} bg-warning text-dark
-                              {% elif app.status == 'approved' %} bg-success
-                              {% elif app.status == 'rejected' %} bg-danger
-                              {% elif app.status == 'cancelled' %} bg-secondary
-                              {% endif %}">
-                          {{ app.get_status_display }}
-                        </span>
-                      </td>
-                      <td>{{ app.applied_at|date:"Y.m.d" }}</td>
-                      <td>
-                        <div class="d-flex gap-1 justify-content-center">
-                          <!-- 승인 -->
-                          <form method="post" action="{% url 'approve_applications' program.id %}" 
-                                class="d-inline" onsubmit="return confirm('승인하시겠습니까?');">
-                            {% csrf_token %}
-                            <input type="hidden" name="app_id" value="{{ app.id }}">
-                            <input type="hidden" name="action" value="approve">
-                            <button type="submit" class="btn btn-success btn-sm">승인</button>
-                          </form>
 
-                          <!-- 반려 -->
-                          <form method="post" action="{% url 'approve_applications' program.id %}" 
-                                class="d-inline" onsubmit="return confirm('반려하시겠습니까?');">
-                            {% csrf_token %}
-                            <input type="hidden" name="app_id" value="{{ app.id }}">
-                            <input type="hidden" name="action" value="reject">
-                            <button type="submit" class="btn btn-warning btn-sm">반려</button>
-                          </form>
-
-                          <!-- 삭제 -->
-                          <form method="post" action="{% url 'approve_applications' program.id %}" 
-                                class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
-                            {% csrf_token %}
-                            <input type="hidden" name="app_id" value="{{ app.id }}">
-                            <input type="hidden" name="action" value="delete">
-                            <button type="submit" class="btn btn-danger btn-sm">삭제</button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  {% empty %}
-                    <tr>
-                      <td colspan="6" class="text-center text-muted py-3">신청자가 없습니다.</td>
                     </tr>
                   {% endfor %}
+                  {% for app in cls.applications.all %}
+                    {% if app.status == "pending" %}
+                      <tr>
+                        <td>
+                          {% if app.child %}
+                            {{ app.child.name }}
+                          {% else %}
+                            -
+                          {% endif %}
+                        </td>
+
+                        <td>{{ app.phone }}</td>
+
+                        <td>
+                          <span class="badge bg-warning text-dark">신청</span>
+                        </td>
+
+                        <td>
+                          <span class="badge bg-warning text-dark">
+                            신청접수
+                          </span>
+                        </td>
+
+                        <td>{{ app.applied_at|date:"Y.m.d" }}</td>
+
+                        <td class="text-center align-middle">
+                          <div class="d-flex justify-content-center align-items-center h-100 gap-1">
+
+                            <!-- 승인 -->
+                            <form method="post"
+                                  action="{% url 'convert_to_enrollment' app.id %}"
+                                  class="m-0"
+                                  onsubmit="return confirm('수강생으로 전환하시겠습니까?');">
+                              {% csrf_token %}
+                              <button class="btn btn-sm btn-success">승인</button>
+                            </form>
+
+                            <!-- 반려 -->
+                            <form method="post"
+                                  action="{% url 'reject_application' app.id %}"
+                                  class="m-0"
+                                  onsubmit="return confirm('신청을 반려하시겠습니까?');">
+                              {% csrf_token %}
+                              <button class="btn btn-sm btn-warning">반려</button>
+                            </form>
+
+                            <!-- 삭제 -->
+                            <form method="post"
+                                  action="{% url 'delete_application' app.id %}"
+                                  class="m-0"
+                                  onsubmit="return confirm('신청을 삭제하시겠습니까?');">
+                              {% csrf_token %}
+                              <button class="btn btn-sm btn-danger">삭제</button>
+                            </form>
+
+                          </div>
+                        </td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+
+
                 </tbody>
               </table>
             </div>
@@ -261,10 +396,12 @@
   {% elif user.is_authenticated and user.profile.user_type == "parent" %}
     <div class="card mt-4 shadow-sm">
       <div class="card-body">
-        <h5 class="fw-bold mb-3"><i class="bi bi-check2-circle me-1"></i> 내 자녀 반별 신청 현황</h5>
+        <h5 class="fw-bold mb-3">
+          <i class="bi bi-check2-circle me-1"></i> 내 자녀 반별 신청 현황
+        </h5>
 
-        {% if program.classes.all %}
-          {% for cls in program.classes.all %}
+        {% if classes %}
+          {% for cls in classes %}
             <h6 class="fw-bold mt-3">{{ cls.name }}</h6>
             <div class="table-responsive mb-3">
               <table class="table table-bordered table-sm text-center align-middle">
@@ -277,39 +414,65 @@
                   </tr>
                 </thead>
                 <tbody>
+
+                  {# ✅ 1. 수강중 (Enrollment) #}
+                  {% for enroll in cls.active_enrollments %}
+                    {% if enroll.student and enroll.student.parent == user.profile %}
+                      <tr class="table-success">
+                        <td>{{ enroll.student.name }}</td>
+                        <td>{{ enroll.student.birth_date|date:"Y.m.d" }}</td>
+                        <td>
+                          <span class="badge bg-success text-white">수강중</span>
+                        </td>
+                        <td>{{ enroll.enrolled_at|date:"Y.m.d" }}</td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+
+                  {# ✅ 2. 신청중 / 승인 / 반려 (Application) #}
                   {% for app in cls.applications.all %}
                     {% if app.child and app.applicant == user.profile %}
                       <tr>
                         <td>{{ app.child.name }}</td>
                         <td>{{ app.child.birth_date|date:"Y.m.d" }}</td>
                         <td>
-                          <span class="badge 
-                                {% if app.status == 'pending' %} bg-warning text-dark
-                                {% elif app.status == 'approved' %} bg-success
-                                {% elif app.status == 'rejected' %} bg-danger
-                                {% elif app.status == 'cancelled' %} bg-secondary
-                                {% endif %}">
+                          <span class="badge
+                            {% if app.status == 'pending' %}
+                              bg-warning text-dark
+                            {% elif app.status == 'approved' %}
+                              bg-success text-white
+                            {% elif app.status == 'rejected' %}
+                              bg-danger text-white
+                            {% else %}
+                              bg-secondary text-white
+                            {% endif %}
+                          ">
                             {{ app.get_status_display }}
                           </span>
                         </td>
                         <td>{{ app.applied_at|date:"Y.m.d" }}</td>
                       </tr>
                     {% endif %}
-                  {% empty %}
-                    <tr>
-                      <td colspan="4" class="text-center text-muted py-3">내 자녀 신청 내역이 없습니다.</td>
-                    </tr>
                   {% endfor %}
+
+                  {% if cls.active_enrollments|length == 0 and cls.applications.count == 0 %}
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-3">
+                        내 자녀 신청/수강 내역이 없습니다.
+                      </td>
+                    </tr>
+                  {% endif %}
+
                 </tbody>
               </table>
             </div>
           {% endfor %}
-        {% else %}
-          <p class="text-muted">등록된 반이 없습니다.</p>
         {% endif %}
       </div>
     </div>
-    {% endif %}
+  {% endif %}
+
+
 </div>
 
 <style>
@@ -343,5 +506,113 @@
   color: #fff !important;
 }
 </style>
+<script>
+const searchInput = document.getElementById("memberSearch");
+const typeSelect = document.getElementById("memberType");
+const resultBox = document.getElementById("memberResult");
+const childBox = document.getElementById("childSelectBox");
+const directStudentInput = document.getElementById("directStudentId");
+
+function searchMembers() {
+  const q = searchInput.value;
+  const type = typeSelect.value;
+
+  if (!q && !type) {
+    resultBox.innerHTML = "";
+    return;
+  }
+
+  fetch(`/courses/api/members/search/?q=${q}&user_type=${type}`)
+    .then(res => res.json())
+    .then(data => {
+      resultBox.innerHTML = "";
+      childBox.classList.add("d-none");
+      directStudentInput.value = "";
+
+      data.forEach(m => {
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+
+        li.innerHTML = `
+          <span>
+            <strong>${m.name}</strong>
+            <small class="text-muted ms-1">(${m.user_type})</small>
+          </span>
+          <button type="button"
+                  class="btn btn-sm btn-outline-primary select-btn">
+            선택
+          </button>
+        `;
+
+        li.querySelector(".select-btn").addEventListener("click", () => {
+          selectMember(m, li);
+        });
+
+        resultBox.appendChild(li);
+      });
+    });
+
+}
+
+searchInput.addEventListener("keyup", searchMembers);
+typeSelect.addEventListener("change", searchMembers);
+
+function selectMember(member, liElement) {
+
+  // 🔹 모든 항목 선택 해제
+  document.querySelectorAll("#memberResult .list-group-item")
+    .forEach(item => {
+      item.classList.remove("active");
+      const btn = item.querySelector("button");
+      btn.classList.remove("btn-success");
+      btn.classList.add("btn-outline-primary");
+      btn.textContent = "선택";
+    });
+
+  // 🔹 현재 선택 항목 표시
+  liElement.classList.add("active");
+  const btn = liElement.querySelector("button");
+  btn.classList.remove("btn-outline-primary");
+  btn.classList.add("btn-success");
+  btn.textContent = "선택됨";
+
+  // 🔹 초기화
+  childBox.classList.add("d-none");
+  directStudentInput.value = "";
+
+  if (member.user_type === "student") {
+    directStudentInput.value = member.profile_id || member.id;
+    document.getElementById("studentType").value = "student";
+    childBox.classList.add("d-none");
+  }
+
+  else if (member.user_type === "parent") {
+    document.getElementById("studentType").value = "child";
+
+    fetch(`/accounts/api/parent/${member.profile_id}/children/`)
+      .then(res => res.json())
+      .then(children => {
+        const select = document.getElementById("childStudentSelect");
+        select.innerHTML = "";
+
+        children.forEach(c => {
+          const opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name;
+          select.appendChild(opt);
+        });
+
+        select.onchange = () => {
+          directStudentInput.value = select.value;
+        };
+
+        childBox.classList.remove("d-none");
+      });
+  }
+
+
+}
+
+</script>
 
 {% endblock %}
