@@ -35,3 +35,4 @@ from .models import RecruitProgram
 class RecruitProgramAdmin(admin.ModelAdmin):
     list_display = ("name", "get_day_display", "start_time", "end_time", "capacity")
     list_filter = ("day",)
+

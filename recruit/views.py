@@ -456,18 +456,24 @@ DAY_LABELS = {
     "sat": "토",
 }
 
-COLOR_CLASSES = [
-    "bg-primary text-white",
-    "bg-success text-white",
-    "bg-warning text-dark",
-    "bg-info text-dark",
-    "bg-danger text-white",
-    "bg-secondary text-white",
-]
+PROGRAM_COLOR_MAP = {
+    "창의수학": "timetable-orange",
+    "과학": "timetable-green",
+    "ai": "timetable-purple",
+    "로봇": "timetable-blue",
+    "파이썬": "timetable-brown",
+    "3d펜": "timetable-yellow",
+    "메이커": "timetable-gray",
+}
 
-def get_color_class(program_id):
-    return COLOR_CLASSES[program_id % len(COLOR_CLASSES)]
+def get_color_class_by_name(program_name):
+    keywords = extract_keywords(program_name)
 
+    for key, color in PROGRAM_COLOR_MAP.items():
+        if key in keywords:
+            return color
+
+    return "bg-light text-dark"  # 기본값
 
 def recruit_timetable(request):
     classes = (
@@ -510,7 +516,9 @@ def recruit_timetable(request):
                         "end_time": cls.end_time,
                         "current_count": cls.current_count,
                         "capacity": cls.capacity,
-                        "color_class": get_color_class(cls.program.id),
+                        #"color_class": get_color_class(cls.program.id),
+                        "color_class": get_color_class_by_name(cls.program.name),
+
                     })
 
 

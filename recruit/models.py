@@ -47,6 +47,14 @@ class RecruitProgram(models.Model):
     end_time = models.TimeField("종료 시간")
     capacity = models.PositiveIntegerField("정원")
 
+    # ✅ 과목 고정 색상
+    color_class = models.CharField(
+        "시간표 색상",
+        max_length=30,
+        default="timetable-blue",
+        help_text="CSS 클래스명 (예: timetable-blue)"
+    )
+
     def __str__(self):
         return self.name
 

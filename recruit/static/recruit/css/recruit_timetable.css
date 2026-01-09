@@ -133,3 +133,76 @@ table.table-stack td {
     transition: all 0.15s ease-in-out;
     cursor: pointer;
 }
+
+/* ===============================
+   📘 과목(RecruitProgram) 고정 색상 (확장판)
+   =============================== */
+
+/* 🔵 블루 (로봇 / 기본) */
+.timetable-blue {
+    background-color: #dbe9ff;
+    border-left: 5px solid #0d6efd;
+}
+
+/* 🟢 그린 (과학) */
+.timetable-green {
+    background-color: #dff3ea;
+    border-left: 5px solid #198754;
+}
+
+/* 🟠 오렌지 (수학) */
+.timetable-orange {
+    background-color: #ffe3c4;
+    border-left: 5px solid #fd7e14;
+}
+
+/* 🟡 옐로우 (3D펜 / 창작) */
+.timetable-yellow {
+    background-color: #ffefb5;
+    border-left: 5px solid #ffc107;
+}
+
+/* 🟣 퍼플 (AI) */
+.timetable-purple {
+    background-color: #e6d9ff;
+    border-left: 5px solid #6f42c1;
+}
+
+/* 🟢🟦 틸 (메이커 / 융합) */
+.timetable-teal {
+    background-color: #d4f5ee;
+    border-left: 5px solid #20c997;
+}
+
+/* 🔴 레드 (특강 / 이벤트 / 중요) */
+.timetable-red {
+    background-color: #ffe0e3;
+    border-left: 5px solid #dc3545;
+}
+
+/* 🟤 브라운 (실험 / 교구 중심) */
+.timetable-brown {
+    background-color: #f1e3d3;
+    border-left: 5px solid #a86d3a;
+}
+
+/* 🔷 인디고 (심화 / 고학년) */
+.timetable-indigo {
+    background-color: #e0e4ff;
+    border-left: 5px solid #4f46e5;
+}
+
+/* ⚪ 그레이 (보조 / 기타) */
+.timetable-gray {
+    background-color: #e2e6ea;
+    border-left: 5px solid #6c757d;
+}
+
+/* ===============================
+   공통 카드 스타일
+   =============================== */
+.timetable-card {
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+}
+
