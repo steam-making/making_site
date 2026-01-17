@@ -13,58 +13,195 @@
         📅 메이킹 프로그램 시간표
     </h3>
 
-    <!-- ✅ 스크롤 컨테이너 -->
-    <div class="table-responsive timetable-wrapper">
-        <table class="table table-bordered table-stack text-center align-middle timetable-table">
-            <thead class="table-light">
-                <tr>
-                    <th class="time-col">시간</th>
-                    {% for code, label in days %}
-                        <th class="day-col">{{ label }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
+<!-- 🖥️ PC: 기존 테이블 레이아웃 -->
+    <div class="d-none d-lg-block">
+        <div class="table-responsive timetable-wrapper">
+            <table class="table table-bordered table-stack text-center align-middle timetable-table">
+                <thead class="table-light">
+                    <tr>
+                        <th class="time-col">시간</th>
+                        {% for code, label in days %}
+                            <th class="day-col">{{ label }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
 
-            <tbody>
-            {% for row in rows %}
-                <tr>
-                    <!-- ⏰ 시간 고정 -->
-                    <th class="time-col" data-label="시간">
-                        {{ row.time|time:"H:i" }}<br>
-                        {% if row.time_end %} ~ {{ row.time_end|time:"H:i" }}{% endif %}
-                    </th>
+                <tbody>
+                {% for row in rows %}
+                    <tr>
+                        <!-- ⏰ 시간 고정 -->
+                        <th class="time-col" data-label="시간">
+                            {{ row.time|time:"H:i" }}<br>
+                            {% if row.time_end %} ~ {{ row.time_end|time:"H:i" }}{% endif %}
+                        </th>
 
-                    {% for cell in row.cells %}
-                    <td data-label="{{ cell.label }}" class="align-top">
-                        <div class="timetable-cell">
-                            {% for c in cell.items %}
-                                <a href="{% url 'program_detail' c.program_id %}"
-                                   class="text-decoration-none text-reset">
+                        {% for cell in row.cells %}
+                        <td data-label="{{ cell.label }}" class="align-top">
+                            <div class="timetable-cell">
+                                {% for c in cell.items %}
+                                    <a href="{% url 'program_detail' c.program_id %}"
+                                       class="text-decoration-none text-reset">
 
-                                    <div class="card mb-2 shadow-sm">
-                                        <div class="card-body p-2 {{ c.color_class }}">
-                                            <div class="fw-bold timetable-title">
-                                                {{ c.program_name }}
-                                            </div>
-                                            <div class="small">
-                                                ({{ c.current_count }} / {{ c.capacity }})
+                                        <div class="card mb-2 shadow-sm">
+                                            <div class="card-body p-2 {{ c.color_class }}">
+                                                <div class="fw-bold timetable-title">
+                                                    {{ c.program_name }}
+                                                </div>
+                                                <div class="small">
+                                                    ({{ c.current_count }} / {{ c.capacity }})
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                </a>
-                            {% empty %}
-                                <span class="text-muted small">-</span>
-                            {% endfor %}
-                        </div>
-                    </td>
+                                    </a>
+                                {% empty %}
+                                    <span class="text-muted small">-</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 📱 모바일: 카드 기반 레이아웃 -->
+    <div class="d-lg-none">
+        <div class="mobile-timetable">
+            <!-- 요일별 필터 -->
+            <div class="day-filter mb-3">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-outline-primary active" data-day="all">전체</button>
+                    {% for code, label in days %}
+                        <button type="button" class="btn btn-outline-primary" data-day="{{ code }}">{{ label }}</button>
                     {% endfor %}
-                </tr>
+                </div>
+            </div>
+
+            <!-- 시간대별 카드 -->
+            {% for row in rows %}
+                <div class="time-slot-card mb-4" data-time="{{ row.time|time:'H:i' }}">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">
+                                <i class="bi bi-clock"></i>
+                                {{ row.time|time:"H:i" }}
+                                {% if row.time_end %} ~ {{ row.time_end|time:"H:i" }}{% endif %}
+                            </h6>
+                            <span class="badge bg-secondary">{{ forloop.counter }}교시</span>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2">
+                                {% for cell in row.cells %}
+                                    {% if cell.items %}
+                                        <div class="col-12 day-programs" data-day="{{ cell.code }}">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="badge bg-primary me-2">{{ cell.label }}</span>
+                                                <div class="vr"></div>
+                                            </div>
+                                            <div class="program-list">
+                                                {% for c in cell.items %}
+                                                    <a href="{% url 'program_detail' c.program_id %}"
+                                                       class="text-decoration-none">
+                                                        <div class="program-mini-card {{ c.color_class }} p-2 rounded mb-2">
+                                                            <div class="d-flex justify-content-between align-items-start">
+                                                                <div class="flex-grow-1">
+                                                                    <div class="fw-bold small">{{ c.program_name }}</div>
+                                                                    <div class="tiny text-muted">
+                                                                        <i class="bi bi-people"></i>
+                                                                        {{ c.current_count }}/{{ c.capacity }}
+                                                                    </div>
+                                                                </div>
+                                                                {% if c.current_count >= c.capacity %}
+                                                                    <span class="badge bg-danger">마감</span>
+                                                                {% elif c.current_count > 0 %}
+                                                                    <span class="badge bg-warning">잔여{{ c.capacity|add:"-"|add:c.current_count }}</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-success">신규</span>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </a>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             {% endfor %}
-            </tbody>
-        </table>
+        </div>
     </div>
 
 </div>
+
+<!-- 📱 모바일 필터 기능 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 모바일 화면에서만 필터 기능 활성화
+    if (window.innerWidth < 992) {
+        const filterButtons = document.querySelectorAll('.day-filter button');
+        const dayPrograms = document.querySelectorAll('.day-programs');
+        
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // 활성 버튼 상태 변경
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                const selectedDay = this.getAttribute('data-day');
+                
+                // 프로그램 필터링
+                dayPrograms.forEach(program => {
+                    if (selectedDay === 'all') {
+                        program.classList.remove('hidden');
+                    } else {
+                        const programDay = program.getAttribute('data-day');
+                        if (programDay === selectedDay) {
+                            program.classList.remove('hidden');
+                        } else {
+                            program.classList.add('hidden');
+                        }
+                    }
+                });
+                
+                // 빈 시간대 카드 숨기기
+                const timeSlotCards = document.querySelectorAll('.time-slot-card');
+                timeSlotCards.forEach(card => {
+                    const visiblePrograms = card.querySelectorAll('.day-programs:not(.hidden)');
+                    if (visiblePrograms.length === 0) {
+                        card.style.display = 'none';
+                    } else {
+                        card.style.display = 'block';
+                    }
+                });
+            });
+        });
+    }
+    
+    // 화면 크기 변경 시 필터 초기화
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 992) {
+            // PC 화면으로 전환 시 모든 요소 보이기
+            const hiddenElements = document.querySelectorAll('.hidden');
+            hiddenElements.forEach(el => el.classList.remove('hidden'));
+            
+            const timeSlotCards = document.querySelectorAll('.time-slot-card');
+            timeSlotCards.forEach(card => card.style.display = 'block');
+            
+            // 필터 버튼 초기화
+            const allButton = document.querySelector('.day-filter button[data-day="all"]');
+            if (allButton) {
+                document.querySelectorAll('.day-filter button').forEach(btn => btn.classList.remove('active'));
+                allButton.classList.add('active');
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}

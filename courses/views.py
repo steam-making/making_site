@@ -1197,7 +1197,7 @@ def item_page(request, item_id):
         file_name = f"{item.key}.pptx"
 
         BASE_ONEDRIVE_URL = (
-            "https://makinglab-my.sharepoint.com/:f:/g/personal/kly120112_steam-making_com/IgD_WziHDDRMSoqFfD6VSxg3AWLou17QyWWG2y6ekKKryAE?e=Abgyeu"
+            "https://makinglab-my.sharepoint.com/:f:/g/personal/admin_makinglab_onmicrosoft_com/IgCSNAHIiqyiRLIoU2IXk84zAS7B-tbd5qrGeLxd2Co-rzM?e=BSpXGu"
         )
 
         onedrive_url = f"{BASE_ONEDRIVE_URL}"
@@ -1444,7 +1444,6 @@ def syllabus_upload(request, program_id):
         }
     )
 
-@login_required
 def curriculum_program_list(request):
     programs = CurriculumProgram.objects.all()
 
