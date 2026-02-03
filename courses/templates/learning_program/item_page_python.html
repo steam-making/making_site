@@ -1,25 +1,16 @@
+{% extends "base.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>{{ item.key }} - {{ item.title }}</title>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'learning_program/editor.css' %}">
+{% endblock %}
 
-    <link rel="stylesheet" href="{% static 'learning_program/editor.css' %}">
-
-    <!-- Ace Editor -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.js"></script>
-</head>
-<body>
-
+{% block full_page_content %}
 <input type="hidden" id="csrf" value="{{ csrf_token }}">
 
-<div class="container">
+<div class="container-fluid editor-container">
 
     <div class="panel left left-panel">
-
-
         <!-- 🔥 여기가 스크롤 영역 -->
         <div class="explain-scroll">
             <div class="explain-box">
@@ -34,8 +25,6 @@
             <button id="btnHint" class="btn hint">힌트 보기</button>
             <button id="btnAnswer" class="btn answer">정답 보기</button>
         </div>
-
-        
 
         <!-- 🔥 왼쪽 패널 최하단 네비게이션 -->
         <div class="left-bottom-nav">
@@ -54,7 +43,6 @@
             {% endif %}
         </div>
     </div>
-
 
     <!-- 📌 중앙: 파이썬 에디터 -->
     <div class="panel center center-panel">
@@ -86,7 +74,21 @@
 
 </div>
 
+<!-- Ace Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.0/ace.js"></script>
 <script src="{% static 'learning_program/editor.js' %}"></script>
 
-</body>
-</html>
+<style>
+/* base.html의 .content padding을 상쇄하기 위한 스타일 */
+.editor-container {
+    padding-top: var(--header-height);
+    height: 100vh;
+    display: flex;
+}
+/* 푸터 숨기기 */
+.custom-footer {
+    display: none;
+}
+</style>
+{% endblock %}
+
