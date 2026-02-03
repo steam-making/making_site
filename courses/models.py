@@ -4,9 +4,38 @@ from django.urls import reverse
 from accounts.models import Profile, Child
 from django.conf import settings
 
+class Subject(models.Model):
+    name = models.CharField("수업 분야명", max_length=100, unique=True)
+
+    class Meta:
+        verbose_name = "수업 분야"
+        verbose_name_plural = "수업 분야 목록"
+
+    def __str__(self):
+        return self.name
+
 class CurriculumProgram(models.Model):
+    CLASS_TYPE_CHOICES = [
+        ("정규반", "정규반"),
+        ("단기특강", "단기특강"),
+        ("체험형", "체험형"),
+    ]
+
+    DIFFICULTY_CHOICES = [
+        ("intro", "입문"),
+        ("basic", "기초"),
+        ("intermediate", "중급"),
+        ("advanced", "심화"),
+    ]
+
     name = models.CharField("커리큘럼 프로그램명", max_length=200)
     description = models.TextField("프로그램 소개", blank=True)
+
+    duration_minutes = models.PositiveIntegerField("수업시간(분)", null=True, blank=True, help_text="분 단위")
+    duration_period = models.CharField("수업기간", max_length=100, blank=True, help_text="예: 12주, 1개월")
+    class_type = models.CharField("수업 유형", max_length=20, choices=CLASS_TYPE_CHOICES, blank=True)
+    difficulty_level = models.CharField("난이도", max_length=20, choices=DIFFICULTY_CHOICES, blank=True)
+    subjects = models.ManyToManyField(Subject, verbose_name="수업 분야", blank=True)
 
     target_start = models.ForeignKey(
         "Target",

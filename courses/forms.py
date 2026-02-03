@@ -25,9 +25,15 @@ class CurriculumSyllabusExcelForm(forms.Form):
 class CurriculumProgramForm(forms.ModelForm):
     class Meta:
         model = CurriculumProgram
-        fields = ["name", "description", "target_start", "target_end"]
+        fields = ["name", "description", "duration_minutes", "duration_period", "class_type", "difficulty_level", "subjects", "target_start", "target_end"]
         widgets = {
-            "description": forms.Textarea(attrs={"rows": 4, "class": "form-control"}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "프로그램명을 입력하세요"}),
+            "description": forms.Textarea(attrs={"rows": 4, "class": "form-control", "placeholder": "커리큘럼 소개를 입력하세요"}),
+            "duration_minutes": forms.NumberInput(attrs={"class": "form-control", "min": 1, "placeholder": "예: 60"}),
+            "duration_period": forms.TextInput(attrs={"class": "form-control", "placeholder": "예: 12주, 1개월"}),
+            "class_type": forms.Select(attrs={"class": "form-select"}),
+            "difficulty_level": forms.Select(attrs={"class": "form-select"}),
+            "subjects": forms.CheckboxSelectMultiple(attrs={"class": "form-check-input"}),
             "target_start": forms.Select(attrs={"class": "form-select"}),
             "target_end": forms.Select(attrs={"class": "form-select"}),
         }

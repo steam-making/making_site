@@ -105,6 +105,20 @@ urlpatterns = [
         name="curriculum_program_update"
     ),
 
+    # 커리큘럼 프로그램 삭제
+    path(
+        "curriculum/<int:program_id>/delete/",
+        views.curriculum_program_delete,
+        name="curriculum_program_delete"
+    ),
+
+    # 커리큘럼 프로그램 삭제
+    path(
+        "curriculum/<int:program_id>/delete/",
+        views.curriculum_program_delete,
+        name="curriculum_program_delete"
+    ),
+
     # 특정 커리큘럼 프로그램의 차시 목록
     path(
         "curriculum/<int:program_id>/syllabus/",

@@ -1444,15 +1444,42 @@ def syllabus_upload(request, program_id):
         }
     )
 
+from .models import Subject
+
 def curriculum_program_list(request):
-    programs = CurriculumProgram.objects.all()
+    programs = CurriculumProgram.objects.all().order_by("-created_at")
+
+    # 필터링
+    class_type = request.GET.get("class_type", "")
+    if class_type:
+        programs = programs.filter(class_type=class_type)
+
+    selected_subject_ids = request.GET.getlist("subjects")
+    if selected_subject_ids:
+        programs = programs.filter(subjects__id__in=selected_subject_ids).distinct()
+
+    # 필터 옵션
+    class_type_choices = CurriculumProgram.CLASS_TYPE_CHOICES
+    subjects = Subject.objects.all()
+
+    # AJAX 요청인 경우, 프로그램 목록 부분만 렌더링
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return render(
+            request,
+            "courses/curriculum/partials/program_list_partial.html",
+            {"programs": programs},
+        )
 
     return render(
         request,
         "courses/curriculum/program_curriculum_list.html",
         {
             "programs": programs,
-        }
+            "class_type_choices": class_type_choices,
+            "subjects": subjects,
+            "selected_class_type": class_type,
+            "selected_subject_ids": [int(i) for i in selected_subject_ids if i.isdigit()],
+        },
     )
 
 @staff_member_required
