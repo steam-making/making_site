@@ -26,92 +26,73 @@
     </div>
   </div>
 
-  <!-- 🔹 리스트 테이블 -->
-  <div class="card shadow-sm">
-    <div class="card-body p-0">
-
-      <table class="table table-hover table-bordered table-stack mb-0 align-middle">
-        <thead class="table-light">
-          <tr>
-            <th style="width:22%" class="text-center">프로그램명</th>
-            <th class="text-center">소개</th>
-            <th style="width:18%" class="text-center">대상</th>
-            <th style="width:200px" class="text-center">관리</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for program in programs %}
-          <tr>
-            <!-- 프로그램명 -->
-            <td data-label="프로그램명" class="text-center">
-              <strong>{{ program.name }}</strong>
-            </td>
-
-            <!-- 소개 -->
-            <td data-label="소개" class="text-muted">
-              {% if program.description %}
-                {{ program.description|linebreaksbr }}
-              {% else %}
-                <span class="text-muted fst-italic">
-                  <i class="bi bi-dash-circle"></i> 소개 없음
-                </span>
-              {% endif %}
-            </td>
-
-            <!-- 대상 -->
-            <td data-label="대상" class="text-center">
-              {% if program.target_start or program.target_end %}
-                <span class="badge bg-light text-dark border">
-                  <i class="bi bi-people me-1"></i>
-                  {{ program.target_start }}
-                  {% if program.target_end %} ~ {{ program.target_end }}{% endif %}
-                </span>
-              {% else %}
-                <span class="text-muted">
-                  <i class="bi bi-dash-circle"></i> 미지정
-                </span>
-              {% endif %}
-            </td>
-
-            <!-- 관리 -->
-            <td class="text-center" data-label="관리">
-
-                <!-- ✅ 차시 보기 : 로그인한 모든 사용자 -->
-                <a href="{% url 'curriculum_syllabus_list' program.id %}"
-                    class="btn btn-sm btn-outline-primary me-1"
-                    title="차시 보기">
-                    <i class="bi bi-list-ol"></i>
-                    <span class="d-none d-md-inline">수업계획서</span>
-                </a>
-
-                <!-- ✅ 수정 : 관리자/스태프만 -->
-                {% if request.user.is_staff %}
-                    <a href="{% url 'curriculum_program_update' program.id %}"
-                    class="btn btn-sm btn-outline-secondary"
-                    title="커리큘럼 수정">
-                    <i class="bi bi-pencil-square"></i>
-                    <span class="d-none d-md-inline">수정</span>
-                    </a>
-                {% endif %}
-
-            </td>
-
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="4" class="text-center text-muted py-4">
-              <i class="bi bi-inbox fs-4 d-block mb-2"></i>
-              등록된 커리큘럼 프로그램이 없습니다.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
+  <!-- 🔹 필터 카드 -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <form id="filter-form" action="." method="GET">
+        <div class="row align-items-center g-3">
+          <div class="col-md-4">
+            <label for="class_type_filter" class="form-label fw-bold">수업 유형</label>
+            <select name="class_type" id="class_type_filter" class="form-select form-select-sm">
+              <option value="">전체</option>
+              {% for value, display in class_type_choices %}
+                <option value="{{ value }}" {% if value == selected_class_type %}selected{% endif %}>{{ display }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label fw-bold d-block mb-2">수업 분야</label>
+            <div class="btn-group flex-wrap gap-1" role="group">
+              {% for subject in subjects %}
+                <input type="checkbox" class="btn-check" name="subjects" value="{{ subject.id }}" id="subject_{{ subject.id }}" autocomplete="off" {% if subject.id in selected_subject_ids %}checked{% endif %}>
+                <label class="btn btn-sm btn-outline-primary" for="subject_{{ subject.id }}">{{ subject.name }}</label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 
+  <!-- 🔹 프로그램 리스트 (카드형) -->
+  <div id="program-list-container" class="row g-4">
+    {% include 'courses/curriculum/partials/program_list_partial.html' with programs=programs %}
+  </div>
+
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterForm = document.getElementById('filter-form');
+    const programListContainer = document.getElementById('program-list-container');
+
+    filterForm.addEventListener('change', function (e) {
+        const formData = new FormData(filterForm);
+        const params = new URLSearchParams(formData);
+
+        // Update URL in the browser's history
+        history.pushState(null, '', `?${params.toString()}`);
+
+        fetch(`?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            programListContainer.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error fetching filtered programs:', error);
+            programListContainer.innerHTML = '<div class="col-12"><div class="alert alert-danger">목록을 불러오는 데 실패했습니다.</div></div>';
+        });
+    });
+});
+</script>
 
 {% endblock %}
