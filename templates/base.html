@@ -394,13 +394,26 @@
                         <i class="bi bi-megaphone me-1"></i>공지사항
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item">/con
                     <a class="nav-link" href="{% url 'student_course_list' %}">
                         <i class="bi bi-journal-code me-1"></i>수강 프로그램
                     </a>
                 </li>
 
               {% endif %}
+
+            {% else %}
+              <!-- 비로그인 사용자 메뉴 -->
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'making_page' %}">
+                  <i class="bi bi-lightbulb me-1"></i>메이킹?
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'curriculum_program_list' %}">
+                  <i class="bi bi-journal-text me-1"></i>커리큘럼
+                </a>
+              </li>
             {% endif %}
 
 
@@ -426,22 +439,16 @@
                   </button>
                 </form>
               </li>
-            {% else %}
-              <li class="nav-item">
-                <a href="{% url 'login' %}" class="btn btn-light btn-sm btn-nav">
-                  <i class="bi bi-box-arrow-in-right me-1"></i>로그인
-                </a>
-              </li>
-            {% endif %}
+{% endif %}
           </ul>
 
         </div>
       </div>
     </nav>
     
-    <!-- ✅ 메인 컨텐츠 영역 -->
+     <!-- ✅ 메인 컨텐츠 영역 (기본) -->
     <div class="container content">
-      {% if messages %}
+        {% if messages %}
         <div class="mt-3">
           {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -453,6 +460,10 @@
       {% endif %}
       {% block content %}{% endblock %}
     </div>
+
+    <!-- ✅ 전체 화면용 컨텐츠 영역 -->
+    {% block full_page_content %}{% endblock %}
+
     
     <!-- ✅ 푸터 -->
     <footer class="custom-footer">
@@ -464,48 +475,3 @@
     
   </body>
 </html>
-
-<style>
-  html, body { height: 100%; }
-  body { display: flex; flex-direction: column; background-color: #f8f9fa; }
-  .content { flex: 1; }
-  footer { background: #343a40; color: #fff; text-align: center; padding: 15px 0; margin-top: auto; }
-  .btn-nav { margin-right: 5px; }
-
-  /* ✅ 메뉴 감싸는 래퍼만 스크롤 허용 */
-  .navbar-scroll {
-    overflow-x: auto;          /* 가로 스크롤 */
-    white-space: nowrap;       /* 줄바꿈 금지 */
-    flex: 1;                   /* 공간 채우기 */
-  }
-
-  .navbar-nav {
-    flex-wrap: nowrap !important;
-    white-space: nowrap;
-  }
-
-  .navbar-nav .nav-item {
-    flex-shrink: 0;
-  }
-
-  .navbar-scroll::-webkit-scrollbar {
-    height: 6px;
-  }
-  .navbar-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(255,255,255,0.3);
-    border-radius: 3px;
-  }
-
-  /* ✅ 간격 정리 */
-  .navbar-nav .nav-link {
-    padding: 0.5rem 0.75rem;
-  }
-
-  /* ✅ 모바일에서는 기존 Bootstrap 동작 유지 */
-  @media (max-width: 991px) {
-    .navbar-scroll {
-      overflow-x: visible;
-      white-space: normal;
-    }
-  }
-</style>
