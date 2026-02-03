@@ -56,7 +56,7 @@
     <form id="materialDeleteForm_{{ group.grouper.id }}" action="{% url 'material_bulk_delete' %}" method="post">
       {% csrf_token %}
       <div class="table-responsive">
-        <table class="table table-bordered table-hover text-center align-middle">
+        <table class="table table-bordered table-hover text-center align-middle table-stack">
           <thead class="table-light">
             <tr>
               <th><input type="checkbox" class="selectAll" data-vendor="{{ group.grouper.id }}"></th>

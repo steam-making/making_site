@@ -2,78 +2,75 @@
 {% load humanize %}
 {% load custom_filters %}
 {% load static %}
-{% block content %}
+{% block full_page_content %}
 <link rel="stylesheet" href="{% static 'materials/css/release_list.css' %}">
-<div class="container mt-4">
+<div class="container-fluid mt-4 px-0 release-list-container">
 
   <div class="bg-light pb-2 mb-3 sticky-top" style="top:60px; z-index:1020;">
     <h3 class="text-center mb-3 pt-2">교구재 출고 목록</h3>
 
     <!-- 새 출고 + 검색 필터 -->
-    <form method="get" id="filterForm" class="row g-2 align-items-end px-2">
-      <div class="col-12 col-md-auto">
-        <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary">+ 새 출고</a>
+    <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between px-2">
+      <div class="col-12 col-md-auto mb-2 mb-md-0">
+        <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary w-100 w-md-auto">
+          <i class="bi bi-plus-lg"></i> 새 출고
+        </a>
       </div>
 
-      <div class="col-12 col-md-auto">
-        <select name="teacher" id="teacherSelect" class="form-select">
-          <option value="">-- 강사 선택 --</option>
-
-          <!-- 일반 강사 그룹 -->
-          <optgroup label="강사">
-            {% for t in teachers %}
-              <option value="{{ t.id }}"
-                {% if selected_teacher_id == t.id|stringformat:"s" %}selected{% endif %}>
-                {{ t.first_name }} ({{ t.username }})
-              </option>
-            {% endfor %}
-          </optgroup>
-
-          <!-- 센터강사 그룹 -->
-          <optgroup label="센터강사">
-            {% for ct in center_teachers %}
-              <option value="{{ ct.id }}"
-                {% if selected_teacher_id == ct.id|stringformat:"s" %}selected{% endif %}>
-                {{ ct.first_name }} ({{ ct.username }})
-              </option>
-            {% endfor %}
-          </optgroup>
-        </select>
-      </div>
-
-      <div class="col-12 col-md-auto">
-        <select name="institution" id="institutionSelect" class="form-select" onchange="this.form.submit()">
-          <option value="">-- 출강 장소 선택 --</option>
-
-          {% regroup institutions|dictsort:"program" by program as program_groups %}
-          {% for group in program_groups %}
-            <optgroup label="{{ group.grouper|default:'(프로그램 미지정)' }}">
-              {% for inst in group.list|dictsort:"name" %}
-                <option value="{{ inst.id }}"
-                        data-teacher="{{ inst.teacher.id }}"
-                        {% if selected_institution_id == inst.id|stringformat:"s" %}selected{% endif %}>
-                  {{ inst.name }}
+      <div class="col-12 col-md-auto d-flex flex-wrap gap-2 justify-content-end">
+        <!-- 강사 선택 -->
+        <div class="flex-grow-1 flex-md-grow-0" style="min-width: 140px;">
+          <select name="teacher" id="teacherSelect" class="form-select">
+            <option value="">-- 강사 --</option>
+            <optgroup label="강사">
+              {% for t in teachers %}
+                <option value="{{ t.id }}" {% if selected_teacher_id == t.id|stringformat:"s" %}selected{% endif %}>
+                  {{ t.first_name }}
                 </option>
               {% endfor %}
             </optgroup>
-          {% endfor %}
-        </select>
-      </div>
+            <optgroup label="센터강사">
+              {% for ct in center_teachers %}
+                <option value="{{ ct.id }}" {% if selected_teacher_id == ct.id|stringformat:"s" %}selected{% endif %}>
+                  {{ ct.first_name }}
+                </option>
+              {% endfor %}
+            </optgroup>
+          </select>
+        </div>
 
-      <!-- 년월 선택 -->
-      <div class="col-12 col-md-auto">
-        <input type="month" name="order_month" class="form-control"
-               value="{{ selected_order_month|default_if_none:'' }}"
-               onchange="this.form.submit()">
-      </div>
+        <!-- 출강 장소 -->
+        <div class="flex-grow-1 flex-md-grow-0" style="min-width: 160px;">
+          <select name="institution" id="institutionSelect" class="form-select" onchange="this.form.submit()">
+            <option value="">-- 장소 --</option>
+            {% regroup institutions|dictsort:"program" by program as program_groups %}
+            {% for group in program_groups %}
+              <optgroup label="{{ group.grouper|default:'(프로그램 미지정)' }}">
+                {% for inst in group.list|dictsort:"name" %}
+                  <option value="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}" {% if selected_institution_id == inst.id|stringformat:"s" %}selected{% endif %}>
+                    {{ inst.name }}
+                  </option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        </div>
 
-      <!-- 미수금 여부 -->
-      <div class="col-12 col-md-auto">
-        <select name="unpaid" class="form-select" onchange="this.form.submit()">
-          <option value="">-- 수금 상태 --</option>
-          <option value="unpaid" {% if unpaid_filter == 'unpaid' %}selected{% endif %}>미수금만</option>
-          <option value="paid" {% if unpaid_filter == 'paid' %}selected{% endif %}>수금완료만</option>
-        </select>
+        <!-- 년월 선택 -->
+        <div class="flex-grow-1 flex-md-grow-0" style="min-width: 130px;">
+          <input type="month" name="order_month" class="form-control"
+                 value="{{ selected_order_month|default_if_none:'' }}"
+                 onchange="this.form.submit()">
+        </div>
+
+        <!-- 미수금 여부 -->
+        <div class="flex-grow-1 flex-md-grow-0" style="min-width: 120px;">
+          <select name="unpaid" class="form-select" onchange="this.form.submit()">
+            <option value="">-- 수금 --</option>
+            <option value="unpaid" {% if unpaid_filter == 'unpaid' %}selected{% endif %}>미수금만</option>
+            <option value="paid" {% if unpaid_filter == 'paid' %}selected{% endif %}>수금완료만</option>
+          </select>
+        </div>
       </div>
     </form>
   </div>
@@ -89,7 +86,8 @@
         / 강사: {{ group.teacher.first_name }}  
       </div>
       <div class="card-body p-0">
-        <table class="table table-bordered table-striped text-center mb-0 table-stack">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped text-center mb-0 table-stack">
           <thead class="table-light">
             <tr>
               <th>작성자</th>
@@ -142,84 +140,75 @@
                     {% endif %}
                   </td>
                   <td data-label="출고처리">
-                    <div class="release-actions d-flex flex-wrap justify-content-center align-items-center gap-1">
-
+                    <div class="release-actions-wrap d-flex flex-wrap justify-content-center align-items-center gap-2">
                       {% if item.status == 'released' %}
-                        {% if user.is_staff or user.is_superuser %}
-                          <!-- 출고취소 -->
-                          <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"  method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-secondary release-action-btn"
-                                    onclick="return confirm('출고 완료를 취소하시겠습니까?');">
-                              출고취소 ({{ item.released_at|date:"Y-m-d H:i" }})
-                            </button>
-                          </form>
-                        {% else %}
-                          <!-- 강사용 출고완료 표시 -->
-                            <span class="badge bg-success release-action-badge">
-                              출고완료 ({{ item.released_at|date:"Y-m-d H:i" }})
-                            </span>
-                        {% endif %}
-
-                        <!-- ✅ 반납 버튼 (세금계산서 발행 전, 관리자/강사 모두 가능) -->
-                        {% if not group.tax_invoice_sent %}
-                          <form method="post" action="{% url 'return_release_item' item.id %}">
-                            {% csrf_token %}
-                            <button type="button" class="btn btn-sm btn-outline-primary release-action-btn"
-                                    data-bs-toggle="modal" data-bs-target="#returnModal-{{ item.id }}">
-                              반납
-                            </button>
-                          </form>
-                        {% endif %}
-
-                        <!-- 반납 모달 -->
-                        <div class="modal fade" id="returnModal-{{ item.id }}" tabindex="-1" aria-hidden="true">
-                          <div class="modal-dialog">
-                            <form method="post" action="{% url 'return_release_item' item.id %}" class="modal-content">
-                              {% csrf_token %}
-                              <div class="modal-header">
-                                <h5 class="modal-title">반납 처리 - {{ item.material.name }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                              </div>
-                              <div class="modal-body">
-                                <p>출고수량: {{ item.quantity }}개</p>
-                                <input type="number" name="return_qty" class="form-control"
-                                      min="1" max="{{ item.quantity }}" required>
-                              </div>
-                              <div class="modal-footer">
-                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-                                <button type="submit" class="btn btn-primary">반납 처리</button>
-                              </div>
-                            </form>
-                          </div>
-                        </div>
-
-                      {% else %}
-                        {% if user.is_staff or user.is_superuser %}
-                          <!-- 출고 -->
-                          <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-success release-action-btn"
-                                    onclick="return confirm('출고 처리 하시겠습니까?');">
-                              출고
-                            </button>
-                          </form>
-                          <a href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"class="btn btn-sm btn-warning release-action-btn">수정</a>
-                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post"
-                                onsubmit="return confirm('정말 이 출고 항목을 삭제하시겠습니까?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger release-action-btn">삭제</button>
-                          </form>
-                        {% else %}
-                          <a href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"class="btn btn-sm btn-warning release-action-btn">수정</a>
-                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post"
-                                onsubmit="return confirm('정말 이 출고 항목을 삭제하시겠습니까?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-danger release-action-btn">삭제</button>
-                          </form>
-                        {% endif %}
+                        <span class="badge bg-success">
+                          {{ item.released_at|date:"m-d" }} 완료
+                        </span>
                       {% endif %}
+
+                      <div class="release-actions d-flex flex-wrap justify-content-center align-items-center gap-2">
+                        {% if item.status == 'released' %}
+                          {% if user.is_staff or user.is_superuser %}
+                            <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('출고 완료를 취소하시겠습니까?');">
+                                <i class="bi bi-arrow-counterclockwise"></i> 출고취소
+                              </button>
+                            </form>
+                          {% endif %}
+
+                          {% if not group.tax_invoice_sent %}
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#returnModal-{{ item.id }}">
+                              <i class="bi bi-box-arrow-in-left"></i> 반납
+                            </button>
+                          {% endif %}
+                        {% else %}
+                          {% if user.is_staff or user.is_superuser %}
+                            <form action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('출고 처리 하시겠습니까?');">
+                                <i class="bi bi-check-lg"></i> 출고
+                              </button>
+                            </form>
+                          {% endif %}
+                          <a class="btn btn-sm btn-outline-secondary" href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}">
+                            <i class="bi bi-pencil"></i> 수정
+                          </a>
+                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                              <i class="bi bi-trash"></i> 삭제
+                            </button>
+                          </form>
+                        {% endif %}
+                      </div>
                     </div>
+
+                    <!-- 반납 모달 (위치 이동: 드롭다운 밖으로) -->
+                    {% if item.status == 'released' and not group.tax_invoice_sent %}
+                      <div class="modal fade" id="returnModal-{{ item.id }}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                          <form method="post" action="{% url 'return_release_item' item.id %}" class="modal-content">
+                            {% csrf_token %}
+                            <div class="modal-header">
+                              <h5 class="modal-title">반납 처리</h5>
+                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-start">
+                              <p class="mb-2"><strong>{{ item.material.name }}</strong></p>
+                              <p class="text-muted small mb-3">출고수량: {{ item.quantity }}개</p>
+                              <label class="form-label">반납 수량</label>
+                              <input type="number" name="return_qty" class="form-control" min="1" max="{{ item.quantity }}" required>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                              <button type="submit" class="btn btn-primary">반납확인</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    {% endif %}
                   </td>
 
 
@@ -228,7 +217,7 @@
             {% endfor %}
             <tr class="fw-bold table-secondary">
               <!-- ✅ 수금 상태 -->
-              <td class="text-center" colspan="4">
+              <td class="text-center" colspan="4" data-label="수금 상태">
                 <form method="post" action="{% url 'set_payment_date' group.institution.id group.order_month %}">
                   {% csrf_token %}
                   <div class="d-flex justify-content-center align-items-center gap-2">
@@ -249,15 +238,15 @@
               </td>
 
 
-              <td colspan="1" class="text-end">총계</td>
+              <td colspan="1" class="text-end" data-label="구분">총계</td>
               {% if request.user.is_staff %}
-                <td class="text-end">-</td>
-                <td class="text-end">{{ group.total_supply|intcomma }}원</td>
+                <td class="text-end" data-label="공급가 단가">-</td>
+                <td class="text-end" data-label="공급가 합계">{{ group.total_supply|intcomma }}원</td>
               {% endif %}
-              <td class="text-end">-</td>
-              <td class="text-end">{{ group.total_price|intcomma }}원</td>
-              <td>{{ group.total_qty }}</td>
-              <td colspan="2" class="text-center">
+              <td class="text-end" data-label="납품 단가">-</td>
+              <td class="text-end" data-label="납품가 합계">{{ group.total_price|intcomma }}원</td>
+              <td data-label="총 수량">{{ group.total_qty }}</td>
+              <td colspan="2" class="text-center" data-label="그룹 처리">
                 <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-wrap">
 
                   {# ✅ 견적서 발행 → 발송완료로 대체 #}
@@ -324,7 +313,8 @@
               </td>
             </tr>
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   {% empty %}
