@@ -4,9 +4,11 @@
 {% load humanize %}
 {% load levelup_extras %}
 
+{% block content_container_class %}container-fluid{% endblock %}
+
 {% block content %}
 <link rel="stylesheet" href="{% static 'robot_LvUP/css/robot_levelup.css' %}">
-<div class="container mt-4">
+<div class="container-fluid mt-4 levelup-container">
 
   <!-- 🔹 헤더 -->
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -80,7 +82,7 @@
 
   <!-- 🔹 단계업 리스트 (records 유지 + 월 헤더 삽입) -->
   <div class="table-responsive">
-    <table class="table table-striped table-hover table-stack align-middle text-center">
+    <table class="table table-striped table-hover align-middle text-center levelup-table">
       <thead class="table-light">
         <tr>
           <th>년월</th><th>교구명</th><th>부</th><th>학년</th><th>반</th><th>번호</th><th>학생명</th>

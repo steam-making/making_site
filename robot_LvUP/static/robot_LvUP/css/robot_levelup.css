@@ -93,6 +93,38 @@ body {
   white-space: nowrap;
 }
 
+.levelup-table {
+  display: inline-table;
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
+  white-space: nowrap;
+}
+
+.levelup-container {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.content {
+  max-width: 100%;
+}
+
+.levelup-table th,
+.levelup-table td {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .levelup-table th,
+  .levelup-table td {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
 .toggle-btn small {
   font-size: 0.85rem;
   color: #f8f9fa;

@@ -447,7 +447,7 @@
     </nav>
     
      <!-- ✅ 메인 컨텐츠 영역 (기본) -->
-    <div class="container content">
+     <div class="{% block content_container_class %}container{% endblock %} content">
         {% if messages %}
         <div class="mt-3">
           {% for message in messages %}
