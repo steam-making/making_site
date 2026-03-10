@@ -69,6 +69,16 @@ def add_institution(request):
         if form.is_valid():
             institution = form.save(commit=False)
 
+            if request.user.is_staff:
+                teacher_id = form.cleaned_data.get("teacher_choice")
+                if teacher_id:
+                    institution.teacher_id = int(teacher_id)
+                else:
+                    form.add_error("teacher_choice", "강사를 선택해주세요.")
+                    return render(request, 'teachers/add_institution.html', {'form': form})
+            else:
+                institution.teacher = request.user
+
             place_type = form.cleaned_data.get("place_type")
 
             # 🔹 학교 / 유치원 → school FK 사용
@@ -87,7 +97,9 @@ def add_institution(request):
     else:
         form = TeachingInstitutionForm()
         if not request.user.is_staff:
-            form.fields['teacher'].widget = forms.HiddenInput()
+            form.fields['teacher_choice'].widget = forms.HiddenInput()
+            form.fields['teacher_choice'].required = False
+            form.initial['teacher_choice'] = str(request.user.id)
     return render(request, 'teachers/add_institution.html', {'form': form})
 
 

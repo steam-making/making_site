@@ -10,10 +10,19 @@
             <form method="post">
                 {% csrf_token %}
 
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
                 {% if user.is_staff %}
                 <div class="mb-4">
-                    <label for="id_teacher" class="form-label">강사 선택</label>
-                    {{ form.teacher|add_class:"form-select" }}
+                    <label for="id_teacher_choice" class="form-label">강사 선택</label>
+                    {{ form.teacher_choice|add_class:"form-select" }}
+                    {% if form.teacher_choice.errors %}
+                    <div class="text-danger small mt-1">{{ form.teacher_choice.errors }}</div>
+                    {% endif %}
                 </div>
                 {% endif %}
 
