@@ -64,6 +64,8 @@ def institution_list(request):
 
 @login_required
 def add_institution(request):
+    template_name = 'teachers/institution_form.html'
+
     if request.method == 'POST':
         form = TeachingInstitutionForm(request.POST)
         if form.is_valid():
@@ -75,7 +77,13 @@ def add_institution(request):
                     institution.teacher_id = int(teacher_id)
                 else:
                     form.add_error("teacher_choice", "강사를 선택해주세요.")
-                    return render(request, 'teachers/add_institution.html', {'form': form})
+                    return render(request, template_name, {
+                        'form': form,
+                        'title': '출강 등록',
+                        'submit_label': '등록하기',
+                        'school_id': '',
+                        'school_name': '',
+                    })
             else:
                 institution.teacher = request.user
 
@@ -100,7 +108,13 @@ def add_institution(request):
             form.fields['teacher_choice'].widget = forms.HiddenInput()
             form.fields['teacher_choice'].required = False
             form.initial['teacher_choice'] = str(request.user.id)
-    return render(request, 'teachers/add_institution.html', {'form': form})
+    return render(request, template_name, {
+        'form': form,
+        'title': '출강 등록',
+        'submit_label': '등록하기',
+        'school_id': '',
+        'school_name': '',
+    })
 
 
 @login_required
