@@ -110,7 +110,7 @@ def fmt_money(v) -> str:
 # ---------------------------------------------------------------------
 
 # 특정 학교 목록
-SPECIAL_INSTITUTIONS = ["화정남초등학교", "화개초등학교", "효천초등학교"]
+SPECIAL_INSTITUTIONS = []
 
 def _vendor_info(institution=None) -> dict:
     """
