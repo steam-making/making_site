@@ -159,7 +159,11 @@
                           {% endif %}
 
                           {% if not group.tax_invoice_sent %}
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#returnModal-{{ item.id }}">
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-primary js-return-button"
+                                    data-return-action="{% url 'return_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
+                                    data-material-name="{{ item.material.name|escape }}"
+                                    data-max-qty="{{ item.quantity }}">
                               <i class="bi bi-box-arrow-in-left"></i> 반납
                             </button>
                           {% endif %}
@@ -185,30 +189,6 @@
                       </div>
                     </div>
 
-                    <!-- 반납 모달 (위치 이동: 드롭다운 밖으로) -->
-                    {% if item.status == 'released' and not group.tax_invoice_sent %}
-                      <div class="modal fade" id="returnModal-{{ item.id }}" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
-                          <form method="post" action="{% url 'return_release_item' item.id %}" class="modal-content">
-                            {% csrf_token %}
-                            <div class="modal-header">
-                              <h5 class="modal-title">반납 처리</h5>
-                              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body text-start">
-                              <p class="mb-2"><strong>{{ item.material.name }}</strong></p>
-                              <p class="text-muted small mb-3">출고수량: {{ item.quantity }}개</p>
-                              <label class="form-label">반납 수량</label>
-                              <input type="number" name="return_qty" class="form-control" min="1" max="{{ item.quantity }}" required>
-                            </div>
-                            <div class="modal-footer">
-                              <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-                              <button type="submit" class="btn btn-primary">반납확인</button>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
-                    {% endif %}
                   </td>
 
 
@@ -317,9 +297,31 @@
         </div>
       </div>
     </div>
-  {% empty %}
-    <p class="text-center">등록된 출고 내역이 없습니다.</p>
-  {% endfor %}
+   {% empty %}
+     <p class="text-center">등록된 출고 내역이 없습니다.</p>
+   {% endfor %}
+ 
+   <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
+     <div class="modal-dialog modal-dialog-centered">
+       <form method="post" action="#" class="modal-content" id="returnModalForm">
+         {% csrf_token %}
+         <div class="modal-header">
+           <h5 class="modal-title" id="returnModalLabel">반납 처리</h5>
+           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+         </div>
+         <div class="modal-body text-start">
+           <p class="mb-2"><strong data-return-material></strong></p>
+           <p class="text-muted small mb-3" data-return-qty></p>
+           <label class="form-label" for="returnQtyInput">반납 수량</label>
+           <input type="number" name="return_qty" id="returnQtyInput" class="form-control" min="1" required>
+         </div>
+         <div class="modal-footer">
+           <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+           <button type="submit" class="btn btn-primary">반납확인</button>
+         </div>
+       </form>
+     </div>
+   </div>
 </div>
 <script>
   // 강사/기관 필터 연동 스크립트
@@ -383,6 +385,48 @@
       input.addEventListener("change", function () {
         updateUI();
         form.submit();  // ✅ 자동 제출 → DB 저장
+      });
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const returnModalEl = document.getElementById("returnModal");
+    if (!returnModalEl || typeof bootstrap === "undefined") {
+      return;
+    }
+
+    const returnModal = bootstrap.Modal.getOrCreateInstance(returnModalEl);
+    const form = document.getElementById("returnModalForm");
+    const materialEl = returnModalEl.querySelector("[data-return-material]");
+    const qtyEl = returnModalEl.querySelector("[data-return-qty]");
+    const qtyInput = document.getElementById("returnQtyInput");
+
+    let pendingFocus = false;
+
+    returnModalEl.addEventListener("shown.bs.modal", function () {
+      if (pendingFocus) {
+        qtyInput.focus();
+        pendingFocus = false;
+      }
+    });
+
+    document.querySelectorAll(".js-return-button").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const action = button.dataset.returnAction || "#";
+        const materialName = button.dataset.materialName || "";
+        const maxQty = button.dataset.maxQty || "";
+
+        form.action = action;
+        materialEl.textContent = materialName;
+        qtyEl.textContent = maxQty ? `출고수량: ${maxQty}개` : "";
+        qtyInput.max = maxQty;
+        qtyInput.value = "";
+
+        pendingFocus = true;
+        returnModal.show();
       });
     });
   });
