@@ -1,4 +1,30 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<style>
+  .institution-toolbar {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    font-weight: 700;
+  }
+
+  .status-chip.closed {
+    background: #e2e8f0;
+    color: #334155;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
 
@@ -8,24 +34,35 @@
         <a href="{% url 'add_institution' %}" class="btn btn-primary">+ 출강 등록</a>
     </div>
 
-    {% if request.user.is_superuser %}
-    <!-- 🔷 필터 폼 -->
-    <form method="get" class="row mb-3">
-        <div class="col-auto">
-            <select name="teacher" class="form-select">
-                <option value="">전체 강사</option>
-                {% for t in teachers %}
-                    <option value="{{ t.id }}" {% if selected_teacher_id == t.id %}selected{% endif %}>
-                        {{ t.first_name }} ({{ t.username }})
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-outline-primary">필터</button>
+    <form id="institutionFilterForm" method="get" class="institution-toolbar mb-3">
+        <div class="row g-2 align-items-end">
+            {% if request.user.is_staff %}
+            <div class="col-12 col-lg-4">
+                <label for="teacherSearch" class="form-label mb-1">강사 조회 (관리자 전용)</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                    <input id="teacherSearch" name="teacher_q" value="{{ teacher_query }}" type="text" class="form-control" placeholder="강사명 또는 아이디 입력" autocomplete="off">
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="col-12 col-lg-4">
+                <label for="institutionSearch" class="form-label mb-1">학교/기관명 조회</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-building"></i></span>
+                    <input id="institutionSearch" name="institution_q" value="{{ institution_query }}" type="text" class="form-control" placeholder="학교/기관명 입력" autocomplete="off">
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-4">
+                <label for="programSearch" class="form-label mb-1">프로그램 조회</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text"><i class="bi bi-journal-code"></i></span>
+                    <input id="programSearch" name="program_q" value="{{ program_query }}" type="text" class="form-control" placeholder="프로그램명 입력" autocomplete="off">
+                </div>
+            </div>
         </div>
     </form>
-    {% endif %}
 
     <!-- 🔷 출강 정보 테이블 -->
     <table class="table table-bordered text-center align-middle">
@@ -75,18 +112,75 @@
 
                 <td>{{ i.created_at|date:"Y-m-d" }}</td>
                 <td>
-                    {% if i.id %}
-                    <a href="{% url 'institution_update' i.id %}" class="btn btn-sm btn-warning">수정</a>
+                    {% if i.is_closed %}
+                    <span class="status-chip closed">
+                        <i class="bi bi-stop-circle"></i> 종료
+                    </span>
+                    {% elif i.id %}
+                    <div class="d-flex gap-1 justify-content-center flex-wrap">
+                        <a href="{% url 'institution_update' i.id %}" class="btn btn-sm btn-warning">수정</a>
+
+                        <form method="post" action="{% url 'institution_delete' i.id %}" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까? 삭제 후 복구할 수 없습니다.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-danger">삭제</button>
+                        </form>
+
+                        <form method="post" action="{% url 'institution_close' i.id %}" class="d-inline" onsubmit="return confirm('이 출강 장소를 종료 처리할까요? 종료 후에는 수정/삭제 대신 종료 표시만 노출됩니다.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-secondary">종료</button>
+                        </form>
+                    </div>
                     {% endif %}
                 </td>
 
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" class="text-muted">출강 정보가 없습니다.</td>
+                <td colspan="6" class="text-muted">출강 정보가 없습니다.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<script>
+(() => {
+    const form = document.getElementById("institutionFilterForm");
+    if (!form) return;
+
+    const inputs = Array.from(form.querySelectorAll('input[type="text"]'));
+    let timer = null;
+    let composing = false;
+
+    const submitFilter = () => {
+        form.submit();
+    };
+
+    inputs.forEach((input) => {
+        input.addEventListener("compositionstart", () => {
+            composing = true;
+        });
+
+        input.addEventListener("compositionend", () => {
+            composing = false;
+            clearTimeout(timer);
+            timer = setTimeout(submitFilter, 450);
+        });
+
+        input.addEventListener("input", () => {
+            if (composing) return;
+            clearTimeout(timer);
+            timer = setTimeout(submitFilter, 450);
+        });
+
+        input.addEventListener("keydown", (event) => {
+            if (event.isComposing || composing) return;
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            clearTimeout(timer);
+            submitFilter();
+        });
+    });
+})();
+</script>
 {% endblock %}

@@ -6,6 +6,8 @@ urlpatterns = [
     path('institutions/', views.institution_list, name='institution_list'),
     path('institutions/add/', views.add_institution, name='add_institution'),
     path('institutions/<int:pk>/edit/', views.institution_update, name='institution_update'),  # ✅ 수정
+    path('institutions/<int:pk>/delete/', views.institution_delete, name='institution_delete'),
+    path('institutions/<int:pk>/close/', views.institution_close, name='institution_close'),
     path('dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     
     path('certificates/', views.certificate_list, name='certificate_list'),

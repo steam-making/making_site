@@ -3,6 +3,9 @@ from django import forms
 from .forms import TeachingInstitutionForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render
+from django.db.models import Q
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from .models import TeachingInstitution, TeachingDay
 from django.shortcuts import render, get_object_or_404, redirect
@@ -40,24 +43,39 @@ from django.shortcuts import render
 
 @login_required
 def institution_list(request):
-    selected_teacher_id = request.GET.get('teacher')
+    teacher_query = request.GET.get('teacher_q', '').strip()
+    institution_query = request.GET.get('institution_q', '').strip()
+    program_query = request.GET.get('program_q', '').strip()
 
-    # 🔷 전체 강사 (필터 드롭다운용)
     teachers = User.objects.filter(profile__user_type='teacher').order_by('first_name')
 
-    # 🔷 강사 또는 관리자에 따라 조회 범위 다르게 설정
-    if request.user.is_superuser:
-        if selected_teacher_id:
-            institutions = TeachingInstitution.objects.filter(teacher_id=selected_teacher_id)
-        else:
-            institutions = TeachingInstitution.objects.all()
+    if request.user.is_staff:
+        institutions = TeachingInstitution.objects.select_related('teacher', 'school').prefetch_related('days').all()
+        if teacher_query:
+            institutions = institutions.filter(
+                Q(teacher__first_name__icontains=teacher_query)
+                | Q(teacher__username__icontains=teacher_query)
+            )
     else:
-        institutions = TeachingInstitution.objects.filter(teacher=request.user)
+        institutions = TeachingInstitution.objects.select_related('teacher', 'school').prefetch_related('days').filter(teacher=request.user)
+
+    if institution_query:
+        institutions = institutions.filter(
+            Q(school__name__icontains=institution_query)
+            | Q(name__icontains=institution_query)
+        )
+
+    if program_query:
+        institutions = institutions.filter(program__icontains=program_query)
+
+    institutions = institutions.order_by('is_closed', '-created_at')
 
     context = {
         'teachers': teachers,
         'institutions': institutions,
-        'selected_teacher_id': int(selected_teacher_id) if selected_teacher_id else None,
+        'teacher_query': teacher_query,
+        'institution_query': institution_query,
+        'program_query': program_query,
     }
     return render(request, 'teachers/institution_list.html', context)
 
@@ -131,7 +149,16 @@ def institution_update(request, pk):
         messages.error(request, "수정 권한이 없습니다.")
         return redirect('institution_list')
 
+    if inst.is_closed:
+        messages.warning(request, "종료된 출강 장소는 수정할 수 없습니다.")
+        return redirect('institution_list')
+
     if request.method == "POST":
+        inst.refresh_from_db(fields=["is_closed"])
+        if inst.is_closed:
+            messages.warning(request, "종료된 출강 장소는 수정할 수 없습니다.")
+            return redirect('institution_list')
+
         form = TeachingInstitutionForm(request.POST, instance=inst)
 
         if not form.is_valid():
@@ -171,6 +198,46 @@ def institution_update(request, pk):
         'school_id': inst.school.id if inst.school else "",
         'school_name': inst.school.name if inst.school else "",
     })
+
+
+@login_required
+@require_POST
+def institution_delete(request, pk):
+    inst = get_object_or_404(TeachingInstitution, pk=pk)
+
+    if not request.user.is_staff and inst.teacher != request.user:
+        messages.error(request, "삭제 권한이 없습니다.")
+        return redirect('institution_list')
+
+    if inst.is_closed:
+        messages.warning(request, "종료된 출강 장소는 삭제할 수 없습니다.")
+        return redirect('institution_list')
+
+    inst.delete()
+    messages.success(request, "출강 장소가 삭제되었습니다.")
+    return redirect('institution_list')
+
+
+@login_required
+@require_POST
+def institution_close(request, pk):
+    inst = get_object_or_404(TeachingInstitution, pk=pk)
+
+    if not request.user.is_staff and inst.teacher != request.user:
+        messages.error(request, "종료 권한이 없습니다.")
+        return redirect('institution_list')
+
+    updated = TeachingInstitution.objects.filter(pk=inst.pk, is_closed=False).update(
+        is_closed=True,
+        closed_at=timezone.now(),
+    )
+
+    if updated == 0:
+        messages.info(request, "이미 종료된 출강 장소입니다.")
+        return redirect('institution_list')
+
+    messages.success(request, "출강 장소가 종료 처리되었습니다.")
+    return redirect('institution_list')
 
 
 

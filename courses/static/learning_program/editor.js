@@ -228,3 +228,17 @@ function checkInputCount(callback) {
         callback(data.count);
     });
 }
+
+/* ===============================
+   🔥 화면의 \n 문자 등 정리 (가독성 향상)
+=============================== */
+document.addEventListener("DOMContentLoaded", function () {
+    const explainBox = document.querySelector(".explain-box");
+    if (explainBox) {
+        // DB에서 가져온 문자열 중 리터럴 백슬래시 n(\n) 을 HTML 개행으로 변환
+        explainBox.innerHTML = explainBox.innerHTML.replace(/\\n/g, '<br>');
+        
+        // 추가로 연속된 스페이스(예: 파이썬 들여쓰기)를 렌더링하기 위해 스타일 추가
+        explainBox.style.whiteSpace = 'pre-wrap';
+    }
+});

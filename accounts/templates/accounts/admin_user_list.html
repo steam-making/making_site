@@ -1,9 +1,32 @@
 {% extends "base.html" %}
 {% load humanize %}
 
+{% block extra_css %}
+<style>
+  .admin-user-card {
+    overflow: visible !important;
+  }
+
+  .admin-user-card:hover {
+    transform: none !important;
+  }
+
+  .user-type-filter .btn {
+    border-radius: 999px;
+  }
+
+  .toolbar-group {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-  <div class="card shadow-sm">
+  <div class="card shadow-sm admin-user-card">
     <div class="card-body">
 
       <!-- 제목 (1줄, 가운데) -->
@@ -13,91 +36,55 @@
         </h4>
       </div>
 
-      <!-- 2줄 : 회원유형 + 검색 + 정렬 -->
-      <form id="filterForm" method="get" class="mb-4">
-        <div class="row align-items-center g-2">
+      <form id="filterForm" method="get" class="toolbar-group mb-3">
+        <div class="row g-3 align-items-end">
+          <div class="col-12">
+            <div class="d-flex flex-wrap align-items-center gap-2 user-type-filter">
+              <span class="fw-semibold me-2"><i class="bi bi-person-badge me-1"></i>회원유형</span>
 
-          <!-- 회원유형 -->
-          <!-- 회원유형 (개행/세로 방지 완전 해결 버전) -->
-          <div class="col-12 col-lg-6">
-            <div class="d-flex align-items-center gap-2 flex-nowrap overflow-auto">
-
-              <span class="fw-semibold text-nowrap me-2">
-                <i class="bi bi-person-badge me-1"></i>회원유형
-              </span>
-
-              <!-- 전체 -->
-              <label class="d-inline-flex align-items-center gap-1 text-nowrap mb-0">
-                <input type="radio"
-                      name="user_type"
-                      value=""
-                      {% if not user_type %}checked{% endif %}>
-                <span>전체</span>
-              </label>
+              <input type="radio" class="btn-check" name="user_type" id="filterTypeAll" value="" {% if not user_type %}checked{% endif %}>
+              <label class="btn btn-sm btn-outline-secondary" for="filterTypeAll">전체</label>
 
               {% for val,label in USER_TYPE_CHOICES %}
-              <label class="d-inline-flex align-items-center gap-1 text-nowrap mb-0">
-                <input type="radio"
-                      name="user_type"
-                      value="{{ val }}"
-                      {% if user_type == val %}checked{% endif %}>
-                <span>{{ label }}</span>
-              </label>
+              <input type="radio" class="btn-check" name="user_type" id="filterType{{ forloop.counter }}" value="{{ val }}" {% if user_type == val %}checked{% endif %}>
+              <label class="btn btn-sm btn-outline-primary" for="filterType{{ forloop.counter }}">{{ label }}</label>
               {% endfor %}
-
             </div>
           </div>
 
-
-
-          <!-- 검색 + 정렬 -->
-          <div class="col-12 col-lg-6">
-            <div class="d-flex justify-content-lg-end justify-content-start gap-2 flex-wrap">
-
-              <!-- 검색 -->
-              <div class="input-group input-group-sm" style="width: 200px;">
-                <span class="input-group-text">
-                  <i class="bi bi-search"></i>
-                </span>
-                <input type="text"
-                      name="q"
-                      value="{{ q }}"
-                      class="form-control"
-                      placeholder="이름 / 아이디">
-              </div>
-
-              <!-- 정렬 -->
-              <div class="input-group input-group-sm" style="width: 160px;">
-                <span class="input-group-text">
-                  <i class="bi bi-sort-down"></i>
-                </span>
-                <select name="order" class="form-select">
-                  <option value="-date_joined" {% if order == '-date_joined' %}selected{% endif %}>최근가입</option>
-                  <option value="date_joined" {% if order == 'date_joined' %}selected{% endif %}>오래된가입</option>
-                  <option value="username" {% if order == 'username' %}selected{% endif %}>아이디 ↑</option>
-                  <option value="-username" {% if order == '-username' %}selected{% endif %}>아이디 ↓</option>
-                  <option value="first_name" {% if order == 'first_name' %}selected{% endif %}>이름 ↑</option>
-                  <option value="-first_name" {% if order == '-first_name' %}selected{% endif %}>이름 ↓</option>
-                </select>
-              </div>
-
-              <!-- 검색 + 정렬 + 관리자 액션 -->
-              <div class="d-flex justify-content-end gap-2 flex-wrap">
-
-                <!-- 회원 추가 -->
-                <button type="button"
-                        class="btn btn-sm btn-primary"
-                        data-bs-toggle="modal"
-                        data-bs-target="#bulkUserModal">
-                  <i class="bi bi-person-plus"></i> 회원 추가
-                </button>
-
-
-              </div>
-
+          <div class="col-12 col-lg-4">
+            <label for="searchQuery" class="form-label mb-1">이름 / 아이디 검색</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input id="searchQuery" type="text" name="q" value="{{ q }}" class="form-control" placeholder="이름 또는 아이디 입력">
             </div>
           </div>
 
+          <div class="col-12 col-lg-3">
+            <label for="orderBy" class="form-label mb-1">정렬</label>
+            <select id="orderBy" name="order" class="form-select form-select-sm">
+              <option value="-date_joined" {% if order == '-date_joined' %}selected{% endif %}>최근가입</option>
+              <option value="date_joined" {% if order == 'date_joined' %}selected{% endif %}>오래된가입</option>
+              <option value="username" {% if order == 'username' %}selected{% endif %}>아이디 오름차순</option>
+              <option value="-username" {% if order == '-username' %}selected{% endif %}>아이디 내림차순</option>
+              <option value="first_name" {% if order == 'first_name' %}selected{% endif %}>이름 오름차순</option>
+              <option value="-first_name" {% if order == '-first_name' %}selected{% endif %}>이름 내림차순</option>
+            </select>
+          </div>
+
+          <div class="col-12 col-lg-5 d-flex justify-content-lg-end gap-2 flex-wrap">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-funnel me-1"></i>조회
+            </button>
+
+            <button type="button"
+                    id="bulkUserOpenBtn"
+                    class="btn btn-sm btn-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#bulkUserModal">
+              <i class="bi bi-person-plus me-1"></i>회원추가
+            </button>
+          </div>
         </div>
       </form>
 
@@ -174,10 +161,33 @@
 
 
       <!-- 📋 회원 목록 -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <div class="small text-muted">
+          선택된 회원 <strong id="selectedCount">0</strong>명
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <select id="bulkTypeSelect" class="form-select form-select-sm" style="min-width: 180px;">
+            <option value="">변경할 회원유형 선택</option>
+            {% for val,label in USER_TYPE_CHOICES %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" id="bulkTypeUpdateBtn" class="btn btn-sm btn-outline-primary" disabled>
+            <i class="bi bi-arrow-repeat me-1"></i>선택 회원 유형 변경
+          </button>
+          <button type="button" id="clearSelectionBtn" class="btn btn-sm btn-outline-secondary" disabled>
+            선택 해제
+          </button>
+        </div>
+      </div>
+
       <div class="table-responsive">
         <table class="table table-striped align-middle">
           <thead class="table-light">
             <tr>
+              <th style="width: 44px;" class="text-center">
+                <input type="checkbox" id="selectAllUsers" class="form-check-input">
+              </th>
               <th>#</th>
               <th><i class="bi bi-person me-1"></i>이름</th>
               <th><i class="bi bi-envelope me-1"></i>아이디(이메일)</th>
@@ -191,6 +201,13 @@
           <tbody>
             {% for u in page_obj %}
             <tr>
+              <td class="text-center">
+                {% if u.profile %}
+                  <input type="checkbox" class="form-check-input user-select-checkbox" value="{{ u.id }}" aria-label="{{ u.username }} 선택">
+                {% else %}
+                  <input type="checkbox" class="form-check-input" disabled>
+                {% endif %}
+              </td>
               <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
 
               <td class="fw-semibold">
@@ -207,7 +224,7 @@
               <td>
                 {% if u.profile %}
                   <span class="badge bg-info">
-                    <i class="bi bi-person-lines-fill me-1"></i>{{ u.profile.user_type }}
+                    <i class="bi bi-person-lines-fill me-1"></i>{{ u.profile.get_user_type_display }}
                   </span>
                 {% elif u.institution_profile %}
                   <span class="badge bg-warning text-dark">
@@ -262,7 +279,7 @@
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="text-center text-muted py-4">
+              <td colspan="8" class="text-center text-muted py-4">
                 <i class="bi bi-info-circle me-1"></i>검색 조건에 해당하는 회원이 없습니다.
               </td>
             </tr>
@@ -311,25 +328,137 @@
 <!-- JS -->
 <script>
 const form = document.getElementById("filterForm");
-let timer = null;
+const searchInput = form ? form.querySelector('input[name="q"]') : null;
+const selectAllUsers = document.getElementById("selectAllUsers");
+const userCheckboxes = Array.from(document.querySelectorAll(".user-select-checkbox"));
+const selectedCountEl = document.getElementById("selectedCount");
+const bulkTypeSelect = document.getElementById("bulkTypeSelect");
+const bulkTypeUpdateBtn = document.getElementById("bulkTypeUpdateBtn");
+const clearSelectionBtn = document.getElementById("clearSelectionBtn");
 
-function autoSubmit() {
-  form.submit();
-}
-
-/* 🔍 검색 debounce (filterForm 내부 input만) */
-const searchInput = form.querySelector('input[name="q"]');
 if (searchInput) {
-  searchInput.addEventListener("input", () => {
-    clearTimeout(timer);
-    timer = setTimeout(autoSubmit, 400);
+  searchInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    form.submit();
   });
 }
 
-/* 🔥 중요: filterForm 내부 요소만 자동 submit */
-form.querySelectorAll("input, select").forEach(el => {
-  el.addEventListener("change", autoSubmit);
+if (form) {
+  form.querySelectorAll('input[name="user_type"]').forEach((radio) => {
+    radio.addEventListener("change", () => form.submit());
+  });
+
+  const orderSelect = form.querySelector('select[name="order"]');
+  if (orderSelect) {
+    orderSelect.addEventListener("change", () => form.submit());
+  }
+}
+
+function getSelectedUserIds() {
+  return userCheckboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
+}
+
+function syncSelectionUi() {
+  const selectedIds = getSelectedUserIds();
+  const selectedCount = selectedIds.length;
+
+  if (selectedCountEl) {
+    selectedCountEl.textContent = selectedCount;
+  }
+
+  if (bulkTypeUpdateBtn) {
+    bulkTypeUpdateBtn.disabled = selectedCount === 0;
+  }
+
+  if (clearSelectionBtn) {
+    clearSelectionBtn.disabled = selectedCount === 0;
+  }
+
+  if (selectAllUsers) {
+    const total = userCheckboxes.length;
+    selectAllUsers.checked = total > 0 && selectedCount === total;
+    selectAllUsers.indeterminate = selectedCount > 0 && selectedCount < total;
+  }
+}
+
+if (selectAllUsers) {
+  selectAllUsers.addEventListener("change", () => {
+    userCheckboxes.forEach((checkbox) => {
+      checkbox.checked = selectAllUsers.checked;
+    });
+    syncSelectionUi();
+  });
+}
+
+userCheckboxes.forEach((checkbox) => {
+  checkbox.addEventListener("change", syncSelectionUi);
 });
+
+if (clearSelectionBtn) {
+  clearSelectionBtn.addEventListener("click", () => {
+    userCheckboxes.forEach((checkbox) => {
+      checkbox.checked = false;
+    });
+    syncSelectionUi();
+  });
+}
+
+if (bulkTypeUpdateBtn && bulkTypeSelect) {
+  bulkTypeUpdateBtn.addEventListener("click", () => {
+    const selectedIds = getSelectedUserIds();
+    const nextType = bulkTypeSelect.value;
+
+    if (selectedIds.length === 0) {
+      alert("유형을 변경할 회원을 선택해주세요.");
+      return;
+    }
+
+    if (!nextType) {
+      alert("변경할 회원유형을 선택해주세요.");
+      return;
+    }
+
+    if (!confirm(`${selectedIds.length}명의 회원 유형을 변경할까요?`)) {
+      return;
+    }
+
+    const payload = new FormData();
+    selectedIds.forEach((userId) => payload.append("user_ids[]", userId));
+    payload.append("user_type", nextType);
+
+    bulkTypeUpdateBtn.disabled = true;
+    fetch("{% url 'admin_user_bulk_update_type' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+      },
+      body: payload,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) {
+          alert("유형 변경에 실패했습니다.");
+          bulkTypeUpdateBtn.disabled = false;
+          return;
+        }
+
+        const skipped = data.skipped_count || 0;
+        const message = skipped > 0
+          ? `${data.updated_count}명 변경 완료, ${skipped}명은 변경 대상이 아닙니다.`
+          : `${data.updated_count}명 회원 유형이 변경되었습니다.`;
+
+        alert(message);
+        location.reload();
+      })
+      .catch(() => {
+        alert("요청 중 오류가 발생했습니다.");
+        bulkTypeUpdateBtn.disabled = false;
+      });
+  });
+}
+
+syncSelectionUi();
 
 /* 승인 버튼 */
 document.querySelectorAll(".btn-approve").forEach(btn => {

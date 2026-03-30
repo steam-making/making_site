@@ -79,15 +79,14 @@
 <script src="{% static 'learning_program/editor.js' %}"></script>
 
 <style>
-/* base.html의 .content padding을 상쇄하기 위한 스타일 */
-.editor-container {
-    padding-top: var(--header-height);
-    height: 100vh;
-    display: flex;
+/* base.html의 빈 .content 패딩 영역을 없애 중간 여백 해결 */
+.content {
+    display: none !important;
 }
+
 /* 푸터 숨기기 */
 .custom-footer {
-    display: none;
+    display: none !important;
 }
 </style>
 {% endblock %}

@@ -46,6 +46,8 @@ class TeachingInstitution(models.Model):
 
     contact_email = models.EmailField(blank=True, null=True)
     admin_email = models.EmailField(blank=True, null=True)
+    is_closed = models.BooleanField(default=False)
+    closed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.school.name if self.school else self.name} - {self.program}"

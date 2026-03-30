@@ -34,11 +34,11 @@
         </li>
         <li class="mb-2">
           <i class="bi bi-clock me-2 text-primary"></i>
-          <strong>수업시간:</strong> {{ program.class_time|default:"미지정" }}
+          <strong>수업시간:</strong> {% if program.duration_minutes %}{{ program.duration_minutes }}분{% else %}<span class="text-muted fst-italic">미지정</span>{% endif %}
         </li>
         <li>
           <i class="bi bi-calendar-range me-2 text-primary"></i>
-          <strong>수업기간:</strong> {{ program.class_period|default:"미지정" }}
+          <strong>수업기간:</strong> {% if program.duration_period %}{{ program.duration_period }}{% else %}<span class="text-muted fst-italic">미지정</span>{% endif %}
         </li>
       </ul>
     </div>

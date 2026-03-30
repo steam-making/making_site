@@ -417,3 +417,39 @@ def admin_user_bulk_create(request):
     messages.success(request, f"{created}명 회원이 등록되었습니다.")
     return redirect("admin_user_list")
 
+
+@staff_member_required
+@require_POST
+def admin_user_bulk_update_type(request):
+    raw_ids = request.POST.getlist("user_ids[]")
+    new_type = request.POST.get("user_type", "").strip()
+
+    valid_types = {value for value, _label in Profile.USER_TYPES}
+    if new_type not in valid_types:
+        return JsonResponse({"success": False, "error": "invalid_user_type"}, status=400)
+
+    user_ids = []
+    for raw_id in raw_ids:
+        try:
+            user_id = int(raw_id)
+        except (TypeError, ValueError):
+            continue
+
+        if user_id > 0:
+            user_ids.append(user_id)
+
+    if not user_ids:
+        return JsonResponse({"success": False, "error": "no_users_selected"}, status=400)
+
+    unique_user_ids = list(set(user_ids))
+    updated_count = Profile.objects.filter(user_id__in=unique_user_ids).update(user_type=new_type)
+    skipped_count = max(len(unique_user_ids) - updated_count, 0)
+
+    return JsonResponse(
+        {
+            "success": True,
+            "updated_count": updated_count,
+            "skipped_count": skipped_count,
+        }
+    )
+

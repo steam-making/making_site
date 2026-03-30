@@ -324,6 +324,13 @@
    </div>
 </div>
 <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 모달 깜빡임(z-index/overflow 충돌) 문제 해결을 위해 body 끝으로 이동
+    document.querySelectorAll('.modal').forEach(function(modal) {
+      document.body.appendChild(modal);
+    });
+  });
+
   // 강사/기관 필터 연동 스크립트
   
   document.addEventListener('DOMContentLoaded', function () {

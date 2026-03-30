@@ -1547,7 +1547,6 @@ def curriculum_syllabus_delete(request, syllabus_id):
         program_id=program_id
     )
 
-@login_required
 def curriculum_syllabus_list(request, program_id):
     program = get_object_or_404(CurriculumProgram, id=program_id)
     syllabus_list = program.syllabus.all()
