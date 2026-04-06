@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Sum
@@ -199,7 +199,7 @@ def levelup_by_institution(request, institution_id):
         .filter(institution=institution)
         .select_related("material")
         .order_by(
-            "year_month",           # 년월
+            "-year_month",           # 년월 최신순
             "delivery_done",        # 전달 안된 게 먼저
             "section",
             "grade",
@@ -265,11 +265,12 @@ def levelup_by_institution(request, institution_id):
 
         monthly_stats[ym] = {
             "total": total_cnt,
-            "guide_done": guide_cnt,        # ✅ 추가
-            "release_done": release_cnt,    # ✅ 추가
+            "guide_done": guide_cnt,
+            "release_done": release_cnt,
             "delivered": delivered_cnt,
             "undelivered": undelivered,
             "release_materials": release_materials,
+            "all_done": (guide_cnt == total_cnt and release_cnt == total_cnt and delivered_cnt == total_cnt),
         }
 
 

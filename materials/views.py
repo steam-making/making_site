@@ -289,7 +289,7 @@ def release_list(request):
         .annotate(has_pending=Exists(has_pending_subq))
     )
 
-    institutions = TeachingInstitution.objects.select_related('teacher').all()
+    institutions = TeachingInstitution.objects.filter(is_closed=False).select_related('teacher')
 
     # ✅ 필터
     
@@ -354,6 +354,7 @@ def release_list(request):
                 "estimate_sent": True,
                 "tax_invoice_sent": False,
                 "program_display": program_display,
+                "materials_summary": {},
             }
             
         # ✅ payment_status=paid 인 경우, 날짜 없어도 수금완료로 인식
@@ -369,10 +370,17 @@ def release_list(request):
             grouped_data[key]["total_qty"] += item.quantity
             grouped_data[key]["total_price"] += (item.unit_price or 0) * item.quantity
             grouped_data[key]["total_supply"] += (getattr(item.material, 'supply_price', 0) or 0) * item.quantity
+            
+            mat_name = item.material.name
+            grouped_data[key]["materials_summary"][mat_name] = grouped_data[key]["materials_summary"].get(mat_name, 0) + item.quantity
 
         grouped_data[key]["orders"].append(order)
 
-    grouped_list = list(grouped_data.values())
+    grouped_list = []
+    for data in grouped_data.values():
+        # 교구재명 오름차순 정렬
+        data["materials_summary"] = dict(sorted(data["materials_summary"].items()))
+        grouped_list.append(data)
 
     # ✅ 필터 select용 정렬
     if user.is_staff:

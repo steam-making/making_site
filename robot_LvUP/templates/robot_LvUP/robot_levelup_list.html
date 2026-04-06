@@ -9,6 +9,32 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'robot_LvUP/css/robot_levelup.css' %}">
 <div class="container-fluid mt-4 levelup-container">
+<style>
+  /* 월 헤더 상태별 스타일 */
+  .month-header.month-done {
+    background-color: #f8f9fa !important; /* 연한 회색 */
+    color: #adb5bd !important;           /* 희미한 텍스트 */
+    opacity: 0.8;
+  }
+  .month-header.month-done .badge {
+    filter: grayscale(1);
+    opacity: 0.6;
+  }
+  .month-header.month-done .material-chip {
+    filter: grayscale(1) brightness(1.2);
+    opacity: 0.5;
+  }
+
+  .month-header.month-active {
+    background-color: #ffffff !important;
+    border-left: 5px solid #0d6efd !important; /* 활성 상태 강조 */
+    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.1);
+  }
+  .month-header.month-active .bi-calendar-event {
+    color: #0d6efd;
+    font-weight: bold;
+  }
+</style>
 
   <!-- 🔹 헤더 -->
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -47,7 +73,7 @@
 
       <button class="btn btn-warning btn-sm d-flex align-items-center gap-1"
               onclick="selectReleaseMonth()">
-        <i class="bi bi-box-arrow-up"></i> 출고등록
+        <i class="bi bi-box-arrow-up"></i> 주문등록
       </button>
 
     </div>
@@ -61,7 +87,7 @@
             <i class="bi bi-exclamation-triangle-fill text-warning"></i>
 
             <span class="badge bg-dark">
-              출고 완료 {{ release_done }}개 / 전달 미완료 교구 {{ undelivered_total_qty }}개)
+              주문 완료 {{ release_done }}개 / 전달 미완료 교구 {{ undelivered_total_qty }}개)
             </span>
           </div>
 
@@ -70,10 +96,15 @@
             {% for m in undelivered_materials %}
               <span class="badge 
                 {% cycle 'bg-primary' 'bg-success' 'bg-warning text-dark' 'bg-danger' 'bg-info text-dark' 'bg-secondary' %}
-                px-3 py-2">
+                px-3 py-2" style="cursor:pointer;"
+                onclick="toggleUndeliveredStudents(this, '{{ m.material__name }}')">
                 {{ m.material__name }} : {{ m.qty }}개
               </span>
             {% endfor %}
+          </div>
+          <!-- 미전달 학생명 표시 영역 -->
+          <div id="undeliveredStudentList" class="mt-2" style="display:none;">
+            <div class="p-2 bg-light border rounded small"></div>
           </div>
 
         </div>
@@ -86,7 +117,7 @@
       <thead class="table-light">
         <tr>
           <th>년월</th><th>교구명</th><th>부</th><th>학년</th><th>반</th><th>번호</th><th>학생명</th>
-          <th>안내</th><th>출고</th><th>전달</th><th>가격</th><th>비고</th><th>관리</th>
+          <th>안내</th><th>주문</th><th>전달</th><th>가격</th><th>비고</th><th>관리</th>
         </tr>
       </thead>
       <tbody>
@@ -94,7 +125,8 @@
         {% for r in records %}
           {# 🔹 월이 바뀔 때만 헤더 출력 #}
           {% ifchanged r.year_month %}
-          <tr class="table-secondary month-header cursor-pointer"
+          {% with stat=monthly_stats|get_item:r.year_month %}
+          <tr class="month-header cursor-pointer {% if stat.all_done %}month-done{% else %}month-active{% endif %}"
               data-month="{{ r.year_month }}"
               onclick="toggleMonth('{{ r.year_month }}')">
             <td colspan="13" class="text-start fw-semibold py-2">
@@ -102,23 +134,15 @@
               <i class="bi bi-calendar-event me-2"></i>
               <span class="me-3">{{ r.year_month }}</span>
 
-              {% if monthly_stats and monthly_stats.r_year_month %}
-              {% endif %}
-
-              {% with stat=monthly_stats.r_year_month %}
-              {% endwith %}
-
-              {% if monthly_stats %}
-                {% for ym, stat in monthly_stats.items %}
-                  {% if ym == r.year_month %}
+              {% if stat %}
                     <!-- 안내 -->
                     <span class="badge bg-success ms-1">
                       안내 {{ stat.guide_done }}/{{ stat.total }}
                     </span>
 
-                    <!-- 출고 -->
+                    <!-- 주문 -->
                     <span class="badge bg-warning text-dark ms-1">
-                      출고 {{ stat.release_done }}/{{ stat.total }}
+                      주문 {{ stat.release_done }}/{{ stat.total }}
                     </span>
 
                     <!-- 전달 -->
@@ -137,13 +161,11 @@
                         {% endfor %}
                       </span>
                     {% endif %}
-
-                  {% endif %}
-                {% endfor %}
               {% endif %}
 
             </td>
           </tr>
+          {% endwith %}
           {% endifchanged %}
 
 
@@ -176,7 +198,7 @@
                 {% if r.release_done %}
                   ✅ <small class="text-muted ms-1">{{ r.release_date|date:"y.m.d" }}</small>
                 {% else %}
-                  출고
+                  주문
                 {% endif %}
               </button>
             </td>
@@ -257,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.textContent = '안내';
           } else if (field === 'release') {
             btn.className = 'btn btn-sm btn-outline-warning toggle-btn';
-            btn.textContent = '출고';
+            btn.textContent = '주문';
           } else if (field === 'delivery') {
             btn.className = 'btn btn-sm btn-outline-primary toggle-btn';
             btn.textContent = '전달';
@@ -350,6 +372,38 @@ function filterMonth(month) {
         el.classList.add('d-none');
       }
     });
+}
+
+// 미전달 교구 클릭 -> 학생명 표시
+function toggleUndeliveredStudents(badge, materialName) {
+  const container = document.getElementById('undeliveredStudentList');
+  const inner = container.querySelector('div');
+  if (container.style.display !== 'none' && container.dataset.current === materialName) {
+    container.style.display = 'none';
+    return;
+  }
+  const students = [];
+  document.querySelectorAll('.month-row').forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 10) return;
+    const matName = cells[1].textContent.trim();
+    const releaseBtn = cells[8].querySelector('.toggle-btn');
+    const deliveryBtn = cells[9].querySelector('.toggle-btn');
+    const isReleased = releaseBtn && releaseBtn.classList.contains('btn-warning');
+    const isDelivered = deliveryBtn && deliveryBtn.classList.contains('btn-primary');
+    if (matName === materialName && isReleased && !isDelivered) {
+      const studentName = cells[6].textContent.trim();
+      const grade = cells[3].textContent.trim();
+      const classNo = cells[4].textContent.trim();
+      students.push(grade + '-' + classNo + ' ' + studentName);
+    }
+  });
+  inner.innerHTML = '<strong class="text-danger">' + materialName + '</strong> 미전달 학생: ' +
+    (students.length > 0
+      ? students.map(s => '<span class="badge bg-secondary me-1">' + s + '</span>').join('')
+      : '<span class="text-muted">없음</span>');
+  container.dataset.current = materialName;
+  container.style.display = 'block';
 }
 </script>
 

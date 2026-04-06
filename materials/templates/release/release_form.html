@@ -3,6 +3,28 @@
 {% load humanize %}
 
 {% block content %}
+<style>
+  /* 자동완성 드롭다운 */
+  .ac-wrap { position: relative; }
+  .ac-list {
+    display: none; position: absolute; left: 0; top: 100%; width: 100%;
+    z-index: 1060; max-height: 220px; overflow-y: auto;
+    background: #fff; border: 1px solid #dee2e6; border-radius: 6px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.12); margin-top: 2px; padding: 0;
+    list-style: none; font-size: .85rem;
+  }
+  .ac-list li { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+  .ac-list li:hover, .ac-list li.active { background: #eef2ff; color: #4f46e5; }
+  .ac-list li.empty { color: #94a3b8; pointer-events: none; }
+  .ac-list.show { display: block; }
+
+  /* 테이블 헤더 한줄 */
+  #releaseTable th { white-space: nowrap; }
+
+  /* 테이블 내부 드롭다운이 잘리지 않도록 */
+  .table-responsive { overflow: visible !important; }
+</style>
+
 <div class="container mt-5">
   <div class="card p-4 shadow-sm">
     <h3 class="text-center mb-4">교구재 출고 등록</h3>
@@ -21,61 +43,53 @@
           <label class="form-label d-flex align-items-center gap-1">
             <i class="bi bi-person-badge"></i> 강사 선택
           </label>
-          <select name="teacher" class="form-select">
-          <option value="">-- 강사 선택 --</option>
-
-          <!-- 일반 강사 그룹 -->
-          <optgroup label="강사">
-            {% for t in teachers %}
-              <option value="{{ t.id }}"
-                {% if selected_teacher_id == t.id|stringformat:"s" %}selected{% endif %}>
-                {{ t.first_name }} ({{ t.username }})
-              </option>
-            {% endfor %}
-          </optgroup>
-
-          <!-- 센터강사 그룹 -->
-          <optgroup label="센터강사">
-            {% for ct in center_teachers %}
-              <option value="{{ ct.id }}"
-                {% if selected_teacher_id == ct.id|stringformat:"s" %}selected{% endif %}>
-                {{ ct.first_name }} ({{ ct.username }})
-              </option>
-            {% endfor %}
-          </optgroup>
-        </select>
+          <div class="ac-wrap">
+            <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색">
+            <ul id="teacherAcList" class="ac-list">
+              {% for t in teachers %}
+                <li data-id="{{ t.id }}" data-type="teacher">{{ t.first_name }} ({{ t.username }})</li>
+              {% endfor %}
+              {% for ct in center_teachers %}
+                <li data-id="{{ ct.id }}" data-type="center">{{ ct.first_name }} ({{ ct.username }})</li>
+              {% endfor %}
+              <li class="empty" style="display:none;">검색 결과 없음</li>
+            </ul>
+            <input type="hidden" name="teacher" id="teacherHidden" value="{{ selected_teacher_id|default_if_none:'' }}">
+          </div>
         </div>
         {% endif %}
 
+        <!-- 출강 장소: 입력형 자동완성 -->
         <div class="col-12 col-md-4">
           <label class="form-label d-flex align-items-center gap-1">
             <i class="bi bi-geo-alt"></i> 출강 장소
           </label>
-          <select name="institution" class="form-select">
-            <option value="">-- 출강 장소 선택 --</option>
-            {% for inst in institutions %}
-            <option value="{{ inst.id }}"
-                    data-teacher="{{ inst.teacher.id }}"
-                    data-program="{{ inst.program }}"
-                    {% if selected_institution_id == inst.id|stringformat:"s" %}selected{% endif %}>
-              {{ inst.name }} - {{ inst.program }}
-            </option>
-            {% endfor %}
-          </select>
+          <div class="ac-wrap">
+            <input type="text" id="institutionInput" class="form-control" autocomplete="off" placeholder="출강 장소 검색">
+            <ul id="institutionAcList" class="ac-list">
+              {% for inst in institutions %}
+                <li data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}" data-program="{{ inst.program }}">
+                  {{ inst.name }} - {{ inst.program }}
+                </li>
+              {% endfor %}
+              <li class="empty" style="display:none;">검색 결과 없음</li>
+            </ul>
+            <input type="hidden" name="institution" id="institutionHidden" value="{{ selected_institution_id|default_if_none:'' }}">
+          </div>
         </div>
 
         <div class="col-12 col-md-3">
           <label class="form-label d-flex align-items-center gap-1">
             <i class="bi bi-calendar-event"></i> 주문 년월
           </label>
-          <div class="d-flex gap-2 flex-wrap">
-            <div class="input-group" style="max-width: 120px;">
+          <div class="d-flex gap-2 flex-nowrap">
+            <div class="input-group" style="flex:1;">
               <input type="number" name="order_year" id="order_year"
                     class="form-control" min="2020" max="2100"
                     value="{{ form_data.order_year|default:'' }}" required>
               <span class="input-group-text">년</span>
             </div>
-            <div class="input-group" style="max-width: 120px;">
+            <div class="input-group" style="flex:0 0 110px;">
               <input type="number" name="order_month" id="order_month"
                     class="form-control" min="1" max="12"
                     value="{{ form_data.order_month|default:''|stringformat:"02d" }}" required>
@@ -111,7 +125,7 @@
 
       <!-- ✅ 품목 입력 테이블 -->
       <div class="table-responsive">
-        <table class="table table-bordered align-middle table-stack" id="releaseTable">
+        <table class="table table-bordered align-middle" id="releaseTable">
           <thead class="table-light text-center">
             <tr>
               <th>#</th>
@@ -131,39 +145,39 @@
             <tr>
               <td class="text-center row-number" data-label="#">{{ row.index }}</td>
 
-              <!-- 거래처 -->
+              <!-- 거래처: 입력형 자동완성 -->
               <td data-label="거래처">
-                <select name="vendor_{{ row.index }}" class="form-select vendor-select" data-row="{{ row.index }}">
-                  <option value="">-- 거래처 선택 --</option>
-                  {% for vendor in vendors %}
-                  <option value="{{ vendor.id }}"
-                          data-kind="{{ vendor.vendor_type.name|default:'' }}"
-                          {% if row.vendor == vendor.id|stringformat:"s" %}selected{% endif %}>
-                    {{ vendor.name }}
-                  </option>
-                  {% endfor %}
-                </select>
+                <div class="ac-wrap">
+                  <input type="text" class="form-control vendor-ac-input" data-row="{{ row.index }}" autocomplete="off" placeholder="거래처 검색">
+                  <ul class="ac-list vendor-ac-list" data-row="{{ row.index }}">
+                    {% for vendor in vendors %}
+                      <li data-id="{{ vendor.id }}" data-kind="{{ vendor.vendor_type.name|default:'' }}">{{ vendor.name }}</li>
+                    {% endfor %}
+                    <li class="empty" style="display:none;">검색 결과 없음</li>
+                  </ul>
+                  <input type="hidden" name="vendor_{{ row.index }}" class="vendor-hidden" data-row="{{ row.index }}" value="{{ row.vendor }}">
+                </div>
               </td>
 
-              <!-- 교구재 -->
+              <!-- 교구재: 입력형 자동완성 -->
               <td data-label="교구재">
-                <select name="material_{{ row.index }}" class="form-select material-select" data-row="{{ row.index }}">
-                  <option value="">-- 교구재 선택 --</option>
-                  {% for material in materials %}
-                  <option value="{{ material.id }}"
+                <div class="ac-wrap">
+                  <input type="text" class="form-control material-ac-input" data-row="{{ row.index }}" autocomplete="off" placeholder="교구재 검색">
+                  <ul class="ac-list material-ac-list" data-row="{{ row.index }}">
+                    {% for material in materials %}
+                      <li data-id="{{ material.id }}"
                           data-vendor="{{ material.vendor.id }}"
+                          data-vendor-name="{{ material.vendor.name }}"
                           data-kind="{{ material.vendor.vendor_type.name|default:'' }}"
                           data-price="{{ material.school_price|default:0 }}"
-                          data-stock="{{ material.stock }}"
-                          {% if row.material == material.id|stringformat:"s" %}selected{% endif %}>
-                    {{ material.name }}
-                  </option>
-                  {% endfor %}
-                </select>
+                          data-stock="{{ material.stock }}">{{ material.name }}</li>
+                    {% endfor %}
+                    <li class="empty" style="display:none;">검색 결과 없음</li>
+                  </ul>
+                  <input type="hidden" name="material_{{ row.index }}" class="material-hidden" data-row="{{ row.index }}" value="{{ row.material }}">
+                </div>
               </td>
 
-
-              <!-- 납품가 (천단위 표시, 숫자 input 그대로 두되 화면에서는 천단위로) -->
               <!-- 납품가 -->
               <td data-label="납품가">
                 <input type="text"
@@ -181,7 +195,7 @@
                       value="{{ row.quantity|default:'0' }}">
               </td>
 
-              <!-- ⭐ 센터재고 칸 추가 -->
+              <!-- ⭐ 센터재고 칸 -->
               <td data-label="센터재고" class="text-center">
                 <span class="stock-display-{{ row.index }} text-primary fw-bold">-</span>
               </td>

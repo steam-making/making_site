@@ -1,14 +1,13 @@
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("✅ release_form.js loaded");
+  console.log("✅ release_form.js loaded (autocomplete ver)");
 
   const vendorTypeSelect = document.getElementById("vendor_type");
   const expectedDateInput = document.getElementById("expected_date");
   const orderYearInput = document.getElementById("order_year");
   const orderMonthInput = document.getElementById("order_month");
-  const teacherSelect = document.querySelector('select[name="teacher"]');
-  const institutionSelect = document.querySelector(
-    'select[name="institution"]'
-  );
+  const teacherInput = document.getElementById("teacherInput");
+  const teacherList = document.getElementById("teacherAcList");
+  const teacherHidden = document.getElementById("teacherHidden");
   const addRowBtn = document.getElementById("addRowBtn");
   const tableBody = document.querySelector("#releaseTable tbody");
   const rowCountInput = document.getElementById("row_count");
@@ -27,184 +26,77 @@ document.addEventListener("DOMContentLoaded", function () {
     orderMonthInput.value = String(new Date().getMonth() + 1).padStart(2, "0");
 
   // ==============================
-  // 거래처 종류 필터 함수
+  // 🔧 범용 자동완성 셋업
   // ==============================
-  function applyVendorTypeFilter() {
-    const selectedType = vendorTypeSelect ? vendorTypeSelect.value : "";
+  function setupAutocomplete(input, list, hidden, onSelect) {
+    if (!input || !list || !hidden) return;
+    const items = list.querySelectorAll("li:not(.empty)");
+    const emptyMsg = list.querySelector(".empty");
 
-    // 거래처 필터링
-    document.querySelectorAll(".vendor-select").forEach((vendorSelect) => {
-      Array.from(vendorSelect.options).forEach((option) => {
-        const type = (option.getAttribute("data-kind") || "").trim();
-        const isPlaceholder = option.value === "";
-        const visible = !selectedType || type === selectedType || isPlaceholder;
-        option.style.display = visible ? "" : "none";
+    // 초기값 표시
+    if (hidden.value) {
+      const match = list.querySelector(`li[data-id="${hidden.value}"]`);
+      if (match) input.value = match.textContent.trim();
+    }
 
-        // 선택된 값이 필터 결과에 없으면 초기화
-        if (!visible && option.selected) {
-          vendorSelect.value = "";
-        }
+    function filterAndShow() {
+      const val = input.value.toLowerCase().trim();
+      let hasMatch = false;
+      items.forEach(li => {
+        const visible = li.textContent.toLowerCase().includes(val);
+        li.style.display = visible ? "" : "none";
+        if (visible) hasMatch = true;
+      });
+      if (emptyMsg) emptyMsg.style.display = hasMatch ? "none" : "block";
+      list.classList.add("show");
+    }
+
+    input.addEventListener("input", function () {
+      hidden.value = "";
+      filterAndShow();
+    });
+    input.addEventListener("focus", filterAndShow);
+
+    items.forEach(li => {
+      li.addEventListener("click", function (e) {
+        e.preventDefault();
+        input.value = this.textContent.trim();
+        hidden.value = this.getAttribute("data-id");
+        list.classList.remove("show");
+        if (onSelect) onSelect(this);
       });
     });
 
-    // 교구재 필터링
-    document.querySelectorAll(".material-select").forEach((materialSelect) => {
-      Array.from(materialSelect.options).forEach((opt) => {
-        const kind = (opt.getAttribute("data-kind") || "").trim();
-        const isPlaceholder = opt.value === "";
-        const visible = !selectedType || kind === selectedType || isPlaceholder;
-        opt.style.display = visible ? "" : "none";
-
-        if (!visible && opt.selected) {
-          materialSelect.value = "";
-          const row = materialSelect.dataset.row;
-          const priceInput = document.querySelector(
-            `input[name="unit_price_${row}"]`
-          );
-          if (priceInput) priceInput.value = "";
-        }
-      });
-    });
-  }
-
-  // ==============================
-  // 행 이벤트 바인딩 함수
-  // ==============================
-  function bindRowEvents(rowIndex) {
-    const vendorSelect = document.querySelector(
-      `select[name="vendor_${rowIndex}"]`
-    );
-    const materialSelect = document.querySelector(
-      `select[name="material_${rowIndex}"]`
-    );
-    const priceInput = document.querySelector(
-      `input[name="unit_price_${rowIndex}"]`
-    );
-
-    if (!vendorSelect || !materialSelect) return;
-
-    // 거래처 선택 → 교구재 필터링
-    vendorSelect.addEventListener("change", function () {
-      const selectedVendorId = String(this.value);
-      let keepSelected = false;
-
-      Array.from(materialSelect.options).forEach((option) => {
-        const vendorId = option.getAttribute("data-vendor");
-        const isPlaceholder = option.value === "";
-        const visible =
-          !vendorId || vendorId === selectedVendorId || isPlaceholder;
-        option.style.display = visible ? "" : "none";
-
-        if (visible && option.value === materialSelect.value) {
-          keepSelected = true;
-        }
-      });
-
-      if (!keepSelected) {
-        materialSelect.value = "";
-        if (priceInput) priceInput.value = "";
+    document.addEventListener("click", function (e) {
+      if (!input.contains(e.target) && !list.contains(e.target)) {
+        list.classList.remove("show");
       }
     });
-
-    // 교구재 선택 → 거래처 자동선택 + 납품가 입력 + 재고 표시
-    materialSelect.addEventListener("change", function () {
-        const selectedOption = this.options[this.selectedIndex];
-        if (!selectedOption) return;
-
-        const vendorId = selectedOption.getAttribute("data-vendor");
-        const price = selectedOption.getAttribute("data-price") || 0;
-        const stock = selectedOption.getAttribute("data-stock") || "-";   // ⭐ 재고
-
-        // 거래처 자동 선택
-        if (vendorSelect && vendorId) {
-          vendorSelect.value = vendorId;
-        }
-
-        // 납품가 입력
-        if (priceInput) priceInput.value = Number(price).toLocaleString();
-
-        // ⭐ 재고 표시
-        const stockSpan = document.querySelector(`.stock-display-${rowIndex}`);
-        if (stockSpan) stockSpan.textContent = stock;
-    });
-
-
-    // ✅ 초기 선택값 반영
-    if (materialSelect.value) materialSelect.dispatchEvent(new Event("change"));
-
-    // ⭐ 초기 로딩 시 재고 표시
-    const initOption = materialSelect.options[materialSelect.selectedIndex];
-    if (initOption) {
-        const initStock = initOption.getAttribute("data-stock") || "-";
-        const stockSpan = document.querySelector(`.stock-display-${rowIndex}`);
-        if (stockSpan) stockSpan.textContent = initStock;
-}
   }
 
   // ==============================
-  // 초기 1행 바인딩
+  // 출강장소 자동완성
   // ==============================
-  bindRowEvents(1);
+  const instInput = document.getElementById("institutionInput");
+  const instList = document.getElementById("institutionAcList");
+  const instHidden = document.getElementById("institutionHidden");
 
-  // ==============================
-  // 거래처 종류 이벤트 연결
-  // ==============================
-  if (vendorTypeSelect) {
-    vendorTypeSelect.addEventListener("change", applyVendorTypeFilter);
+  setupAutocomplete(instInput, instList, instHidden, function (selectedLi) {
+    const program = (selectedLi.getAttribute("data-program") || "").toLowerCase();
+    const teacherId = selectedLi.getAttribute("data-teacher");
 
-    // ✅ 초기 로드시 실행
-    applyVendorTypeFilter();
-  }
+    // 강사 자동선택
+    if (teacherHidden && teacherId) {
+      teacherHidden.value = teacherId;
+      // 강사 이름도 입력창에 표시
+      if (teacherList) {
+        const tLi = teacherList.querySelector(`li[data-id="${teacherId}"]`);
+        if (tLi && teacherInput) teacherInput.value = tLi.textContent.trim();
+      }
+    }
 
-  // ==============================
-  // 행 추가 버튼
-  // ==============================
-  if (addRowBtn && tableBody && rowCountInput) {
-    addRowBtn.addEventListener("click", function () {
-      const rowCount = tableBody.querySelectorAll("tr").length;
-      const newIndex = rowCount + 1;
-      const firstRow = tableBody.querySelector("tr");
-      const newRow = firstRow.cloneNode(true);
-
-      newRow.querySelector(".row-number").textContent = newIndex;
-
-      newRow.querySelectorAll("select, input").forEach((el) => {
-        if (el.name) el.name = el.name.replace(/\d+$/, newIndex);
-        if (el.dataset.row) el.dataset.row = newIndex;
-
-        if (el.tagName === "INPUT") {
-          if (el.classList.contains("price-input")) {
-            el.value = "";
-            el.placeholder = "가격";
-          } else if (el.name.startsWith("quantity_")) {
-            el.value = "0";
-          } else {
-            el.value = "";
-          }
-        } else if (el.tagName === "SELECT") {
-          el.selectedIndex = 0;
-        }
-      });
-
-      tableBody.appendChild(newRow);
-      rowCountInput.value = newIndex;
-
-      // ✅ 새 행에도 이벤트 바인딩 + 필터 적용
-      bindRowEvents(newIndex);
-      applyVendorTypeFilter();
-    });
-  }
-
-  // ==============================
-  // 출강장소 선택 → 프로그램명에 따라 거래처 종류 자동 선택
-  // ==============================
-  if (institutionSelect && vendorTypeSelect) {
-    institutionSelect.addEventListener("change", function () {
-      const selectedOption = this.options[this.selectedIndex];
-      if (!selectedOption) return;
-
-      const program = (selectedOption.dataset.program || "").toLowerCase();
-
+    // 거래처 종류 자동선택
+    if (vendorTypeSelect) {
       if (program.includes("로봇")) vendorTypeSelect.value = "로봇";
       else if (program.includes("과학")) vendorTypeSelect.value = "과학";
       else if (program.includes("3d펜")) vendorTypeSelect.value = "3D펜";
@@ -215,89 +107,188 @@ document.addEventListener("DOMContentLoaded", function () {
         vendorTypeSelect.value = "IT교재";
       else vendorTypeSelect.value = "";
 
-      // ✅ 자동 선택 후 필터 적용
       vendorTypeSelect.dispatchEvent(new Event("change"));
-    });
+    }
+  });
+
+  // 초기 로드시 출강장소가 이미 선택되어 있으면 자동 처리
+  if (instHidden && instHidden.value && instList) {
+    const matchLi = instList.querySelector(`li[data-id="${instHidden.value}"]`);
+    if (matchLi) {
+      if (instInput) instInput.value = matchLi.textContent.trim();
+      // 거래처종류 자동 매칭
+      setTimeout(() => {
+        const program = (matchLi.getAttribute("data-program") || "").toLowerCase();
+        if (vendorTypeSelect) {
+          if (program.includes("로봇")) vendorTypeSelect.value = "로봇";
+          else if (program.includes("과학")) vendorTypeSelect.value = "과학";
+          else if (program.includes("3d펜")) vendorTypeSelect.value = "3D펜";
+          else if (program.includes("드론")) vendorTypeSelect.value = "항공드론";
+          else if (program.includes("코딩")) vendorTypeSelect.value = "코딩";
+          else if (program.includes("수학")) vendorTypeSelect.value = "창의수학";
+          else if (program.includes("it") || program.includes("교재"))
+            vendorTypeSelect.value = "IT교재";
+          else vendorTypeSelect.value = "";
+          vendorTypeSelect.dispatchEvent(new Event("change"));
+        }
+      }, 100);
+    }
   }
 
-   // ==============================
-  // 출강장소 선택 → 해당 강사 자동 선택
   // ==============================
-  if (institutionSelect && teacherSelect) {
-    institutionSelect.addEventListener("change", function () {
-      const selectedOption = this.options[this.selectedIndex];
-      if (!selectedOption) return;
-
-      const teacherId = selectedOption.getAttribute("data-teacher");
-      if (teacherId) {
-        // 강사 select 값만 변경
-        teacherSelect.value = teacherId;
-
-        // ⚠️ 여기서는 굳이 teacherSelect.change()를 실행하지 말고,
-        // institutionSelect의 선택은 그대로 두게 둡니다.
-        // teacherSelect.dispatchEvent(new Event("change")); ← 이거 제거!
-      }
-    });
-  }
-
+  // 거래처 종류 필터
   // ==============================
-  // 강사 선택 → 출강장소 필터링
-  // ==============================
-  if (teacherSelect && institutionSelect) {
-    teacherSelect.addEventListener("change", function () {
-      const selectedTeacherId = this.value;
-      Array.from(institutionSelect.options).forEach((option) => {
-        const optionTeacherId = option.getAttribute("data-teacher");
-        const isPlaceholder = option.value === "";
-        option.style.display =
-          !selectedTeacherId ||
-          optionTeacherId === selectedTeacherId ||
-          isPlaceholder
-            ? ""
-            : "none";
+  function applyVendorTypeFilter() {
+    const selectedType = vendorTypeSelect ? vendorTypeSelect.value : "";
+
+    // 거래처 리스트 필터링
+    document.querySelectorAll(".vendor-ac-list").forEach(list => {
+      list.querySelectorAll("li:not(.empty)").forEach(li => {
+        const kind = (li.getAttribute("data-kind") || "").trim();
+        li.style.display = (!selectedType || kind === selectedType) ? "" : "none";
       });
-      institutionSelect.value = "";
+    });
+
+    // 교구재 리스트 필터링
+    document.querySelectorAll(".material-ac-list").forEach(list => {
+      list.querySelectorAll("li:not(.empty)").forEach(li => {
+        const kind = (li.getAttribute("data-kind") || "").trim();
+        li.style.display = (!selectedType || kind === selectedType) ? "" : "none";
+      });
     });
   }
 
-    // ==============================
-  // ✅ 페이지 로드시 출강장소가 이미 선택되어 있으면
-  // 프로그램명 기준으로 거래처 종류 자동 선택 실행 (지연 실행)
-  // ==============================
-  if (institutionSelect && vendorTypeSelect) {
-    console.log("실행 ✅ release_form auto detect start");
-    setTimeout(() => {
-      const selectedOption = institutionSelect.options[institutionSelect.selectedIndex];
-      if (selectedOption && institutionSelect.value) {
-        const program = (selectedOption.dataset.program || "")
-          .toLowerCase()
-          .replace(/\s+/g, ""); // 공백 제거
-        
-        console.log("📚 program:", program);
-
-
-        if (program.includes("로봇")) vendorTypeSelect.value = "로봇";
-        else if (program.includes("과학")) vendorTypeSelect.value = "과학";
-        else if (program.includes("3d펜")) vendorTypeSelect.value = "3D펜";
-        else if (program.includes("드론")) vendorTypeSelect.value = "항공드론";
-        else if (program.includes("코딩")) vendorTypeSelect.value = "코딩";
-        else if (program.includes("수학")) vendorTypeSelect.value = "창의수학";
-        else if (program.includes("it") || program.includes("교재"))
-          vendorTypeSelect.value = "IT교재";
-        else vendorTypeSelect.value = "";
-
-        console.log("📦 자동 거래처 종류 설정:", vendorTypeSelect.value);
-
-        // ✅ 거래처 종류 자동 반영 후 필터 적용
-        vendorTypeSelect.dispatchEvent(new Event("change"));
-      }
-    }, 100); // DOM 렌더 후 약간의 지연으로 실행
+  if (vendorTypeSelect) {
+    vendorTypeSelect.addEventListener("change", applyVendorTypeFilter);
+    applyVendorTypeFilter();
   }
 
+  // ==============================
+  // 행별 자동완성 바인딩
+  // ==============================
+  function bindRowAutocomplete(rowIndex) {
+    const vendorInput = document.querySelector(`.vendor-ac-input[data-row="${rowIndex}"]`);
+    const vendorList = document.querySelector(`.vendor-ac-list[data-row="${rowIndex}"]`);
+    const vendorHidden = document.querySelector(`.vendor-hidden[data-row="${rowIndex}"]`);
+
+    const matInput = document.querySelector(`.material-ac-input[data-row="${rowIndex}"]`);
+    const matList = document.querySelector(`.material-ac-list[data-row="${rowIndex}"]`);
+    const matHidden = document.querySelector(`.material-hidden[data-row="${rowIndex}"]`);
+
+    const priceInput = document.querySelector(`input[name="unit_price_${rowIndex}"]`);
+    const stockSpan = document.querySelector(`.stock-display-${rowIndex}`);
+
+    // 거래처 자동완성
+    setupAutocomplete(vendorInput, vendorList, vendorHidden, function (li) {
+      // 거래처 선택 시 교구재 리스트를 해당 거래처로 필터
+      if (matList) {
+        const vendorId = li.getAttribute("data-id");
+        matList.querySelectorAll("li:not(.empty)").forEach(mli => {
+          const mVendor = mli.getAttribute("data-vendor");
+          mli.style.display = (!vendorId || mVendor === vendorId) ? "" : "none";
+        });
+      }
+    });
+
+    // 교구재 자동완성
+    setupAutocomplete(matInput, matList, matHidden, function (li) {
+      const vendorId = li.getAttribute("data-vendor");
+      const vendorName = li.getAttribute("data-vendor-name");
+      const kind = li.getAttribute("data-kind");
+      const price = li.getAttribute("data-price") || 0;
+      const stock = li.getAttribute("data-stock") || "-";
+
+      // 거래처 자동선택
+      if (vendorHidden && vendorId) {
+        vendorHidden.value = vendorId;
+        if (vendorInput && vendorName) vendorInput.value = vendorName;
+      }
+
+      // 거래처 종류 자동선택
+      if (vendorTypeSelect && kind) {
+        vendorTypeSelect.value = kind;
+        applyVendorTypeFilter();
+      }
+
+      // 납품가 자동입력
+      if (priceInput) priceInput.value = Number(price).toLocaleString();
+
+      // 재고 표시
+      if (stockSpan) stockSpan.textContent = stock;
+    });
+  }
+
+  // 초기 행 바인딩
+  const initialRows = tableBody ? tableBody.querySelectorAll("tr").length : 0;
+  for (let i = 1; i <= initialRows; i++) {
+    bindRowAutocomplete(i);
+  }
+
+  // ==============================
+  // 행 추가
+  // ==============================
+  if (addRowBtn && tableBody && rowCountInput) {
+    addRowBtn.addEventListener("click", function () {
+      const rowCount = tableBody.querySelectorAll("tr").length;
+      const newIndex = rowCount + 1;
+      const firstRow = tableBody.querySelector("tr");
+      const newRow = firstRow.cloneNode(true);
+
+      newRow.querySelector(".row-number").textContent = newIndex;
+
+      // data-row 업데이트
+      newRow.querySelectorAll("[data-row]").forEach(el => {
+        el.setAttribute("data-row", newIndex);
+      });
+
+      // name 업데이트
+      newRow.querySelectorAll("[name]").forEach(el => {
+        el.name = el.name.replace(/\d+$/, newIndex);
+      });
+
+      // class 업데이트 (stock-display)
+      const stockSpan = newRow.querySelector("[class*='stock-display-']");
+      if (stockSpan) {
+        stockSpan.className = stockSpan.className.replace(/stock-display-\d+/, `stock-display-${newIndex}`);
+        stockSpan.textContent = "-";
+      }
+
+      // 값 초기화
+      newRow.querySelectorAll("input").forEach(el => {
+        if (el.type === "hidden") el.value = "";
+        else if (el.classList.contains("price-input")) { el.value = ""; el.placeholder = "가격"; }
+        else if (el.name && el.name.startsWith("quantity_")) el.value = "0";
+        else el.value = "";
+      });
+      newRow.querySelectorAll("select").forEach(el => el.selectedIndex = 0);
+
+      tableBody.appendChild(newRow);
+      rowCountInput.value = newIndex;
+
+      bindRowAutocomplete(newIndex);
+      applyVendorTypeFilter();
+    });
+  }
+
+  // ==============================
+  // 강사 자동완성
+  // ==============================
+  setupAutocomplete(teacherInput, teacherList, teacherHidden, function (selectedLi) {
+    const teacherId = selectedLi.getAttribute("data-id");
+    // 강사 선택 시 출강장소 필터링
+    if (instList) {
+      instList.querySelectorAll("li:not(.empty)").forEach(li => {
+        const tid = li.getAttribute("data-teacher");
+        li.style.display = (!teacherId || tid === teacherId) ? "" : "none";
+      });
+      if (instInput) instInput.value = "";
+      if (instHidden) instHidden.value = "";
+    }
+  });
 });
 
 // ==============================
-// 납품가 입력시 천단위 콤마 적용
+// 납품가 천단위 콤마
 // ==============================
 document.addEventListener("input", function (e) {
   if (e.target.classList.contains("price-input")) {
@@ -308,9 +299,7 @@ document.addEventListener("input", function (e) {
   }
 });
 
-// ==============================
-// 폼 전송 전에 콤마 제거
-// ==============================
+// 폼 전송 전 콤마 제거
 document.addEventListener("submit", function (e) {
   if (e.target.tagName.toLowerCase() === "form") {
     e.target.querySelectorAll(".price-input").forEach((input) => {
@@ -319,9 +308,7 @@ document.addEventListener("submit", function (e) {
   }
 });
 
-// ==============================
 // 초기 로드시 납품가 값 천단위 변환
-// ==============================
 document.querySelectorAll(".price-input").forEach((input) => {
   if (input.value) {
     let value = input.value.replace(/,/g, "");
