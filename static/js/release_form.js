@@ -43,7 +43,11 @@ document.addEventListener("DOMContentLoaded", function () {
       const val = input.value.toLowerCase().trim();
       let hasMatch = false;
       items.forEach(li => {
-        const visible = li.textContent.toLowerCase().includes(val);
+        const matchesText = li.textContent.toLowerCase().includes(val);
+        // f-out- 으로 시작하는 클래스가 하나라도 있으면 외부 필터에 의해 가려진 것
+        const isExternallyFiltered = Array.from(li.classList).some(cls => cls.startsWith("f-out-"));
+        
+        const visible = matchesText && !isExternallyFiltered;
         li.style.display = visible ? "" : "none";
         if (visible) hasMatch = true;
       });
@@ -145,7 +149,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".vendor-ac-list").forEach(list => {
       list.querySelectorAll("li:not(.empty)").forEach(li => {
         const kind = (li.getAttribute("data-kind") || "").trim();
-        li.style.display = (!selectedType || kind === selectedType) ? "" : "none";
+        if (!selectedType || kind === selectedType) {
+          li.classList.remove("f-out-type");
+        } else {
+          li.classList.add("f-out-type");
+        }
       });
     });
 
@@ -153,7 +161,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".material-ac-list").forEach(list => {
       list.querySelectorAll("li:not(.empty)").forEach(li => {
         const kind = (li.getAttribute("data-kind") || "").trim();
-        li.style.display = (!selectedType || kind === selectedType) ? "" : "none";
+        if (!selectedType || kind === selectedType) {
+          li.classList.remove("f-out-type");
+        } else {
+          li.classList.add("f-out-type");
+        }
       });
     });
   }
@@ -185,7 +197,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const vendorId = li.getAttribute("data-id");
         matList.querySelectorAll("li:not(.empty)").forEach(mli => {
           const mVendor = mli.getAttribute("data-vendor");
-          mli.style.display = (!vendorId || mVendor === vendorId) ? "" : "none";
+          if (!vendorId || mVendor === vendorId) {
+            mli.classList.remove("f-out-vendor");
+          } else {
+            mli.classList.add("f-out-vendor");
+          }
         });
       }
     });
@@ -273,18 +289,32 @@ document.addEventListener("DOMContentLoaded", function () {
   // ==============================
   // 강사 자동완성
   // ==============================
-  setupAutocomplete(teacherInput, teacherList, teacherHidden, function (selectedLi) {
-    const teacherId = selectedLi.getAttribute("data-id");
-    // 강사 선택 시 출강장소 필터링
+  // 강사 선택 시 출강장소 필터링 함수
+  function filterInstitutionsByTeacher() {
+    const teacherId = teacherHidden ? teacherHidden.value : "";
     if (instList) {
       instList.querySelectorAll("li:not(.empty)").forEach(li => {
         const tid = li.getAttribute("data-teacher");
-        li.style.display = (!teacherId || tid === teacherId) ? "" : "none";
+        if (!teacherId || tid === teacherId) {
+          li.classList.remove("f-out-teacher");
+        } else {
+          li.classList.add("f-out-teacher");
+        }
       });
-      if (instInput) instInput.value = "";
-      if (instHidden) instHidden.value = "";
     }
+  }
+
+  setupAutocomplete(teacherInput, teacherList, teacherHidden, function (selectedLi) {
+    filterInstitutionsByTeacher();
+    // 강사 변경 시 출강장소 선택 초기화
+    if (instInput) instInput.value = "";
+    if (instHidden) instHidden.value = "";
   });
+
+  // 초기 로드시 강사가 있으면 필터 적용
+  if (teacherHidden && teacherHidden.value) {
+    filterInstitutionsByTeacher();
+  }
 });
 
 // ==============================
