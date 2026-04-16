@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /accounts/
+
+Sitemap: https://steam-making.com/sitemap.xml
