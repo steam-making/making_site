@@ -71,32 +71,14 @@
                     data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-gear me-1"></i>사이트관리
                   </a>
-
                   <ul class="dropdown-menu" aria-labelledby="siteManageDropdown">
-
-                    <!-- 🔹 메이킹 -->
-                    <li>
-                      <a class="dropdown-item" href="{% url 'making_page' %}">
-                        <i class="bi bi-lightbulb me-1"></i>메이킹?
-                      </a>
-                    </li>
-
-                    <!-- 🔹 커리큘럼 -->
-                    <li>
-                      <a class="dropdown-item" href="{% url 'curriculum_program_list' %}">
-                        <i class="bi bi-journal-text me-1"></i>커리큘럼
-                      </a>
-                    </li>
-
                     <!-- 🔹 공지사항 -->
                     <li>
                       <a class="dropdown-item" href="{% url 'notice_list' %}">
                         <i class="bi bi-megaphone me-1"></i>공지사항
                       </a>
                     </li>
-
                     <li><hr class="dropdown-divider"></li>
-
                     <!-- ✅ 회원관리 -->
                     <li>
                       <a class="dropdown-item" href="{% url 'approve_users' %}">
@@ -108,14 +90,12 @@
                         <i class="bi bi-people me-1"></i>회원목록
                       </a>
                     </li>
-
                     <!-- ✅ 미디어 -->
                     <li>
                       <a class="dropdown-item" href="/admin/filebrowser/browse/">
                         <i class="bi bi-folder2-open me-1"></i>미디어관리
                       </a>
                     </li>
-
                   </ul>
                 </li>
 
@@ -132,48 +112,41 @@
                   </ul>
                 </li>
                 
-                <!-- 🔽 학생 (신규 추가) -->
+                <!-- 🔽 모집 (신설) -->
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                    <i class="bi bi-book me-1"></i>학생
+                  <a class="nav-link dropdown-toggle" href="#" id="recruitDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-megaphone-fill me-1"></i>모집
                   </a>
-                  <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="{% url 'learning_program_list' %}">
-                      <i class="bi bi-list-ul me-1"></i>학습 프로그램 관리
-                    </a></li>
+                  <ul class="dropdown-menu" aria-labelledby="recruitDropdown">
+                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=gwangju"><i class="bi bi-box-arrow-up-right me-1"></i>모집공고(광주·늘봄)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=jeonnam"><i class="bi bi-geo me-1"></i>모집공고(전남)</a></li>
+                  </ul>
+                </li>
 
-                    <li><a class="dropdown-item" href="{% url 'student_course_list' %}">
-                      <i class="bi bi-book-half me-1"></i>학생 수강 프로그램
-                    </a></li>
+                <!-- 🔽 학생 -->
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle" href="#" id="studentDropdown" data-bs-toggle="dropdown">
+                    <i class="bi bi-people me-1"></i>학생
+                  </a>
+                  <ul class="dropdown-menu" aria-labelledby="studentDropdown">
+                    <li><a class="dropdown-item" href="{% url 'students:student_list' %}">
+                      <i class="bi bi-person-lines-fill me-1"></i>학생관리</a></li>
                   </ul>
                 </li>
 
 
-                <!-- 🔽 강사 -->
+                <!-- 🔽 수업 (강사에서 변경) -->
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-workspace me-1"></i>강사
+                  <a class="nav-link dropdown-toggle" href="#" id="classDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-journal-check me-1"></i>수업
                   </a>
-                  <ul class="dropdown-menu" aria-labelledby="teacherDropdown">
-
-                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=gwangju"><i class="bi bi-box-arrow-up-right"></i>모집공고(광주·늘봄)</a></li>
-                    <li><a class="dropdown-item" href="{% url 'linkhub:post_hub' %}?area=jeonnam"><i class="bi bi-geo"></i>모집공고(전남)</a></li>
-                    <!-- 기존 항목 -->
-                    <li><a class="dropdown-item" href="{% url 'release_list' %}">
-                      <i class="bi bi-upload me-1"></i>교구출고</a></li>
-
+                  <ul class="dropdown-menu" aria-labelledby="classDropdown">
                     <li><a class="dropdown-item" href="{% url 'institution_list' %}">
                       <i class="bi bi-geo-alt me-1"></i>출강장소</a></li>
-
-                    <!-- ✅ 새로 추가된 항목 -->
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'students:student_list' %}">
-                      <i class="bi bi-people me-1"></i>학생관리</a></li>
-
-                    <!-- 기존 수업자료 -->
                     <li><a class="dropdown-item" href="{% url 'resource_list' %}">
                       <i class="bi bi-folder2-open me-1"></i>수업자료</a></li>
-
+                    <li><a class="dropdown-item" href="{% url 'release_list' %}">
+                      <i class="bi bi-upload me-1"></i>교구출고</a></li>
                   </ul>
                 </li>
 
@@ -403,17 +376,7 @@
               {% endif %}
 
             {% else %}
-              <!-- 비로그인 사용자 메뉴 -->
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'making_page' %}">
-                  <i class="bi bi-lightbulb me-1"></i>메이킹?
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'curriculum_program_list' %}">
-                  <i class="bi bi-journal-text me-1"></i>커리큘럼
-                </a>
-              </li>
+              <!-- 비로그인 사용자 메뉴 (숨김 처리됨) -->
             {% endif %}
 
 
