@@ -7,7 +7,7 @@ class StaticViewSitemap(sitemaps.Sitemap):
     changefreq = 'weekly'
 
     def items(self):
-        return ['main:index', 'notices:list']
+        return ['home', 'notice_list']
 
     def location(self, item):
         return reverse(item)
@@ -24,7 +24,7 @@ class NoticeSitemap(sitemaps.Sitemap):
         return obj.published_at
 
     def location(self, obj):
-        return reverse('notices:detail', args=[obj.pk])
+        return reverse('notice_detail', args=[obj.pk])
 
 sitemaps_dict = {
     'static': StaticViewSitemap,
