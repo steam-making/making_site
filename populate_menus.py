@@ -8,10 +8,10 @@ django.setup()
 from main.models import MenuItem
 
 def populate_menus():
-    # 전체 삭제 후 재생성 (주소 정밀 교정 버전)
+    # 전체 삭제 후 재생성 (교구재 메뉴 추가 버전)
     MenuItem.objects.all().delete()
 
-    print("메뉴 링크 최종 정밀 교정 중...")
+    print("교구재를 포함한 모든 메뉴를 최종 복구 중...")
 
     # --- [누구나] ---
     MenuItem.objects.get_or_create(title="소개", url="/#about", icon_class="bi-info-circle", order=1, access_level="all")
@@ -26,6 +26,13 @@ def populate_menus():
     MenuItem.objects.get_or_create(title="회원목록", url="/accounts/members/", order=3, parent=m_admin, access_level="staff")
     MenuItem.objects.get_or_create(title="미디어관리", url="/admin/filebrowser/browse/", order=4, parent=m_admin, access_level="staff")
     MenuItem.objects.get_or_create(title="메뉴관리", url="/menu-management/", order=99, parent=m_admin, access_level="staff")
+
+    # --- [교구재] (관리자+강사 공용) ---
+    m_mat = MenuItem.objects.get_or_create(title="교구재", url="#", icon_class="bi-box-seam", order=105, access_level="teacher")[0]
+    MenuItem.objects.get_or_create(title="교구목록", url="/materials/", order=1, parent=m_mat, access_level="staff") # 관리자만
+    MenuItem.objects.get_or_create(title="교구입고", url="/materials/orders/", order=2, parent=m_mat, access_level="staff") # 관리자만
+    MenuItem.objects.get_or_create(title="교구출고", url="/materials/releases/", order=3, parent=m_mat, access_level="teacher") # 공용
+    MenuItem.objects.get_or_create(title="교구반납", url="/materials/returns/", order=4, parent=m_mat, access_level="teacher") # 공용
 
     # --- [강사용] ---
     m_recruit = MenuItem.objects.get_or_create(title="모집", url="#", icon_class="bi-megaphone-fill", order=110, access_level="teacher")[0]
@@ -51,7 +58,7 @@ def populate_menus():
     MenuItem.objects.get_or_create(title="로또추천", url="/lotto/", order=1, parent=m_util, access_level="staff")
     MenuItem.objects.get_or_create(title="QR링크", url="/q/", order=2, parent=m_util, access_level="staff")
 
-    print("학생관리 링크(/students/list/) 수정 완료. 모든 메뉴가 정상 작동합니다.")
+    print("교구재 메뉴 복구가 완료되었습니다. 로컬 적용 후 깃허브에 올릴 준비가 되었습니다.")
 
 if __name__ == "__main__":
     populate_menus()
