@@ -6,8 +6,17 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'making_site.settings')
 django.setup()
 
 from main.models import MenuItem
+from django.contrib.sites.models import Site
 
 def populate_menus():
+    # --- [도메인 설정] 사이트맵 주소용 ---
+    site = Site.objects.get_current()
+    if site.domain != "steam-making.com":
+        site.domain = "steam-making.com"
+        site.name = "메듀사(MeduTeacher)"
+        site.save()
+        print(f"사이트 도메인이 {site.domain}으로 설정되었습니다.")
+
     # 전체 삭제 후 재생성 (그룹화 버전)
     MenuItem.objects.all().delete()
 

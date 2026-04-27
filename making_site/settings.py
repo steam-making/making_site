@@ -75,6 +75,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'django.contrib.sites',
+    'django.contrib.sitemaps',
     'main',
     'accounts', # 회원관리 앱 추가
     'materials',  # ✅ 교구재 관리 앱 추가
@@ -144,6 +146,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'making_site.wsgi.application'
+
+SITE_ID = 1
 
 
 # Database

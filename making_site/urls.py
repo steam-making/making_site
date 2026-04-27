@@ -23,10 +23,25 @@ from django.conf import settings
 from django.conf.urls.static import static
 from filebrowser.sites import site
 
+from django.contrib.sitemaps.views import sitemap
+from main.sitemaps import sitemaps_dict
+from django.http import HttpResponse
+
+def robots_txt(request):
+    lines = [
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /accounts/",
+        "Sitemap: https://steam-making.com/sitemap.xml",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
+
 urlpatterns = [
     path("grappelli/", include("grappelli.urls")),  # ✅ grappelli 먼저
     path("admin/filebrowser/", site.urls),          # ✅ filebrowser 경로
     path('admin/', admin.site.urls),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps_dict}, name='django.contrib.sitemaps.views.sitemap'),
+    path('robots.txt', robots_txt),
     path('', include('main.urls')),  # main 앱의 URL 포함
     path('accounts/', include('accounts.urls')),  # accounts 앱 URL 포함
     path('accounts/', include('django.contrib.auth.urls')),  # 로그인/로그아웃 URL 추가
