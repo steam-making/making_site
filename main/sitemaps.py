@@ -1,6 +1,6 @@
 from django.contrib import sitemaps
 from django.urls import reverse
-from notices.models import MultipleNotice
+from notices.models import Notice
 
 class StaticViewSitemap(sitemaps.Sitemap):
     priority = 0.8
@@ -17,11 +17,11 @@ class NoticeSitemap(sitemaps.Sitemap):
     changefreq = 'daily'
 
     def items(self):
-        # 공개된 공지사항만 포함 (필요 시 필터 조정)
-        return MultipleNotice.objects.all().order_by('-created_at')
+        # 공개된 공지사항만 포함
+        return Notice.objects.filter(status='published')
 
     def lastmod(self, obj):
-        return obj.updated_at if hasattr(obj, 'updated_at') else obj.created_at
+        return obj.published_at
 
     def location(self, obj):
         return reverse('notices:detail', args=[obj.pk])
