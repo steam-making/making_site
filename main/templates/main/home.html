@@ -1,27 +1,233 @@
 {% extends 'base.html' %}
 {% load static %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section */
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('{% static "images/meduteacher_hero_banner.png" %}');
+        background-size: cover;
+        background-position: center;
+        height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        margin-top: -56px; /* Offset navbar */
+    }
+
+    .hero-content h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-content p {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+    }
+
+    /* Section Styling */
+    section {
+        padding: 80px 0;
+    }
+
+    .section-title {
+        font-weight: 700;
+        margin-bottom: 50px;
+        position: relative;
+        padding-bottom: 20px;
+    }
+
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background-color: #0d6efd;
+    }
+
+    /* Card Styling */
+    .cert-card {
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .cert-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    }
+
+    .cert-icon {
+        font-size: 3rem;
+        color: #0d6efd;
+        margin-bottom: 20px;
+    }
+
+    /* Institution List */
+    .inst-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border-left: 5px solid #0d6efd;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-    <div class="container mt-5 text-center">
-
-        <!-- 🔹 CTA 버튼 -->
-        <div class="d-flex justify-content-center gap-3">
-        <!-- 공지사항 버튼 -->
-        <a href="{% url 'notice_list' %}" class="btn btn-outline-secondary btn-lg">
-            공지사항
-        </a>
-
-        <!-- 로그인/로그아웃 버튼 -->
-        {% if user.is_authenticated %}
-            <a href="{% url 'logout' %}" class="btn btn-danger btn-lg">로그아웃</a>
-        {% else %}
-            <a href="{% url 'login' %}" class="btn btn-outline-secondary btn-lg">로그인</a>
-        {% endif %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container text-center hero-content">
+        <h1 class="animate__animated animate__fadeInDown">MeduTeacher</h1>
+        <p class="animate__animated animate__fadeInUp animate__delay-1s">
+            미래를 여는 융합교육 파트너 - 메듀사 강사 관리 및 교육 시스템
+        </p>
+        <div class="animate__animated animate__fadeInUp animate__delay-1s">
+            <a href="#about" class="btn btn-primary btn-lg px-4 me-2">소개 보기</a>
+            <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-4">로그인하기</a>
         </div>
-        <!-- 🔹 이미지 배너 (원하는 경우) -->
-        <img src="{% static 'images/main_1.png' %}" 
-            class="img-fluid rounded shadow-sm mb-4" 
-            alt="STEAM 융합 교육 이미지">
     </div>
+</div>
 
-    
+<!-- Section 1: 메듀사 설명 -->
+<section id="about" class="bg-light">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h2 class="section-title text-start">메듀사(MeduTeacher)란?</h2>
+                <p class="lead">메듀사는 융합교육 전문 기업 '메듀랩'의 통합 강사 관리 시스템입니다.</p>
+                <p>
+                    로봇, 코딩, 과학, 창의수학 등 다양한 STEAM 융합 교육 분야에서 
+                    최고의 교육 퀄리티를 유지하기 위해 강사 관리, 수업 자료 제공, 
+                    출강 관리 및 자격증 관리를 원스톱으로 지원합니다.
+                </p>
+                <div class="row mt-4">
+                    <div class="col-md-6 mb-3">
+                        <i class="bi bi-check-circle-fill text-primary"></i> 맞춤형 강사 매칭
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <i class="bi bi-check-circle-fill text-primary"></i> 프리미엄 수업 자료
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <i class="bi bi-check-circle-fill text-primary"></i> 체계적인 이력 관리
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <i class="bi bi-check-circle-fill text-primary"></i> 실시간 출강 현황
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <img src="{% static 'images/making_logo(500px).png' %}" class="img-fluid p-5" alt="메듀사 로고">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: 출강 안내 -->
+<section id="field">
+    <div class="container text-center">
+        <h2 class="section-title">출강 안내</h2>
+        <p class="mb-5">메듀사의 전문 강사진이 현재 활동 중인 주요 기관들을 확인하세요.</p>
+        
+        <div class="row">
+            {% if institutions %}
+                {% for inst in institutions %}
+                <div class="col-md-4 col-sm-6 mb-4">
+                    <div class="inst-item text-start">
+                        <h5 class="mb-1">{{ inst.school.name|default:inst.name }}</h5>
+                        <p class="text-muted small mb-0"><i class="bi bi-journal-text me-1"></i> {{ inst.program }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <p class="text-muted">현재 활동 중인 기관 정보를 불러올 수 없습니다.</p>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="mt-4">
+            <a href="{% url 'linkhub:post_hub' %}?area=gwangju" class="btn btn-outline-primary">전체 모집 공고 보기</a>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: 자격 취득 안내 -->
+<section id="certification" class="bg-light">
+    <div class="container text-center">
+        <h2 class="section-title">자격 취득 안내</h2>
+        <p class="mb-5">전문 지도사 양성 과정을 통해 최고의 융합교육 전문가로 거듭나세요.</p>
+        
+        <div class="row g-4">
+            <!-- 로봇코딩지도사 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card cert-card p-4">
+                    <div class="cert-icon"><i class="bi bi-robot"></i></div>
+                    <h4>로봇코딩지도사</h4>
+                    <p class="text-muted">다양한 피지컬 컴퓨팅 교구를 통한 논리 설계 및 하드웨어 제어 전문가 과정</p>
+                </div>
+            </div>
+            <!-- 3D펜지도사 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card cert-card p-4">
+                    <div class="cert-icon"><i class="bi bi-pen"></i></div>
+                    <h4>3D펜지도사</h4>
+                    <p class="text-muted">공간 지각 능력을 키우는 3D 모델링 및 창의적 조형물 설계 전문가 과정</p>
+                </div>
+            </div>
+            <!-- 창의수학지도사 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card cert-card p-4">
+                    <div class="cert-icon"><i class="bi bi-calculator"></i></div>
+                    <h4>창의수학지도사</h4>
+                    <p class="text-muted">놀이와 체험을 통해 수의 원리를 이해하는 사고력 수학 지도 과정</p>
+                </div>
+            </div>
+            <!-- 생명과학지도사 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card cert-card p-4">
+                    <div class="cert-icon"><i class="bi bi-binoculars"></i></div>
+                    <h4>생명과학지도사</h4>
+                    <p class="text-muted">자연 생태와 생명의 신비를 실험으로 탐구하는 관찰 중심 지도 과정</p>
+                </div>
+            </div>
+            <!-- 융합과학지도사 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card cert-card p-4">
+                    <div class="cert-icon"><i class="bi bi-lightbulb"></i></div>
+                    <h4>융합과학지도사</h4>
+                    <p class="text-muted">과학 이론을 실생활 도구 제작에 적용하는 STEAM 교육 전문가 과정</p>
+                </div>
+            </div>
+            <!-- 기타 과정 -->
+            <div class="col-lg-4 col-md-6">
+                <div class="card cert-card p-4 bg-primary text-white">
+                    <div class="cert-icon text-white"><i class="bi bi-mortarboard"></i></div>
+                    <h4>추가 과정 문의</h4>
+                    <p>더 많은 전문 교육 과정은 별도 문의를 통해 확인하실 수 있습니다.</p>
+                    <a href="{% url 'notice_list' %}" class="btn btn-outline-light btn-sm mt-auto">공지사항 확인</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: 푸터 CTA -->
+<section class="bg-dark text-white text-center py-5">
+    <div class="container">
+        <h3 class="mb-4">메듀사와 함께 미래 인재 육성을 시작하세요.</h3>
+        <p class="mb-4 text-muted">체계적인 강사 교육과 양질의 자료가 준비되어 있습니다.</p>
+        <a href="{% url 'approve_users' %}" class="btn btn-primary btn-lg">지금 바로 시작하기</a>
+    </div>
+</section>
+
 {% endblock %}

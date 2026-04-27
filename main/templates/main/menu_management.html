@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- SortableJS CDN 추가 -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-list-columns-reverse me-2"></i>네비게이션 메뉴 관리</h2>
+        <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#menuModal" onclick="resetForm()">
+            <i class="bi bi-plus-circle me-1"></i>새 메뉴 추가
+        </button>
+    </div>
+
+    <!-- 🔍 회원 종류별 필터 버튼 -->
+    <div class="mb-4">
+        <div class="btn-group w-100 shadow-sm" role="group">
+            <button type="button" class="btn btn-outline-dark active" onclick="filterByRole('all_view', this)">전체보기</button>
+            <button type="button" class="btn btn-outline-primary" onclick="filterByRole('staff', this)">관리자 시점</button>
+            <button type="button" class="btn btn-outline-success" onclick="filterByRole('teacher', this)">강사 시점</button>
+            <button type="button" class="btn btn-outline-info" onclick="filterByRole('institution', this)">기관 시점</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterByRole('guest', this)">비로그인 시점</button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle" id="menuTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="8%" class="text-center">순서</th>
+                            <th width="22%">메뉴 제목</th>
+                            <th width="25%">이동 경로 (URL)</th>
+                            <th width="15%">권한</th>
+                            <th width="10%">상태</th>
+                            <th width="20%" class="text-center">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sortable-menus">
+                        {% for menu in top_menus %}
+                        <!-- 대메뉴 로우 -->
+                        <tr class="menu-row bg-light fw-bold top-menu-row" data-id="{{ menu.id }}" data-access="{{ menu.access_level }}">
+                            <td class="text-center">
+                                <span class="drag-handle" style="cursor: grab;"><i class="bi bi-grip-vertical fs-5"></i></span>
+                            </td>
+                            <td><i class="bi {{ menu.icon_class|default:'bi-layers' }} me-2 text-primary"></i>{{ menu.title }}</td>
+                            <td><code class="small">{{ menu.url }}</code></td>
+                            <td><span class="badge bg-secondary">{{ menu.get_access_level_display }}</span></td>
+                            <td>{% if menu.is_active %}<span class="badge bg-success">활성</span>{% else %}<span class="badge bg-danger">비활성</span>{% endif %}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-info text-white me-1" onclick="editMenu('{{ menu.id }}', '{{ menu.title }}', '{{ menu.url }}', '{{ menu.icon_class }}', '{{ menu.access_level }}', '{{ menu.is_active|yesno:'true,false' }}', '')">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <form method="POST" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="menu_id" value="{{ menu.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                            <!-- 하위 메뉴들 (대메뉴 바로 뒤에 정렬될 수 있게 구성) -->
+                            {% for sub in menu.sub_menus.all %}
+                            <tr class="menu-row sub-menu-row" data-id="{{ sub.id }}" data-access="{{ sub.access_level }}" data-parent-id="{{ menu.id }}">
+                                <td class="text-center">
+                                    <span class="drag-handle ps-3" style="cursor: grab;"><i class="bi bi-grip-vertical text-muted"></i></span>
+                                </td>
+                                <td class="ps-5 text-muted"><i class="bi bi-arrow-return-right me-1"></i> {{ sub.title }}</td>
+                                <td><code class="small text-muted">{{ sub.url }}</code></td>
+                                <td><span class="badge bg-light text-dark border">{{ sub.get_access_level_display }}</span></td>
+                                <td>{% if sub.is_active %}<small class="text-success">활성</small>{% else %}<small class="text-danger">비활성</small>{% endif %}</td>
+                                <td class="text-center">
+                                    <button class="btn btn-xs btn-outline-info me-1" onclick="editMenu('{{ sub.id }}', '{{ sub.title }}', '{{ sub.url }}', '{{ sub.icon_class }}', '{{ sub.access_level }}', '{{ sub.is_active|yesno:'true,false' }}', '{{ menu.id }}')">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="menu_id" value="{{ sub.id }}">
+                                        <button type="submit" class="btn btn-xs btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 모달 -->
+<div class="modal fade" id="menuModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" class="modal-content border-0 shadow-lg">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update">
+            <input type="hidden" name="menu_id" id="form_menu_id" value="">
+            
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">새 메뉴 추가</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">메뉴 제목</label>
+                    <input type="text" name="title" id="form_title" class="form-control form-control-lg border-2" placeholder="메뉴 이름을 입력하세요" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">이동 경로 (URL)</label>
+                    <input type="text" name="url" id="form_url" class="form-control" placeholder="예: /tasks/ 또는 # (하위메류용)" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">아이콘 클래스 (선택)</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-brush"></i></span>
+                        <input type="text" name="icon_class" id="form_icon_class" class="form-control" placeholder="bi-gear">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">상위 메뉴</label>
+                    <select name="parent_id" id="form_parent_id" class="form-select border-2">
+                        <option value="">대메뉴 (최상위)</option>
+                        {% for menu in top_menus %}
+                        <option value="{{ menu.id }}">{{ menu.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-bold">접근 권한</label>
+                    <select name="access_level" id="form_access_level" class="form-select border-2">
+                        {% for val, label in access_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-check form-switch bg-light p-3 rounded-pill border">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" name="is_active" id="form_is_active" checked>
+                    <label class="form-check-label fw-bold" for="form_is_active">메뉴 즉시 활성화</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">닫기</button>
+                <button type="submit" class="btn btn-primary px-5 fw-bold">저장 완료</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const el = document.getElementById('sortable-menus');
+        new Sortable(el, {
+            animation: 150,
+            handle: '.drag-handle', // 이 아이콘으로만 드래그 가능하게 설정
+            ghostClass: 'bg-info-subtle', // 드래그 중인 행의 스타일
+            onEnd: function() {
+                // 드래그가 끝나면 순서 서버로 전송
+                saveFullOrder();
+            }
+        });
+    });
+
+    function saveFullOrder() {
+        const rows = document.querySelectorAll('.menu-row');
+        const orderedIds = Array.from(rows).map(row => row.getAttribute('data-id'));
+        
+        const formData = new FormData();
+        formData.append('action', 'save_order');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        orderedIds.forEach(id => formData.append('order[]', id));
+
+        fetch('{% url "menu_management" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('순서가 저장되었습니다.');
+                // 가시적인 피드백 (선택 사항): 토스트 메시지 등
+            }
+        });
+    }
+
+    function filterByRole(role, btn) {
+        document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const rows = document.querySelectorAll('.menu-row');
+        const permissions = {
+            'all_view': ['all', 'teacher', 'institution', 'staff'],
+            'staff': ['all', 'teacher', 'institution', 'staff'],
+            'teacher': ['all', 'teacher'],
+            'institution': ['all', 'institution'],
+            'guest': ['all']
+        };
+        const allowed = permissions[role] || ['all'];
+        rows.forEach(row => {
+            const rowAccess = row.getAttribute('data-access');
+            row.style.display = (role === 'all_view' || allowed.includes(rowAccess)) ? '' : 'none';
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('modalTitle').innerText = "새 메뉴 추가";
+        document.getElementById('form_menu_id').value = "";
+        document.getElementById('form_title').value = "";
+        document.getElementById('form_url').value = "";
+        document.getElementById('form_icon_class').value = "";
+        document.getElementById('form_access_level').value = "all";
+        document.getElementById('form_parent_id').value = "";
+        document.getElementById('form_is_active').checked = true;
+    }
+
+    function editMenu(id, title, url, icon, access, active, parentId) {
+        document.getElementById('modalTitle').innerText = "메뉴 수정";
+        document.getElementById('form_menu_id').value = id;
+        document.getElementById('form_title').value = title;
+        document.getElementById('form_url').value = url;
+        document.getElementById('form_icon_class').value = icon;
+        document.getElementById('form_access_level').value = access;
+        document.getElementById('form_parent_id').value = parentId;
+        document.getElementById('form_is_active').checked = (active === 'true');
+        new bootstrap.Modal(document.getElementById('menuModal')).show();
+    }
+</script>
+
+<style>
+    .btn-xs { padding: 0.1rem 0.3rem; font-size: 0.75rem; }
+    .drag-handle { color: #ccc; transition: color 0.2s; padding: 5px; }
+    .drag-handle:hover { color: #0d6efd; }
+    .sortable-ghost { background-color: #e9ecef !important; opacity: 0.6; }
+    .table-hover tbody tr:hover { background-color: rgba(0,0,0,0.02) !important; }
+</style>
+{% endblock %}

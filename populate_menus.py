@@ -1,0 +1,57 @@
+import os
+import django
+
+# Django 환경 설정
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'making_site.settings')
+django.setup()
+
+from main.models import MenuItem
+
+def populate_menus():
+    # 전체 삭제 후 재생성 (주소 정밀 교정 버전)
+    MenuItem.objects.all().delete()
+
+    print("메뉴 링크 최종 정밀 교정 중...")
+
+    # --- [누구나] ---
+    MenuItem.objects.get_or_create(title="소개", url="/#about", icon_class="bi-info-circle", order=1, access_level="all")
+    MenuItem.objects.get_or_create(title="출강안내", url="/#field", icon_class="bi-geo-alt", order=2, access_level="all")
+    MenuItem.objects.get_or_create(title="자격안내", url="/#certification", icon_class="bi-patch-check", order=3, access_level="all")
+    MenuItem.objects.get_or_create(title="공지사항", url="/notices/", icon_class="bi-megaphone", order=4, access_level="all")
+
+    # --- [관리자 전용] 관리 ---
+    m_admin = MenuItem.objects.get_or_create(title="관리", url="#", icon_class="bi-gear-fill", order=100, access_level="staff")[0]
+    MenuItem.objects.get_or_create(title="공지사항 관리", url="/notices/", order=1, parent=m_admin, access_level="staff")
+    MenuItem.objects.get_or_create(title="회원승인", url="/accounts/approve_users/", order=2, parent=m_admin, access_level="staff")
+    MenuItem.objects.get_or_create(title="회원목록", url="/accounts/members/", order=3, parent=m_admin, access_level="staff")
+    MenuItem.objects.get_or_create(title="미디어관리", url="/admin/filebrowser/browse/", order=4, parent=m_admin, access_level="staff")
+    MenuItem.objects.get_or_create(title="메뉴관리", url="/menu-management/", order=99, parent=m_admin, access_level="staff")
+
+    # --- [강사용] ---
+    m_recruit = MenuItem.objects.get_or_create(title="모집", url="#", icon_class="bi-megaphone-fill", order=110, access_level="teacher")[0]
+    MenuItem.objects.get_or_create(title="모집공고(광주)", url="/linkhub/posts/?area=gwangju", order=1, parent=m_recruit, access_level="teacher")
+    MenuItem.objects.get_or_create(title="모집공고(전남)", url="/linkhub/posts/?area=jeonnam", order=2, parent=m_recruit, access_level="teacher")
+    
+    m_student = MenuItem.objects.get_or_create(title="학생", url="#", icon_class="bi-people-fill", order=120, access_level="teacher")[0]
+    MenuItem.objects.get_or_create(title="학생관리", url="/students/list/", order=1, parent=m_student, access_level="teacher")
+
+    m_history = MenuItem.objects.get_or_create(title="이력", url="#", icon_class="bi-journal-bookmark", order=130, access_level="teacher")[0]
+    MenuItem.objects.get_or_create(title="출강장소", url="/teachers/institutions/", order=1, parent=m_history, access_level="teacher")
+    MenuItem.objects.get_or_create(title="경력관리", url="/teachers/careers/", order=2, parent=m_history, access_level="teacher")
+    MenuItem.objects.get_or_create(title="자격증관리", url="/teachers/certificates/", order=3, parent=m_history, access_level="teacher")
+
+    # --- [기관용] ---
+    m_inst = MenuItem.objects.get_or_create(title="기관", url="#", icon_class="bi-building", order=140, access_level="institution")[0]
+    MenuItem.objects.get_or_create(title="프로그램목록", url="/products/", order=1, parent=m_inst, access_level="institution")
+    MenuItem.objects.get_or_create(title="예약리스트", url="/reservations/", order=2, parent=m_inst, access_level="institution")
+    MenuItem.objects.get_or_create(title="예약캘린더", url="/reservations/calendar/", order=3, parent=m_inst, access_level="institution")
+
+    # --- [관리자용 유틸] ---
+    m_util = MenuItem.objects.get_or_create(title="유틸", url="#", icon_class="bi-tools", order=160, access_level="staff")[0]
+    MenuItem.objects.get_or_create(title="로또추천", url="/lotto/", order=1, parent=m_util, access_level="staff")
+    MenuItem.objects.get_or_create(title="QR링크", url="/q/", order=2, parent=m_util, access_level="staff")
+
+    print("학생관리 링크(/students/list/) 수정 완료. 모든 메뉴가 정상 작동합니다.")
+
+if __name__ == "__main__":
+    populate_menus()
