@@ -8,16 +8,17 @@ django.setup()
 from main.models import MenuItem
 
 def populate_menus():
-    # 전체 삭제 후 재생성 (교구재 메뉴 추가 버전)
+    # 전체 삭제 후 재생성 (그룹화 버전)
     MenuItem.objects.all().delete()
 
-    print("교구재를 포함한 모든 메뉴를 최종 복구 중...")
+    print("메뉴 그룹화 및 최적화를 시작합니다...")
 
-    # --- [누구나] ---
-    MenuItem.objects.get_or_create(title="소개", url="/#about", icon_class="bi-info-circle", order=1, access_level="all")
-    MenuItem.objects.get_or_create(title="출강안내", url="/#field", icon_class="bi-geo-alt", order=2, access_level="all")
-    MenuItem.objects.get_or_create(title="자격안내", url="/#certification", icon_class="bi-patch-check", order=3, access_level="all")
-    MenuItem.objects.get_or_create(title="공지사항", url="/notices/", icon_class="bi-megaphone", order=4, access_level="all")
+    # --- [정보/소개] 그룹 (하나로 묶음) ---
+    m_info = MenuItem.objects.get_or_create(title="정보", url="#", icon_class="bi-info-circle-fill", order=1, access_level="all")[0]
+    MenuItem.objects.get_or_create(title="소개", url="/#about", order=1, parent=m_info, access_level="all")
+    MenuItem.objects.get_or_create(title="출강안내", url="/#field", order=2, parent=m_info, access_level="all")
+    MenuItem.objects.get_or_create(title="자격안내", url="/#certification", order=3, parent=m_info, access_level="all")
+    MenuItem.objects.get_or_create(title="공지사항", url="/notices/", order=4, parent=m_info, access_level="all")
 
     # --- [관리자 전용] 관리 ---
     m_admin = MenuItem.objects.get_or_create(title="관리", url="#", icon_class="bi-gear-fill", order=100, access_level="staff")[0]
@@ -29,10 +30,10 @@ def populate_menus():
 
     # --- [교구재] (관리자+강사 공용) ---
     m_mat = MenuItem.objects.get_or_create(title="교구재", url="#", icon_class="bi-box-seam", order=105, access_level="teacher")[0]
-    MenuItem.objects.get_or_create(title="교구목록", url="/materials/", order=1, parent=m_mat, access_level="staff") # 관리자만
-    MenuItem.objects.get_or_create(title="교구입고", url="/materials/orders/", order=2, parent=m_mat, access_level="staff") # 관리자만
-    MenuItem.objects.get_or_create(title="교구출고", url="/materials/releases/", order=3, parent=m_mat, access_level="teacher") # 공용
-    MenuItem.objects.get_or_create(title="교구반납", url="/materials/returns/", order=4, parent=m_mat, access_level="teacher") # 공용
+    MenuItem.objects.get_or_create(title="교구목록", url="/materials/", order=1, parent=m_mat, access_level="staff")
+    MenuItem.objects.get_or_create(title="교구입고", url="/materials/orders/", order=2, parent=m_mat, access_level="staff")
+    MenuItem.objects.get_or_create(title="교구출고", url="/materials/releases/", order=3, parent=m_mat, access_level="teacher")
+    MenuItem.objects.get_or_create(title="교구반납", url="/materials/returns/", order=4, parent=m_mat, access_level="teacher")
 
     # --- [강사용] ---
     m_recruit = MenuItem.objects.get_or_create(title="모집", url="#", icon_class="bi-megaphone-fill", order=110, access_level="teacher")[0]
@@ -58,7 +59,7 @@ def populate_menus():
     MenuItem.objects.get_or_create(title="로또추천", url="/lotto/", order=1, parent=m_util, access_level="staff")
     MenuItem.objects.get_or_create(title="QR링크", url="/q/", order=2, parent=m_util, access_level="staff")
 
-    print("교구재 메뉴 복구가 완료되었습니다. 로컬 적용 후 깃허브에 올릴 준비가 되었습니다.")
+    print("그룹화 완료. 상단 바가 훨씬 깔끔해졌습니다.")
 
 if __name__ == "__main__":
     populate_menus()

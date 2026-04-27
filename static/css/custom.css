@@ -99,12 +99,24 @@ a:hover {
     padding: 0.5rem 1rem;
     border-radius: var(--border-radius-sm);
     transition: all 0.2s ease;
+    white-space: nowrap; /* ✅ 글자 줄바꿈 절대 방지 */
 }
 
 .custom-navbar .nav-link:hover,
 .custom-navbar .nav-link.active {
     color: var(--text-white) !important;
     background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ✅ 화면 공간이 부족한 구간(1250px 이하)에서 여백과 폰트 크기 자동 조절 */
+@media (min-width: 992px) and (max-width: 1300px) {
+    .custom-navbar .nav-link {
+        padding: 0.5rem 0.6rem;
+        font-size: 0.85rem;
+    }
+    .custom-navbar .navbar-brand {
+        font-size: 1.1rem;
+    }
 }
 
 .custom-navbar .dropdown-menu {
@@ -255,6 +267,21 @@ a:hover {
     border-color: var(--primary-light) !important;
     transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
+}
+
+/* ✅ 네비게이션 전용 액션 버튼 (아이콘 위주 최적화) */
+.btn-nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.25rem;
+}
+
+@media (max-width: 1440px) {
+    .btn-nav-icon {
+        padding: 0.4rem 0.5rem !important;
+    }
 }
 
 .btn-secondary {
