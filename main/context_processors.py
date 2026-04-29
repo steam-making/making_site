@@ -1,37 +1,44 @@
 from .models import MenuItem
 
+
+def _can_access_menu(user, menu):
+    if user.is_staff:
+        return True
+
+    if menu.access_level == 'all':
+        return True
+
+    if not user.is_authenticated:
+        return False
+
+    user_type = getattr(getattr(user, 'profile', None), 'user_type', None)
+    if menu.access_level == 'teacher' and user_type in ('teacher', 'center_teacher'):
+        return True
+    if menu.access_level == 'institution' and user_type == 'institution':
+        return True
+
+    return False
+
+
 def menu_items(request):
     user = request.user
-    
-    # 기본적으로 활성화 상태인 것만 가져오고 sub_menus를 prefetch하여 쿼리 효율 최적화
-    all_menus = MenuItem.objects.filter(is_active=True).prefetch_related('sub_menus')
-    
-    # 필터링 로직: 현재 로그인한 사용자의 권한에 맞는 메뉴만 취합
-    allowed_menus = []
-    
-    for menu in all_menus:
-        show = False
-        al = menu.access_level
-        
-        # 1순위: 관리자는 설정과 관계없이 모든 활성 메뉴를 다 볼 수 있음
-        if user.is_staff:
-            show = True
-        # 2순위: 비로그인 또는 일반 권한 체크
-        elif al == 'all':
-            show = True
-        elif user.is_authenticated:
-            user_type = getattr(getattr(user, 'profile', None), 'user_type', None)
-            if al == 'teacher' and user_type in ('teacher', 'center_teacher'):
-                show = True
-            elif al == 'institution' and user_type == 'institution':
-                show = True
-        
-        if show:
-            allowed_menus.append(menu)
 
-    # 트리 구조 생성 (최상위 메뉴만 반환, 하위 메뉴는 prefetch됨)
-    top_menus = [m for m in allowed_menus if m.parent is None]
-    
+    # 기본적으로 활성화 상태인 것만 가져오고 sub_menus를 prefetch하여 쿼리 효율 최적화
+    all_menus = list(MenuItem.objects.filter(is_active=True).prefetch_related('sub_menus'))
+    allowed_ids = {menu.id for menu in all_menus if _can_access_menu(user, menu)}
+
+    top_menus = []
+    for menu in all_menus:
+        if menu.parent_id is not None or menu.id not in allowed_ids:
+            continue
+
+        visible_sub_menus = [sub for sub in menu.sub_menus.all() if sub.is_active and sub.id in allowed_ids]
+        menu.visible_sub_menus = visible_sub_menus
+
+        # 하위 메뉴형 그룹은 실제로 보여줄 항목이 있을 때만 노출
+        if visible_sub_menus or menu.url != '#':
+            top_menus.append(menu)
+
     return {
         'global_menu': top_menus
     }
