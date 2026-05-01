@@ -5,6 +5,7 @@ app_name = "linkhub"
 
 urlpatterns = [
     path("", views.post_hub, name="post_hub"),
+    path("posts/", views.post_hub, name="post_hub_legacy"),
     path("gwangju/", views.post_hub_gwangju, name="post_hub_gwangju"),
     path("jeonnam/", views.post_hub_jeonnam, name="post_hub_jeonnam"),
 

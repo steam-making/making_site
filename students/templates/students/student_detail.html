@@ -1,56 +1,104 @@
 {% extends "base.html" %}
+{% block extra_css %}
+<style>
+  .student-toolbar-sticky {
+    position: sticky;
+    top: 76px;
+    z-index: 1020;
+  }
+
+  .student-toolbar-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  }
+
+  .student-toolbar-select {
+    min-width: 220px;
+  }
+
+  .student-summary-badge {
+    font-size: 0.9rem;
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+  }
+
+  .student-header-select {
+    min-width: 240px;
+    max-width: 320px;
+  }
+
+  @media (max-width: 991.98px) {
+    .student-toolbar-sticky {
+      top: 68px;
+    }
+
+    .student-toolbar-select {
+      min-width: 100%;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
 
-  <!-- 상단 제목 + 버튼 -->
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-    <div class="mb-2">
-      <h4 class="mb-0 d-inline-block">
-        <i class="bi bi-people me-2"></i>{{ institution.name }}
+  <div class="mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <span>
+        <h4 class="mb-0 d-inline-block">
+          <i class="bi bi-people me-2"></i>{{ institution.name }}
+        </h4>
         <small class="text-muted">({{ institution.program }})</small>
-      </h4>
-      <!-- ✅ 부서별 인원 표시 -->
-      <span class="ms-3">
-        <span class="badge bg-info text-dark">{{ division_summary }}</span>
-        <span class="badge bg-secondary">총 {{ total_students }}명</span>
       </span>
-    </div>
-
-    <!-- 버튼 영역 -->
-    <div class="d-flex flex-wrap justify-content-end gap-2">
-      <a href="{% url 'students:student_create' institution.id %}" class="btn btn-success btn-sm">
-        <i class="bi bi-person-plus"></i> 학생 추가
-      </a>
-      <a href="{% url 'students:student_upload' %}" class="btn btn-primary btn-sm">
-        <i class="bi bi-upload me-1"></i> 엑셀 업로드
-      </a>
-      <a href="{% url 'students:student_reset' institution.id %}" class="btn btn-danger btn-sm">
-        <i class="bi bi-trash"></i> 전체 삭제
-      </a>
-      <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left"></i> 출강장소 목록으로
-      </a>
+      <span class="badge bg-info text-dark student-summary-badge">{{ division_summary }}</span>
+      <span class="badge bg-secondary student-summary-badge">총 {{ total_students }}명</span>
+      <div class="student-header-select ms-lg-auto">
+        <select class="form-select" onchange="if (this.value) window.location.href=this.value" aria-label="출강장소 변경">
+          {% for inst in institutions %}
+            <option value="{% url 'students:student_detail' inst.id %}" {% if inst.id == institution.id %}selected{% endif %}>출강장소 변경: {{ inst.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
   </div>
 
-  <!-- ✅ 여러 학생 부서 이동 FORM 시작 -->
-  <form method="post" action="{% url 'students:student_bulk_move' %}">
+  <div class="student-toolbar-sticky mb-4">
+    <div class="student-toolbar-card p-3 p-lg-4">
+      <div class="row g-3 align-items-end">
+        <div class="col-12">
+          <div class="d-flex flex-wrap gap-2 justify-content-xl-end">
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#bulkMoveModal">
+              <i class="bi bi-arrow-right-circle me-1"></i>선택 학생 이동
+            </button>
+            <a href="{% url 'students:student_create' institution.id %}" class="btn btn-success">
+              <i class="bi bi-person-plus me-1"></i>학생 추가
+            </a>
+            <a href="{% url 'students:student_upload' %}" class="btn btn-primary">
+              <i class="bi bi-upload me-1"></i>엑셀 업로드
+            </a>
+            <a href="{% url 'robot_levelup_by_institution' institution.id %}" class="btn btn-outline-success">
+              <i class="bi bi-bar-chart-line me-1"></i>단계업관리 이동
+            </a>
+            <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>출강장소 목록
+            </a>
+            <a href="{% url 'students:student_reset' institution.id %}" class="btn btn-outline-danger">
+              <i class="bi bi-trash me-1"></i>전체 삭제
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <form id="student-bulk-move-form" method="post" action="{% url 'students:student_bulk_move' %}">
     {% csrf_token %}
     <input type="hidden" name="institution_id" value="{{ institution.id }}">
-
-    <!-- 부서 이동 컨트롤 -->
-    <div class="d-flex align-items-center gap-2 mb-3">
-      <select name="target_division" class="form-select form-select-sm w-auto" required>
-        <option value="">이동할 부서 선택</option>
-        {% for div in divisions %}
-          <option value="{{ div.division }}">{{ div.division }}</option>
-        {% endfor %}
-      </select>
-
-      <button type="submit" class="btn btn-warning btn-sm">
-        <i class="bi bi-arrow-right-circle"></i> 선택 학생 이동
-      </button>
-    </div>
+    <input type="hidden" name="target_division" id="bulkMoveTargetDivision">
 
     <!-- 부서별 학생 리스트 -->
     {% for div in divisions %}
@@ -114,6 +162,30 @@
   </form>
 </div>
 
+<div class="modal fade" id="bulkMoveModal" tabindex="-1" aria-labelledby="bulkMoveModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="bulkMoveModalLabel">선택 학생 이동</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body">
+        <label for="bulkMoveDivisionSelect" class="form-label">이동할 부서를 선택하세요.</label>
+        <select id="bulkMoveDivisionSelect" class="form-select">
+          <option value="">부서 선택</option>
+          {% for div in divisions %}
+            <option value="{{ div.division }}">{{ div.division }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+        <button type="button" class="btn btn-warning" id="bulkMoveConfirmBtn">완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ✅ 체크박스 전체 선택 JS -->
 <script>
 document.querySelectorAll(".check-all").forEach(function (checkbox) {
@@ -123,6 +195,25 @@ document.querySelectorAll(".check-all").forEach(function (checkbox) {
       cb.checked = this.checked;
     });
   });
+});
+
+document.getElementById("bulkMoveConfirmBtn").addEventListener("click", function () {
+  const selectedStudents = document.querySelectorAll('input[name="student_ids"]:checked');
+  const division = document.getElementById("bulkMoveDivisionSelect").value;
+
+  if (!selectedStudents.length) {
+    alert("이동할 학생을 먼저 선택해주세요.");
+    return;
+  }
+
+  if (!division) {
+    alert("이동할 부서를 선택해주세요.");
+    return;
+  }
+
+  document.getElementById("bulkMoveTargetDivision").value = division;
+  bootstrap.Modal.getInstance(document.getElementById("bulkMoveModal")).hide();
+  document.getElementById("student-bulk-move-form").submit();
 });
 </script>
 {% endblock %}

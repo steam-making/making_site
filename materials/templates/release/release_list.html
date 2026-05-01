@@ -4,19 +4,256 @@
 {% load static %}
 
 {% block extra_css %}
+<style>
+  .release-page {
+    max-width: 1680px;
+    margin: 0 auto;
+  }
+
+  .release-filter-shell {
+    top: 66px;
+    z-index: 1020;
+  }
+
+  .release-filter-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #e8edf3;
+    border-radius: 22px;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(10px);
+    padding: 1rem 1.1rem;
+  }
+
+  .release-page-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .release-page-subtitle {
+    color: #64748b;
+    font-size: 0.92rem;
+  }
+
+  .release-filter-card .form-control,
+  .release-filter-card .form-select,
+  .release-filter-card .btn {
+    min-height: 40px;
+  }
+
+  .release-group-card {
+    border: 1px solid #e6ebf2;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  }
+
+  .release-group-header {
+    background: linear-gradient(135deg, #f8fbff 0%, #ffffff 100%);
+    border-bottom: 1px solid #e8edf3;
+    padding: 1rem 1.25rem;
+  }
+
+  .release-group-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .release-group-meta {
+    color: #64748b;
+    font-size: 0.88rem;
+  }
+
+  .release-badge-soft {
+    border-radius: 999px;
+    padding: 0.4rem 0.75rem;
+    font-weight: 700;
+  }
+
+  .summary-widget {
+    margin: 1rem;
+    padding: 1rem 1.05rem;
+    border-radius: 18px;
+    background: #f8fafc;
+    border: 1px solid #e7edf5;
+  }
+
+  .summary-item {
+    padding: 0.5rem 0.8rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.04);
+  }
+
+  .summary-qty {
+    color: #0d6efd;
+  }
+
+  .release-group-card .table thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.88rem;
+    font-weight: 700;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .release-group-card .table td {
+    vertical-align: middle;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    border-color: #edf2f7;
+  }
+
+  .release-table-wrap {
+    padding: 0 1rem 1rem;
+  }
+
+  .release-table {
+    overflow: hidden;
+    border: 1px solid #e7edf5;
+    border-radius: 18px;
+    background: #fff;
+  }
+
+  .release-table .table {
+    margin-bottom: 0;
+  }
+
+  .release-table tbody tr:hover td {
+    background: #fbfdff;
+  }
+
+  .release-table tbody tr td:first-child {
+    border-left: 4px solid transparent;
+  }
+
+  .release-item-name {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .release-price {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .release-method-badge,
+  .release-status-badge {
+    border-radius: 999px;
+    padding: 0.42rem 0.72rem;
+    font-weight: 700;
+  }
+
+  .release-actions-wrap {
+    min-width: 180px;
+  }
+
+  .release-actions-wrap .btn,
+  .group-actions .btn {
+    min-height: 34px;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+  }
+
+  .release-total-row td {
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .release-total-label {
+    color: #334155;
+    font-weight: 800;
+  }
+
+  .release-payment-box {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.55rem;
+  }
+
+  .release-actions .btn,
+  .release-actions-wrap .btn,
+  .group-actions .btn {
+    border-radius: 999px;
+  }
+
+  .release-total-row {
+    background: #f8fafc;
+  }
+
+  @media (max-width: 991.98px) {
+    .release-filter-shell {
+      top: 58px;
+    }
+
+    .release-filter-card {
+      padding: 0.9rem;
+      border-radius: 18px;
+    }
+
+    .release-group-header {
+      padding: 0.9rem 1rem;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .release-table-wrap {
+      padding: 0 0.8rem 0.8rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .release-table {
+      overflow: visible;
+    }
+
+    .release-table .table {
+      min-width: 1180px;
+    }
+
+    .release-table .table thead th,
+    .release-table .table td {
+      font-size: 0.82rem;
+      padding-top: 0.72rem;
+      padding-bottom: 0.72rem;
+      white-space: nowrap;
+    }
+
+    .release-actions-wrap,
+    .release-actions,
+    .group-actions {
+      justify-content: center !important;
+    }
+
+    .release-payment-box {
+      width: auto;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block full_page_content %}
 <link rel="stylesheet" href="{% static 'materials/css/release_list.css' %}">
-<div class="container-fluid mt-4 px-0 release-list-container">
+<div class="container-fluid mt-4 px-0 release-list-container release-page">
 
-  <div class="bg-light pb-2 mb-3 sticky-top" style="top:60px; z-index:1020;">
-    <h3 class="text-center mb-3 pt-2">교구재 출고 목록</h3>
+  <div class="sticky-top mb-4 release-filter-shell">
+    <div class="release-filter-card">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <div class="release-page-title">교구출고</div>
+          <div class="release-page-subtitle">기관별 출고 현황, 수금 상태, 견적서 발행 흐름을 한 번에 관리합니다.</div>
+        </div>
+      </div>
 
-    <!-- 새 출고 + 검색 필터 -->
-    <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between px-2">
+      <!-- 새 출고 + 검색 필터 -->
+      <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between">
       <div class="col-12 col-md-auto mb-2 mb-md-0">
-        <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary w-100 w-md-auto">
+        <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary w-100 w-md-auto px-3">
           <i class="bi bi-plus-lg"></i> 새 출고
         </a>
       </div>
@@ -69,17 +306,33 @@
         </div>
       </div>
     </form>
+    </div>
   </div>
   
   {% for group in grouped_list %}
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header fw-semibold bg-light">
-        {{ group.order_month }} /
-        {{ group.institution.name }}
-        {% if group.institution.program %}
-          {{ group.institution.program }}
-        {% endif %}
-        / 강사: {{ group.teacher.first_name }}  
+    <div class="card mb-4 release-group-card">
+      <div class="card-header release-group-header">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div>
+            <div class="release-group-title">
+              {{ group.order_month }} · {{ group.institution.name }}
+              {% if group.institution.program %}
+                <span class="text-muted fw-semibold">{{ group.institution.program }}</span>
+              {% endif %}
+            </div>
+            <div class="release-group-meta mt-1">강사 {{ group.teacher.first_name }} · 총 {{ group.total_qty }}개 · {{ group.total_price|intcomma }}원</div>
+          </div>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% if group.source_type == 'levelup_auto' %}
+              <span class="badge bg-warning-subtle text-dark border release-badge-soft">단계업관리</span>
+            {% endif %}
+            {% if group.payment_status == 'paid' %}
+              <span class="badge bg-success-subtle text-success border release-badge-soft">수금완료</span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border release-badge-soft">미수금</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
       <div class="card-body p-0">
         <!-- ✅ 교구재별 분출 수량 요약 (Premium Widget) -->
@@ -97,7 +350,8 @@
           </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive release-table-wrap">
+          <div class="release-table">
           <table class="table table-bordered table-striped text-center mb-0" style="white-space: nowrap;">
           <thead class="table-light">
             <tr>
@@ -131,7 +385,7 @@
                   <td data-label="주문일자">{{ order.created_at|date:"m-d" }}</td>
                   <td data-label="거래처 종류" class="d-none d-md-table-cell">{{ item.vendor.vendor_type.name }}</td>
                   <td data-label="거래처" class="d-none d-md-table-cell">{{ item.vendor.name }}</td>
-                  <td data-label="교구재">{{ item.material.name }}</td>
+                  <td data-label="교구재" class="release-item-name">{{ item.material.name }}</td>
                   {% if request.user.is_staff %}
                     <td data-label="공급가 단가" class="text-end d-none d-md-table-cell">{{ item.material.supply_price|intcomma }}원</td>
                     <td data-label="공급가 합계" class="text-end d-none d-md-table-cell">
@@ -139,7 +393,7 @@
                     </td>
                   {% endif %}
                   <td data-label="납품 단가" class="text-end d-none d-md-table-cell">{{ item.unit_price|intcomma }}원</td>
-                  <td data-label="납품 합계" class="text-end">
+                  <td data-label="납품 합계" class="text-end release-price">
                     {{ item.unit_price|mul:item.quantity|intcomma }}원
                   </td>
                   <td data-label="수량">{{ item.quantity }}</td>
@@ -153,7 +407,7 @@
                   <td data-label="출고처리">
                     <div class="release-actions-wrap d-flex flex-nowrap justify-content-center align-items-center gap-1">
                       {% if item.status == 'released' %}
-                        <span class="badge bg-success">
+                        <span class="badge bg-success release-status-badge">
                           {{ item.released_at|date:"m-d" }} <span class="d-none d-md-inline">완료</span>
                         </span>
                       {% endif %}
@@ -163,9 +417,9 @@
                           {% if user.is_staff or user.is_superuser %}
                             <form class="js-async-action-form" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
                               {% csrf_token %}
-                              <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('출고 완료를 취소하시겠습니까?');">
-                                <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-md-inline">출고취소</span>
-                              </button>
+                       <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('출고 완료를 취소하시겠습니까?');">
+                                 <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-md-inline">출고취소</span>
+                               </button>
                             </form>
                           {% endif %}
 
@@ -182,20 +436,22 @@
                           {% if user.is_staff or user.is_superuser %}
                             <form class="js-async-action-form" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
                               {% csrf_token %}
-                              <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('출고 처리 하시겠습니까?');">
-                                <i class="bi bi-check-lg"></i> <span class="d-none d-md-inline">출고</span>
+                       <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('출고 처리 하시겠습니까?');">
+                                 <i class="bi bi-check-lg"></i> <span class="d-none d-md-inline">출고</span>
+                               </button>
+                            </form>
+                          {% endif %}
+                          {% if order.source_type != 'levelup_auto' %}
+                            <a class="btn btn-sm btn-outline-secondary" href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}">
+                              <i class="bi bi-pencil"></i> <span class="d-none d-md-inline">수정</span>
+                            </a>
+                            <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i> <span class="d-none d-md-inline">삭제</span>
                               </button>
                             </form>
                           {% endif %}
-                          <a class="btn btn-sm btn-outline-secondary" href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}">
-                            <i class="bi bi-pencil"></i> <span class="d-none d-md-inline">수정</span>
-                          </a>
-                          <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                              <i class="bi bi-trash"></i> <span class="d-none d-md-inline">삭제</span>
-                            </button>
-                          </form>
                         {% endif %}
                       </div>
                     </div>
@@ -206,12 +462,12 @@
                 </tr>
               {% endfor %}
             {% endfor %}
-            <tr class="fw-bold table-secondary">
+            <tr class="fw-bold release-total-row">
               <!-- ✅ 수금 상태 -->
               <td class="text-center d-none d-md-table-cell" colspan="4" data-label="수금 상태">
                 <form method="post" action="{% url 'set_payment_date' group.institution.id group.order_month %}">
                   {% csrf_token %}
-                  <div class="d-flex justify-content-center align-items-center gap-2">
+                  <div class="d-flex justify-content-center align-items-center gap-2 release-payment-box">
                     <input type="date"
                       name="payment_date"
                       class="form-control form-control-sm"
@@ -229,7 +485,7 @@
               </td>
 
 
-              <td colspan="1" class="text-end" data-label="구분">총계</td>
+              <td colspan="1" class="text-end release-total-label" data-label="구분">총계</td>
               {% if request.user.is_staff %}
                 <td class="text-end d-none d-md-table-cell" data-label="공급가 단가">-</td>
                 <td class="text-end d-none d-md-table-cell" data-label="공급가 합계">{{ group.total_supply|intcomma }}원</td>
@@ -292,7 +548,7 @@
                     </div>
                   </div>
 
-                  {% if request.user.is_superuser %}
+                  {% if request.user.is_superuser and group.source_type != 'levelup_auto' %}
                     <form action="{% url 'delete_release_group' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
                           method="post"
                           onsubmit="return confirm('{{ group.order_month }}의 모든 주문을 삭제하시겠습니까? 출고완료 항목은 재고가 복원됩니다.');">
@@ -305,6 +561,7 @@
             </tr>
           </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

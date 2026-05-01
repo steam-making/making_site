@@ -5,12 +5,14 @@
   <!-- 제목 + 업로드 버튼 한 줄 정렬 -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">
-      <i class="bi bi-people me-2"></i> 출강장소별 학생 관리
+      <i class="bi bi-people me-2"></i> 학생관리
     </h4>
     <a href="{% url 'students:student_upload' %}" class="btn btn-primary btn-sm">
       <i class="bi bi-upload me-1"></i> 엑셀 업로드
     </a>
   </div>
+
+  <p class="text-muted small mb-3">학생관리할 출강장소를 선택하세요.</p>
 
   {% if institutions %}
     <div class="row mt-3">
@@ -21,15 +23,10 @@
               <h5 class="card-title mb-2">{{ inst.name }}</h5>
               <p class="text-muted small">{{ inst.program }}</p>
 
-              <!-- 버튼 두 개 나란히 정렬 -->
               <div class="d-flex justify-content-center gap-2 mt-2">
                 <a href="{% url 'students:student_detail' inst.id %}" 
                    class="btn btn-outline-primary btn-sm">
                   학생 관리 <i class="bi bi-arrow-right"></i>
-                </a>
-                <a href="{% url 'robot_levelup_by_institution' inst.id %}" 
-                   class="btn btn-outline-success btn-sm">
-                  단계업 관리 <i class="bi bi-bar-chart-line"></i>
                 </a>
               </div>
 

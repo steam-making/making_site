@@ -2,12 +2,107 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Sum
+from django.db import transaction
 from django.utils import timezone
 from datetime import date
 from .models import RobotLevelUp
 from .forms import RobotLevelUpForm
 from materials.models import Material, MaterialRelease, MaterialReleaseItem, TeachingInstitution
 from students.models import Student   # ✅ 출강장소별 학생정보 추가
+
+
+AUTO_RELEASE_SOURCE = "levelup_auto"
+
+
+def _build_levelup_release_title(institution, year_month):
+    return f"{year_month} {institution.name} 단계업 자동 출고"
+
+
+def _sync_levelup_release(institution, year_month, user=None):
+    records = list(
+        RobotLevelUp.objects.filter(
+            institution=institution,
+            year_month=year_month,
+        ).select_related("material__vendor")
+    )
+
+    release = (
+        MaterialRelease.objects
+        .filter(
+            institution=institution,
+            order_month=year_month,
+            source_type=AUTO_RELEASE_SOURCE,
+        )
+        .first()
+    )
+
+    if not records:
+        if release:
+            release.delete()
+        return
+
+    summary = {}
+    for record in records:
+        if not record.material_id:
+            continue
+
+        item = summary.setdefault(record.material_id, {
+            "material": record.material,
+            "vendor": record.material.vendor,
+            "quantity": 0,
+        })
+        item["quantity"] += 1
+
+    if not summary:
+        if release:
+            release.delete()
+        RobotLevelUp.objects.filter(institution=institution, year_month=year_month).update(
+            release_done=False,
+            release_date=None,
+        )
+        return
+
+    with transaction.atomic():
+        if release is None:
+            release = MaterialRelease.objects.create(
+                teacher=institution.teacher,
+                institution=institution,
+                order_month=year_month,
+                created_by=user,
+                title=_build_levelup_release_title(institution, year_month),
+                source_type=AUTO_RELEASE_SOURCE,
+            )
+        else:
+            release.teacher = institution.teacher
+            release.created_by = user or release.created_by
+            release.title = release.title or _build_levelup_release_title(institution, year_month)
+            release.source_type = AUTO_RELEASE_SOURCE
+            release.save(update_fields=["teacher", "created_by", "title", "source_type"])
+
+        existing_items = {item.material_id: item for item in release.items.all()}
+        release.items.all().delete()
+
+        for material_id, data in summary.items():
+            material = data["material"]
+            existing_item = existing_items.get(material_id)
+
+            MaterialReleaseItem.objects.create(
+                release=release,
+                vendor=data["vendor"],
+                material=material,
+                quantity=data["quantity"],
+                unit_price=existing_item.unit_price if existing_item else material.school_price,
+                status=existing_item.status if existing_item else "pending",
+                release_method=existing_item.release_method if existing_item else "택배",
+                released_at=existing_item.released_at if existing_item else None,
+                included=existing_item.included if existing_item else True,
+                group_name=existing_item.group_name if existing_item else material.name,
+            )
+
+        RobotLevelUp.objects.filter(institution=institution, year_month=year_month).update(
+            release_done=True,
+            release_date=timezone.now().date(),
+        )
 
 def release_preview(request, institution_id, year_month):
 
@@ -119,46 +214,7 @@ def auto_release_from_levelup(request, institution_id, year_month):
         messages.warning(request, f"{year_month} 출고할 단계업 항목이 없습니다.")
         return redirect("robot_levelup_by_institution", institution_id)
 
-    # ⭐ 교구별 수량 집계
-    summary = {}
-    for r in records:
-        mid = r.material.id
-        summary[mid] = summary.get(mid, 0) + 1
-
-    # ⭐ 출고 마스터 생성
-    release = MaterialRelease.objects.create(
-        teacher=institution.teacher,  # User FK
-        institution=institution,
-        order_month=year_month,
-        created_by=request.user,
-    )
-
-    # ⭐ 출고 상세 생성 (MaterialReleaseItem)
-    for material_id, qty in summary.items():
-
-        material_obj = Material.objects.get(id=material_id)
-
-        # ⭐ 단가 가져오기 (Material 모델의 필드 이름에 맞춰 조정)
-        # school_price / institution_price / supply_price 중 실제 필드 확인 필요
-        # 아래는 가장 일반적인 supply_price 기준
-        unit_price = material_obj.supply_price if hasattr(material_obj, "supply_price") else 0
-
-        MaterialReleaseItem.objects.create(
-            release=release,
-            vendor=material_obj.vendor,
-            material=material_obj,
-            quantity=qty,
-            unit_price=unit_price,   # 🔥 단가 입력!
-            status="pending",        # 🔥 자동 생성은 출고대기
-            release_method="택배",    # 기본 택배
-            included=True
-        )
-
-    # ⭐ 단계업 출고 완료 처리
-    records.update(
-        release_done=True,
-        release_date=timezone.now().date()
-    )
+    _sync_levelup_release(institution, year_month, request.user)
 
     messages.success(request, f"{year_month} 단계업 기반 출고등록이 완료되었습니다!")
     return redirect("robot_levelup_by_institution", institution_id)
@@ -280,6 +336,7 @@ def levelup_by_institution(request, institution_id):
     return render(request, "robot_LvUP/robot_levelup_list.html", {
         # 기본
         "institution": institution,
+        "institutions": TeachingInstitution.objects.all() if request.user.is_staff else TeachingInstitution.objects.filter(teacher=request.user),
         "records": records,
 
         # 전체 통계
@@ -358,7 +415,8 @@ def levelup_create(request, institution_id):
 
         # ✅ 메시지 처리
         if created > 0:
-            messages.success(request, f"단계업 등록이 완료되었습니다. (총 {created}건)")
+            _sync_levelup_release(institution, year_month, request.user)
+            messages.success(request, f"단계업 등록이 완료되었고 교구출고에도 자동 반영되었습니다. (총 {created}건)")
         else:
             messages.warning(request, "등록된 항목이 없습니다. 교구나 학생을 확인하세요.")
 
@@ -376,6 +434,8 @@ def robot_levelup_update(request, pk):
     record = get_object_or_404(RobotLevelUp, pk=pk)
     institution = record.institution
     robot_materials = Material.objects.filter(vendor__vendor_type__name__icontains='로봇').order_by('name')
+    before_institution = record.institution
+    before_year_month = record.year_month
 
     if request.method == "POST":
         record.year_month = request.POST.get("year_month")  # ✅ 추가됨
@@ -388,6 +448,11 @@ def robot_levelup_update(request, pk):
         record.price = request.POST.get("price") or 0
         record.note = request.POST.get("note", "")
         record.save()
+
+        if before_institution and before_year_month:
+            _sync_levelup_release(before_institution, before_year_month, request.user)
+        if record.institution and (record.institution_id != getattr(before_institution, "id", None) or record.year_month != before_year_month):
+            _sync_levelup_release(record.institution, record.year_month, request.user)
 
         messages.success(request, f"{record.student_name} 학생 정보가 수정되었습니다.")
         return redirect("robot_levelup_by_institution", institution_id=institution.id)
@@ -405,7 +470,11 @@ def robot_levelup_update(request, pk):
 def robot_levelup_delete(request, pk):
     record = get_object_or_404(RobotLevelUp, pk=pk)
     institution_id = record.institution.id if record.institution else None
+    sync_institution = record.institution
+    sync_year_month = record.year_month
     record.delete()
+    if sync_institution and sync_year_month:
+        _sync_levelup_release(sync_institution, sync_year_month, request.user)
     messages.success(request, f"{record.student_name} 학생이 삭제되었습니다.")
     if institution_id:
         return redirect("robot_levelup_by_institution", institution_id=institution_id)

@@ -110,6 +110,10 @@ class MaterialOrder(models.Model):
 
 
 class MaterialRelease(models.Model):
+    SOURCE_TYPE_CHOICES = [
+        ('', '일반'),
+        ('levelup_auto', '단계업 자동생성'),
+    ]
     
     title = models.CharField("견적서 제목", max_length=200, blank=True)
     notes = models.TextField("비고", blank=True)
@@ -173,6 +177,13 @@ class MaterialRelease(models.Model):
         blank=True,
         related_name="created_releases",
         verbose_name="작성자"
+    )
+    source_type = models.CharField(
+        "생성 경로",
+        max_length=20,
+        choices=SOURCE_TYPE_CHOICES,
+        blank=True,
+        default=''
     )
 
     def __str__(self):

@@ -46,11 +46,12 @@ def populate_menus():
 
     # --- [강사용] ---
     m_recruit = MenuItem.objects.get_or_create(title="모집", url="#", icon_class="bi-megaphone-fill", order=110, access_level="teacher")[0]
-    MenuItem.objects.get_or_create(title="모집공고(광주)", url="/linkhub/posts/?area=gwangju", order=1, parent=m_recruit, access_level="teacher")
-    MenuItem.objects.get_or_create(title="모집공고(전남)", url="/linkhub/posts/?area=jeonnam", order=2, parent=m_recruit, access_level="teacher")
+    MenuItem.objects.get_or_create(title="모집공고(광주)", url="/linkhub/?area=gwangju", order=1, parent=m_recruit, access_level="teacher")
+    MenuItem.objects.get_or_create(title="모집공고(전남)", url="/linkhub/?area=jeonnam", order=2, parent=m_recruit, access_level="teacher")
     
     m_student = MenuItem.objects.get_or_create(title="학생", url="#", icon_class="bi-people-fill", order=120, access_level="teacher")[0]
     MenuItem.objects.get_or_create(title="학생관리", url="/students/list/", order=1, parent=m_student, access_level="teacher")
+    MenuItem.objects.get_or_create(title="단계업관리", url="/robot_LvUP/", order=2, parent=m_student, access_level="teacher")
 
     m_history = MenuItem.objects.get_or_create(title="이력", url="#", icon_class="bi-journal-bookmark", order=130, access_level="teacher")[0]
     MenuItem.objects.get_or_create(title="출강장소", url="/teachers/institutions/", order=1, parent=m_history, access_level="teacher")

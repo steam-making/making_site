@@ -15,13 +15,16 @@ from django.contrib import messages
 from django.db.models import Count, Q, Prefetch
 
 
+def _get_accessible_institutions(user):
+    if user.is_staff:
+        return TeachingInstitution.objects.all()
+    return TeachingInstitution.objects.filter(teacher=user)
+
+
 @login_required
 def student_list(request):
     """출강장소별 학생 목록 보기"""
-    if request.user.is_staff:
-        institutions = TeachingInstitution.objects.all().prefetch_related('divisions__students')
-    else:
-        institutions = TeachingInstitution.objects.filter(teacher=request.user).prefetch_related('divisions__students')
+    institutions = _get_accessible_institutions(request.user).prefetch_related('divisions__students')
 
     return render(request, 'students/student_list.html', {
         'institutions': institutions
@@ -68,6 +71,7 @@ def student_detail(request, institution_id):
 
     return render(request, 'students/student_detail.html', {
         'institution': institution,
+        'institutions': _get_accessible_institutions(request.user),
         'divisions': divisions,
         'division_summary': " / ".join(division_summary) if division_summary else "등록된 학생 없음",
         'total_students': total_students,

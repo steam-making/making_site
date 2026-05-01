@@ -10,11 +10,42 @@
 <link rel="stylesheet" href="{% static 'robot_LvUP/css/robot_levelup.css' %}">
 <div class="container-fluid mt-4 levelup-container">
 <style>
+  .levelup-page {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .levelup-hero {
+    background: linear-gradient(135deg, #f8fbff 0%, #ffffff 55%, #f5f8ff 100%);
+    border: 1px solid #e6eefc;
+    border-radius: 22px;
+    padding: 1.2rem 1.25rem;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+  }
+
+  .levelup-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .levelup-toolbar {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #e7ecf3;
+    border-radius: 18px;
+    padding: 0.8rem;
+  }
+
+  .levelup-toolbar .btn,
+  .levelup-toolbar .form-select {
+    min-height: 38px;
+  }
+
   /* 월 헤더 상태별 스타일 */
   .month-header.month-done {
-    background-color: #f8f9fa !important; /* 연한 회색 */
-    color: #adb5bd !important;           /* 희미한 텍스트 */
-    opacity: 0.8;
+    background-color: #f4f6f8 !important;
+    color: #94a3b8 !important;
+    opacity: 0.88;
   }
   .month-header.month-done .badge {
     filter: grayscale(1);
@@ -26,77 +57,554 @@
   }
 
   .month-header.month-active {
-    background-color: #ffffff !important;
-    border-left: 5px solid #0d6efd !important; /* 활성 상태 강조 */
-    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.1);
+    background: linear-gradient(90deg, #f8fbff 0%, #ffffff 100%) !important;
+    border-left: 5px solid #0d6efd !important;
+    box-shadow: inset 0 0 0 1px #e3ecff;
+  }
+
+  .month-header {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .month-header:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 0 0 1px #dbe7ff, 0 8px 18px rgba(37, 99, 235, 0.08);
   }
   .month-header.month-active .bi-calendar-event {
     color: #0d6efd;
     font-weight: bold;
   }
+
+  .levelup-school-select {
+    width: 150px;
+    flex: 0 0 auto;
+  }
+
+  .levelup-month {
+    width: 132px;
+    flex: 0 0 auto;
+  }
+
+  .levelup-alert-card {
+    border: 1px solid #f8df9b;
+    border-radius: 20px;
+    box-shadow: 0 12px 28px rgba(245, 158, 11, 0.08);
+  }
+
+  .levelup-alert-card .card-body {
+    padding: 1rem 1.1rem;
+  }
+
+  .levelup-alert-card .badge {
+    border-radius: 999px;
+  }
+
+  .levelup-alert-chip {
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 0.5rem 0.85rem;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .levelup-table-wrap {
+    background: #fff;
+    border: 1px solid #e8edf3;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.05);
+  }
+
+  .levelup-table {
+    margin-bottom: 0;
+  }
+
+  .levelup-table thead th {
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+  }
+
+  .levelup-table td {
+    vertical-align: middle;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+    border-color: #eef2f7;
+  }
+
+  .levelup-table .toggle-btn {
+    min-width: 84px;
+    border-radius: 999px;
+    font-weight: 600;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  }
+
+  .levelup-table .btn-success.toggle-btn {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    border-color: transparent;
+  }
+
+  .levelup-table .btn-warning.toggle-btn {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    border-color: transparent;
+    color: #111827;
+  }
+
+  .levelup-table .btn-primary.toggle-btn {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border-color: transparent;
+  }
+
+  .levelup-table .month-row td {
+    background: #fff;
+  }
+
+  .levelup-table .month-row:hover td {
+    background: #fbfdff;
+  }
+
+  .levelup-table .month-row + .month-row td {
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .levelup-table .month-row td:first-child,
+  .levelup-table .month-header td:first-child {
+    border-left: 4px solid transparent;
+  }
+
+  .levelup-table .month-row[data-month] td:first-child {
+    border-left-color: #e2e8f0;
+  }
+
+  .levelup-table .month-header.month-active td:first-child {
+    border-left-color: #2563eb;
+  }
+
+  .levelup-table .month-header.month-done td:first-child {
+    border-left-color: #cbd5e1;
+  }
+
+  .month-header td {
+    padding: 0.95rem 1rem;
+  }
+
+  .month-summary-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .month-summary-main {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .month-summary-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .month-summary-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .month-summary-badges .badge {
+    border-radius: 999px;
+    padding: 0.45rem 0.72rem;
+    font-size: 0.79rem;
+    font-weight: 700;
+  }
+
+  .month-material-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.45rem;
+    width: 100%;
+    display: none;
+  }
+
+  .month-header.is-open .month-material-wrap {
+    display: flex;
+  }
+
+  .material-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.38rem 0.62rem;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+
+  .material-name {
+    font-weight: 600;
+  }
+
+  .material-qty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.3rem;
+    height: 1.3rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 0.74rem;
+    font-weight: 700;
+  }
+
+  .levelup-student {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .levelup-price {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .levelup-actions .btn {
+    border-radius: 999px;
+    min-width: 52px;
+  }
+
+  .levelup-mobile-only {
+    display: none;
+  }
+
+  .levelup-desktop-only {
+    display: inline;
+  }
+
+  .levelup-mobile-price {
+    display: none;
+  }
+
+  .levelup-mobile-stack {
+    display: none;
+  }
+
+  .levelup-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .levelup-btn-text,
+  .levelup-btn-date {
+    display: inline;
+  }
+
+  .levelup-note {
+    max-width: 220px;
+    color: #64748b;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .levelup-empty {
+    padding: 3rem 1rem;
+    color: #64748b;
+  }
+
+  @media (max-width: 991.98px) {
+    .levelup-hero {
+      padding: 1rem;
+    }
+
+    .levelup-school-select,
+    .levelup-month {
+      width: 100%;
+    }
+
+    .month-summary-row {
+      align-items: flex-start;
+    }
+
+    .month-material-wrap {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .levelup-table-wrap {
+      border-radius: 16px;
+    }
+
+    .levelup-table {
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .levelup-table thead th,
+    .levelup-table td {
+      font-size: 0.72rem;
+      padding: 0.58rem 0.22rem;
+      white-space: nowrap;
+    }
+
+    .levelup-table thead th {
+      font-size: 0.66rem;
+      white-space: normal;
+      word-break: keep-all;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .levelup-table .month-header td {
+      padding: 0.72rem 0.8rem;
+      white-space: normal;
+    }
+
+    .levelup-col-year,
+    .levelup-col-section,
+    .levelup-col-grade,
+    .levelup-col-class,
+    .levelup-col-number,
+    .levelup-col-note,
+    .levelup-col-price,
+    .levelup-col-status,
+    .levelup-col-manage {
+      display: none;
+    }
+
+    .levelup-mobile-only {
+      display: table-cell;
+    }
+
+    .levelup-desktop-only {
+      display: none;
+    }
+
+    .levelup-mobile-stack {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.08;
+      gap: 0.08rem;
+    }
+
+    .levelup-col-material {
+      width: 10%;
+      white-space: normal;
+      word-break: keep-all;
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+      padding-left: 0.12rem !important;
+      padding-right: 0.12rem !important;
+    }
+
+    .levelup-col-mobile-code {
+      width: 17%;
+      font-weight: 700;
+      color: #334155;
+      padding-left: 0.08rem !important;
+      padding-right: 0.08rem !important;
+      white-space: normal;
+    }
+
+    .levelup-col-student {
+      width: 18%;
+      padding-left: 0.1rem !important;
+      padding-right: 0.1rem !important;
+    }
+
+    .levelup-col-mobile-actions {
+      width: 55%;
+      text-align: center;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      overflow: visible;
+    }
+
+    .levelup-table .toggle-btn,
+    .levelup-actions .btn {
+      min-width: 28px;
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: 0.72rem;
+      border-radius: 8px;
+      box-shadow: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .levelup-actions .btn i,
+    .levelup-table .toggle-btn i,
+    .levelup-btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      height: auto;
+      line-height: 1;
+      font-size: 0.9rem;
+      flex: 0 0 auto;
+      font-weight: 700;
+    }
+
+    .levelup-btn-text,
+    .levelup-btn-date,
+    .levelup-actions .btn span:not(.levelup-btn-icon) {
+      display: none;
+    }
+
+    .levelup-table .levelup-actions {
+      justify-content: center;
+      gap: 0.08rem;
+      flex-wrap: nowrap;
+      width: 100%;
+    }
+
+    .levelup-table .btn-outline-success .levelup-status-icon {
+      color: #16a34a;
+    }
+
+    .levelup-table .btn-outline-warning .levelup-status-icon {
+      color: #f59e0b;
+    }
+
+    .levelup-table .btn-outline-primary .levelup-status-icon {
+      color: #2563eb;
+    }
+
+    .levelup-table .btn-success .levelup-status-icon,
+    .levelup-table .btn-warning .levelup-status-icon,
+    .levelup-table .btn-primary .levelup-status-icon,
+    .levelup-table .btn-outline-secondary i,
+    .levelup-table .btn-outline-danger i {
+      color: #ffffff;
+    }
+
+    .levelup-table .btn-outline-secondary i {
+      color: #64748b;
+    }
+
+    .levelup-table .btn-outline-danger i {
+      color: #ef4444;
+    }
+
+    .levelup-mobile-price {
+      display: block;
+      margin-left: 0;
+      margin-top: 0.08rem;
+      font-size: 0.56rem;
+      font-weight: 700;
+      color: #64748b;
+    }
+
+    .levelup-mobile-stack {
+      font-size: 0.64rem;
+    }
+
+    .levelup-student {
+      font-size: 0.64rem;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .levelup-note {
+      display: none;
+    }
+
+    .month-summary-title {
+      font-size: 0.92rem;
+    }
+
+    .month-summary-badges .badge,
+    .material-chip {
+      font-size: 0.72rem;
+      padding-top: 0.35rem;
+      padding-bottom: 0.35rem;
+    }
+  }
 </style>
 
+  <div class="levelup-page">
   <!-- 🔹 헤더 -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h4 class="m-0">
-      <i class="bi bi-bar-chart-steps me-2 text-primary"></i>
-      <span class="fw-semibold">{{ institution.name }}</span>
-      <small class="text-muted">({{ institution.program }}) 단계업 관리</small>
-    </h4>
+  <div class="levelup-hero mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+      <div>
+        <div class="levelup-title d-flex flex-wrap align-items-center gap-2">
+          <span><i class="bi bi-bar-chart-steps me-2 text-primary"></i>{{ institution.name }}</span>
+          <span class="badge rounded-pill text-bg-light border">{{ institution.program }}</span>
+        </div>
+        <div class="text-muted small mt-1">월별 단계업 현황과 자동 출고 연동 상태를 한 화면에서 관리합니다.</div>
+      </div>
 
-    <div class="d-flex align-items-center gap-2 flex-nowrap levelup-toolbar">
+      <div class="d-flex flex-wrap justify-content-end align-items-center gap-2 levelup-toolbar">
 
-      <!-- 월 필터 -->
-      <select class="form-select form-select-sm levelup-month"
-              onchange="filterMonth(this.value)">
-        <option value="">전체 월</option>
-        {% for ym in grouped_records.keys %}
-          <option value="{{ ym }}">{{ ym }}</option>
-        {% endfor %}
-      </select>
+        <select class="form-select form-select-sm levelup-school-select" onchange="if (this.value) window.location.href=this.value" aria-label="학교 이동">
+          {% for inst in institutions %}
+            <option value="{% url 'robot_levelup_by_institution' inst.id %}" {% if inst.id == institution.id %}selected{% endif %}>{{ inst.name }}</option>
+          {% endfor %}
+        </select>
 
-      <!-- 버튼들 -->
-      <a href="{% url 'robot_levelup_create' institution.id %}"
-        class="btn btn-success btn-sm d-flex align-items-center gap-1">
-        <i class="bi bi-plus-circle"></i> 단계업 등록
-      </a>
+        <!-- 월 필터 -->
+        <select class="form-select form-select-sm levelup-month"
+                onchange="filterMonth(this.value)">
+          <option value="">전체 월</option>
+          {% for ym in grouped_records.keys %}
+            <option value="{{ ym }}">{{ ym }}</option>
+          {% endfor %}
+        </select>
 
-      <a href="{% url 'levelup_dashboard' %}"
-        class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
-        <i class="bi bi-bar-chart"></i> 통계 보기
-      </a>
+        <!-- 버튼들 -->
+        <a href="{% url 'robot_levelup_create' institution.id %}"
+          class="btn btn-success btn-sm d-flex align-items-center gap-1 px-3">
+          <i class="bi bi-plus-circle"></i> 단계업 등록
+        </a>
 
-      <a href="{% url 'students:student_list' %}"
-        class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1">
-        <i class="bi bi-arrow-left"></i> 출강장소
-      </a>
+        <a href="{% url 'levelup_dashboard' %}"
+          class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 px-3">
+          <i class="bi bi-bar-chart"></i> 통계 보기
+        </a>
 
-      <button class="btn btn-warning btn-sm d-flex align-items-center gap-1"
-              onclick="selectReleaseMonth()">
-        <i class="bi bi-box-arrow-up"></i> 주문등록
-      </button>
+        <a href="{% url 'students:student_detail' institution.id %}"
+          class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 px-3">
+          <i class="bi bi-people"></i> 학생관리 이동
+        </a>
 
+        <a href="{% url 'students:student_list' %}"
+          class="btn btn-outline-dark btn-sm d-flex align-items-center gap-1 px-3">
+          <i class="bi bi-arrow-left"></i> 출강장소
+        </a>
+
+      </div>
     </div>
   </div>
 
   {% if undelivered_materials %}
-      <div class="card border-warning shadow-sm mb-4">
+      <div class="card levelup-alert-card shadow-sm mb-4">
         <div class="card-body">
 
           <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
             <i class="bi bi-exclamation-triangle-fill text-warning"></i>
 
-            <span class="badge bg-dark">
-              주문 완료 {{ release_done }}개 / 전달 미완료 교구 {{ undelivered_total_qty }}개)
-            </span>
-          </div>
+              <span class="badge bg-dark px-3 py-2">
+               주문 완료 {{ release_done }}개 / 전달 미완료 교구 {{ undelivered_total_qty }}개
+              </span>
+            </div>
 
 
           <div class="d-flex flex-wrap gap-2">
             {% for m in undelivered_materials %}
-              <span class="badge 
+              <span class="badge levelup-alert-chip 
                 {% cycle 'bg-primary' 'bg-success' 'bg-warning text-dark' 'bg-danger' 'bg-info text-dark' 'bg-secondary' %}
-                px-3 py-2" style="cursor:pointer;"
+                "
                 onclick="toggleUndeliveredStudents(this, '{{ m.material__name }}')">
                 {{ m.material__name }} : {{ m.qty }}개
               </span>
@@ -112,12 +620,12 @@
   {% endif %}
 
   <!-- 🔹 단계업 리스트 (records 유지 + 월 헤더 삽입) -->
-  <div class="table-responsive">
+  <div class="table-responsive levelup-table-wrap">
     <table class="table table-striped table-hover align-middle text-center levelup-table">
       <thead class="table-light">
         <tr>
-          <th>년월</th><th>교구명</th><th>부</th><th>학년</th><th>반</th><th>번호</th><th>학생명</th>
-          <th>안내</th><th>주문</th><th>전달</th><th>가격</th><th>비고</th><th>관리</th>
+          <th class="levelup-col-year">년월</th><th class="levelup-col-material">교구명</th><th class="levelup-col-section">부</th><th class="levelup-col-grade">학년</th><th class="levelup-col-class">반</th><th class="levelup-col-number">번호</th><th class="levelup-mobile-only levelup-col-mobile-code"><span class="levelup-mobile-header-break">부/학반번</span></th><th class="levelup-col-student">학생명</th><th class="levelup-mobile-only levelup-col-mobile-actions">작업</th>
+          <th class="levelup-col-status">안내</th><th class="levelup-col-status">주문</th><th class="levelup-col-status">전달</th><th class="levelup-col-price">가격</th><th class="levelup-col-note">비고</th><th class="levelup-col-manage">관리</th>
         </tr>
       </thead>
       <tbody>
@@ -129,40 +637,30 @@
           <tr class="month-header cursor-pointer {% if stat.all_done %}month-done{% else %}month-active{% endif %}"
               data-month="{{ r.year_month }}"
               onclick="toggleMonth('{{ r.year_month }}')">
-            <td colspan="13" class="text-start fw-semibold py-2">
-
-              <i class="bi bi-calendar-event me-2"></i>
-              <span class="me-3">{{ r.year_month }}</span>
-
-              {% if stat %}
-                    <!-- 안내 -->
-                    <span class="badge bg-success ms-1">
-                      안내 {{ stat.guide_done }}/{{ stat.total }}
+            <td colspan="15" class="text-start fw-semibold py-2">
+              <div class="month-summary-row">
+                <div class="month-summary-main">
+                  <span class="month-summary-title"><i class="bi bi-calendar-event me-2"></i>{{ r.year_month }}</span>
+                  {% if stat %}
+                    <span class="month-summary-badges">
+                      <span class="badge bg-success">안내 {{ stat.guide_done }}/{{ stat.total }}</span>
+                      <span class="badge bg-warning text-dark">주문 {{ stat.release_done }}/{{ stat.total }}</span>
+                      <span class="badge bg-info text-dark">전달 {{ stat.delivered }}/{{ stat.total }}</span>
                     </span>
+                  {% endif %}
+                </div>
 
-                    <!-- 주문 -->
-                    <span class="badge bg-warning text-dark ms-1">
-                      주문 {{ stat.release_done }}/{{ stat.total }}
-                    </span>
-
-                    <!-- 전달 -->
-                    <span class="badge bg-info text-dark ms-1">
-                      전달 {{ stat.delivered }}/{{ stat.total }}
-                    </span>
-
-                    {% if stat.release_materials %}
-                      <span class="month-material-scroll ms-2">
-                        {% for name, qty in stat.release_materials.items %}
-                          <span class="material-chip 
-                            {% cycle 'mc-blue' 'mc-green' 'mc-yellow' 'mc-red' 'mc-cyan' 'mc-gray' %}">
-                            <span class="material-name">{{ name }}</span>
-                            <span class="material-qty">{{ qty }}</span>
-                          </span>
-                        {% endfor %}
+                {% if stat.release_materials %}
+                  <div class="month-material-wrap">
+                    {% for name, qty in stat.release_materials.items %}
+                      <span class="material-chip {% cycle 'mc-blue' 'mc-green' 'mc-yellow' 'mc-red' 'mc-cyan' 'mc-gray' %}">
+                        <span class="material-name">{{ name }}</span>
+                        <span class="material-qty">{{ qty }}</span>
                       </span>
-                    {% endif %}
-              {% endif %}
-
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% endwith %}
@@ -172,63 +670,108 @@
 
           <tr class="month-row d-none" data-month="{{ r.year_month }}">
 
-            <td>{{ r.year_month }}</td>
-            <td>{{ r.material.name }}</td>
-            <td>{{ r.section }}</td>
-            <td>{{ r.grade }}</td>
-            <td>{{ r.class_no }}</td>
-            <td>{{ r.student_no }}</td>
-            <td class="fw-semibold">{{ r.student_name }}</td>
+            <td class="levelup-col-year">{{ r.year_month }}</td>
+            <td class="levelup-col-material">
+              <span class="levelup-desktop-only">{{ r.material.name }}</span>
+              <span class="levelup-mobile-stack js-mobile-material" data-material-name="{{ r.material.name }}"><span class="levelup-mobile-price">{{ r.price|intcomma }}</span></span>
+            </td>
+            <td class="levelup-col-section">{{ r.section }}</td>
+            <td class="levelup-col-grade">{{ r.grade }}</td>
+            <td class="levelup-col-class">{{ r.class_no }}</td>
+            <td class="levelup-col-number">{{ r.student_no }}</td>
+            <td class="levelup-mobile-only levelup-col-mobile-code">
+              <span class="levelup-mobile-stack">
+                <strong>{{ r.section|default:'' }}</strong>
+                <span>{{ r.grade|default:'' }}{{ r.class_no|default:'' }}{% if r.student_no and r.student_no < 10 %}0{% endif %}{{ r.student_no|default:'' }}</span>
+              </span>
+            </td>
+            <td class="levelup-student levelup-col-student">{{ r.student_name }}</td>
+            <td class="levelup-mobile-only levelup-col-mobile-actions">
+              <div class="d-flex justify-content-center gap-2 levelup-actions">
+                <button class="btn btn-sm toggle-btn {% if r.guide_done %}btn-success{% else %}btn-outline-success{% endif %}"
+                        data-id="{{ r.pk }}" data-field="guide">
+                  {% if r.guide_done %}
+                    <span class="levelup-btn-icon">✅</span> <small class="text-muted ms-1 levelup-btn-date">{{ r.guide_date|date:"y.m.d" }}</small>
+                  {% else %}
+                    <span class="levelup-btn-icon"><i class="bi bi-megaphone"></i></span><span class="levelup-btn-text ms-1">안내</span>
+                  {% endif %}
+                </button>
+                <button class="btn btn-sm toggle-btn {% if r.release_done %}btn-warning{% else %}btn-outline-warning{% endif %}"
+                        data-id="{{ r.pk }}" data-field="release">
+                  {% if r.release_done %}
+                    <span class="levelup-btn-icon">✅</span> <small class="text-muted ms-1 levelup-btn-date">{{ r.release_date|date:"y.m.d" }}</small>
+                  {% else %}
+                    <span class="levelup-btn-icon"><i class="bi bi-box-seam"></i></span><span class="levelup-btn-text ms-1">주문</span>
+                  {% endif %}
+                </button>
+                <button class="btn btn-sm toggle-btn {% if r.delivery_done %}btn-primary{% else %}btn-outline-primary{% endif %}"
+                        data-id="{{ r.pk }}" data-field="delivery">
+                  {% if r.delivery_done %}
+                    <span class="levelup-btn-icon">✅</span> <small class="text-muted ms-1 levelup-btn-date">{{ r.delivery_date|date:"y.m.d" }}</small>
+                  {% else %}
+                    <span class="levelup-btn-icon"><i class="bi bi-truck"></i></span><span class="levelup-btn-text ms-1">전달</span>
+                  {% endif %}
+                </button>
+                <a href="{% url 'robot_levelup_update' r.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i><span class="ms-1">수정</span></a>
+                <a href="{% url 'robot_levelup_delete' r.pk %}"
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('삭제하시겠습니까?');">
+                   <i class="bi bi-trash"></i><span class="ms-1">삭제</span>
+                </a>
+              </div>
+            </td>
 
             <!-- 기존 토글 버튼 전부 유지 -->
-            <td class="text-center">
+            <td class="text-center levelup-col-status">
               <button class="btn btn-sm toggle-btn {% if r.guide_done %}btn-success{% else %}btn-outline-success{% endif %}"
                       data-id="{{ r.pk }}" data-field="guide">
                 {% if r.guide_done %}
-                  ✅ <small class="text-muted ms-1">{{ r.guide_date|date:"y.m.d" }}</small>
+                  <span class="levelup-btn-icon">✅</span> <small class="text-muted ms-1 levelup-btn-date">{{ r.guide_date|date:"y.m.d" }}</small>
                 {% else %}
-                  안내
+                  <span class="levelup-btn-icon"><i class="bi bi-megaphone"></i></span><span class="levelup-btn-text ms-1">안내</span>
                 {% endif %}
               </button>
             </td>
 
-            <td class="text-center">
+            <td class="text-center levelup-col-status">
               <button class="btn btn-sm toggle-btn {% if r.release_done %}btn-warning{% else %}btn-outline-warning{% endif %}"
                       data-id="{{ r.pk }}" data-field="release">
                 {% if r.release_done %}
-                  ✅ <small class="text-muted ms-1">{{ r.release_date|date:"y.m.d" }}</small>
+                  <span class="levelup-btn-icon">✅</span> <small class="text-muted ms-1 levelup-btn-date">{{ r.release_date|date:"y.m.d" }}</small>
                 {% else %}
-                  주문
+                  <span class="levelup-btn-icon"><i class="bi bi-box-seam"></i></span><span class="levelup-btn-text ms-1">주문</span>
                 {% endif %}
               </button>
             </td>
 
-            <td class="text-center">
+            <td class="text-center levelup-col-status">
               <button class="btn btn-sm toggle-btn {% if r.delivery_done %}btn-primary{% else %}btn-outline-primary{% endif %}"
                       data-id="{{ r.pk }}" data-field="delivery">
                 {% if r.delivery_done %}
-                  ✅ <small class="text-muted ms-1">{{ r.delivery_date|date:"y.m.d" }}</small>
+                  <span class="levelup-btn-icon">✅</span> <small class="text-muted ms-1 levelup-btn-date">{{ r.delivery_date|date:"y.m.d" }}</small>
                 {% else %}
-                  전달
+                  <span class="levelup-btn-icon"><i class="bi bi-truck"></i></span><span class="levelup-btn-text ms-1">전달</span>
                 {% endif %}
               </button>
             </td>
 
-            <td class="text-end">{{ r.price|intcomma }}원</td>
-            <td>{{ r.note|default:"-" }}</td>
+            <td class="text-end levelup-price levelup-col-price">{{ r.price|intcomma }}원</td>
+            <td class="levelup-note levelup-col-note">{{ r.note|default:"-" }}</td>
 
-            <td>
-              <a href="{% url 'robot_levelup_update' r.pk %}" class="btn btn-sm btn-outline-secondary">수정</a>
+            <td class="levelup-col-manage">
+              <div class="d-flex justify-content-center gap-2 levelup-actions">
+              <a href="{% url 'robot_levelup_update' r.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i><span class="ms-1">수정</span></a>
               <a href="{% url 'robot_levelup_delete' r.pk %}"
                  class="btn btn-sm btn-outline-danger"
                  onclick="return confirm('삭제하시겠습니까?');">
-                 <i class="bi bi-trash"></i>
+                 <i class="bi bi-trash"></i><span class="ms-1">삭제</span>
               </a>
+              </div>
             </td>
           </tr>
         {% empty %}
         <tr>
-          <td colspan="13" class="text-center text-muted">
+          <td colspan="15" class="text-center levelup-empty">
             등록된 단계업 학생이 없습니다.
           </td>
         </tr>
@@ -238,10 +781,46 @@
     </table>
   </div>
 </div>
+</div>
 
 
 <script>
+function renderToggleButtonContent(field, done, date) {
+  const iconMap = {
+    guide: '<i class="bi bi-megaphone-fill levelup-status-icon"></i>',
+    release: '<i class="bi bi-box-seam-fill levelup-status-icon"></i>',
+    delivery: '<i class="bi bi-truck levelup-status-icon"></i>',
+  };
+
+  const labelMap = {
+    guide: '안내',
+    release: '주문',
+    delivery: '전달',
+  };
+
+  if (done) {
+    return `<i class="bi bi-check-lg levelup-status-icon"></i>${date ? `<small class="text-muted ms-1 levelup-btn-date">${date}</small>` : ''}`;
+  }
+
+  return `<span class="levelup-btn-icon">${iconMap[field]}</span><span class="levelup-btn-text ms-1">${labelMap[field]}</span>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.js-mobile-material').forEach(el => {
+    const name = (el.dataset.materialName || '').trim();
+    const priceHtml = el.querySelector('.levelup-mobile-price')?.outerHTML || '';
+    if (!name) return;
+
+    const lastSpace = name.lastIndexOf(' ');
+    if (lastSpace > 0) {
+      const first = name.slice(0, lastSpace);
+      const second = name.slice(lastSpace + 1);
+      el.innerHTML = `<strong>${first}</strong><span>${second}</span>${priceHtml}`;
+    } else {
+      el.innerHTML = `<strong>${name}</strong>${priceHtml}`;
+    }
+  });
+
   document.querySelectorAll('.toggle-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const recordId = btn.dataset.id;
@@ -257,15 +836,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!data.success) return;
 
-        // ✅ 날짜 엘리먼트 즉시 제거
-        let dateElem = btn.parentElement.querySelector('small');
-        if (dateElem) dateElem.remove();
-
         // ✅ 상태 토글
         if (data.done) {
-          // ✅ 한 줄로 표시 (체크 + 날짜)
-          const todayText = data.date ? `✅ ${data.date}` : '✅';
-          btn.innerHTML = todayText;
+          btn.innerHTML = renderToggleButtonContent(field, true, data.date);
 
           btn.classList.remove('btn-outline-success', 'btn-outline-warning', 'btn-outline-primary');
           if (field === 'guide') btn.classList.add('btn-success');
@@ -276,14 +849,12 @@ document.addEventListener('DOMContentLoaded', () => {
           // ❌ 해제 상태
           if (field === 'guide') {
             btn.className = 'btn btn-sm btn-outline-success toggle-btn';
-            btn.textContent = '안내';
           } else if (field === 'release') {
             btn.className = 'btn btn-sm btn-outline-warning toggle-btn';
-            btn.textContent = '주문';
           } else if (field === 'delivery') {
             btn.className = 'btn btn-sm btn-outline-primary toggle-btn';
-            btn.textContent = '전달';
           }
+          btn.innerHTML = renderToggleButtonContent(field, false);
         }
 
       } catch (err) {
@@ -359,19 +930,28 @@ function selectReleaseMonth() {
 }
 
 function toggleMonth(month) {
-  document.querySelectorAll(`.month-row[data-month="${month}"]`)
-    .forEach(tr => tr.classList.toggle('d-none'));
+  const rows = document.querySelectorAll(`.month-row[data-month="${month}"]`);
+  const header = document.querySelector(`.month-header[data-month="${month}"]`);
+  if (!rows.length) return;
+
+  const shouldOpen = Array.from(rows).some(tr => tr.classList.contains('d-none'));
+  rows.forEach(tr => tr.classList.toggle('d-none', !shouldOpen));
+  if (header) {
+    header.classList.toggle('is-open', shouldOpen);
+  }
 }
 
 function filterMonth(month) {
-  document.querySelectorAll('.month-header, .month-row')
-    .forEach(el => {
-      if (!month || el.dataset.month === month) {
-        el.classList.remove('d-none');
-      } else {
-        el.classList.add('d-none');
-      }
-    });
+  document.querySelectorAll('.month-header').forEach(header => {
+    const visible = !month || header.dataset.month === month;
+    header.classList.toggle('d-none', !visible);
+    header.classList.toggle('is-open', !!month && visible);
+  });
+
+  document.querySelectorAll('.month-row').forEach(row => {
+    const visible = !!month && row.dataset.month === month;
+    row.classList.toggle('d-none', !visible);
+  });
 }
 
 // 미전달 교구 클릭 -> 학생명 표시

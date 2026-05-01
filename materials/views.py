@@ -355,6 +355,7 @@ def release_list(request):
                 "tax_invoice_sent": False,
                 "program_display": program_display,
                 "materials_summary": {},
+                "source_type": getattr(order, 'source_type', ''),
             }
             
         # ✅ payment_status=paid 인 경우, 날짜 없어도 수금완료로 인식
@@ -365,6 +366,8 @@ def release_list(request):
             grouped_data[key]["estimate_sent"] = False
         if bool(getattr(order, 'tax_invoice_sent', False)):
             grouped_data[key]["tax_invoice_sent"] = True
+        if getattr(order, 'source_type', '') == 'levelup_auto':
+            grouped_data[key]["source_type"] = 'levelup_auto'
 
         for item in order.items.all():
             grouped_data[key]["total_qty"] += item.quantity
@@ -2076,6 +2079,9 @@ def unrelease_material_item(request, item_id):
 @login_required
 def edit_release_item(request, item_id):
     item = get_object_or_404(MaterialReleaseItem, id=item_id)
+    if item.release.source_type == 'levelup_auto':
+        messages.warning(request, '단계업관리에서 자동 생성된 출고는 교구출고에서 직접 수정할 수 없습니다.')
+        return redirect_with_filters(request, 'release_list')
     vendors = Vendor.objects.all()
     # 🔽 거래처별 정렬
     materials = Material.objects.all().order_by("vendor", "vendor_order", "name")
@@ -2140,6 +2146,9 @@ def edit_release_item(request, item_id):
 @login_required
 def delete_release_item(request, item_id):
     item = get_object_or_404(MaterialReleaseItem, id=item_id)
+    if item.release.source_type == 'levelup_auto':
+        messages.warning(request, '단계업관리에서 자동 생성된 출고는 교구출고에서 직접 삭제할 수 없습니다.')
+        return redirect_with_filters(request, 'release_list')
     release = item.release  # 삭제 전 보관
 
     # 출고완료 & 센터수령이면 재고 복원
@@ -2167,6 +2176,10 @@ def delete_release_group(request, institution_id, order_month):
     releases = (MaterialRelease.objects
                 .filter(institution_id=institution_id, order_month=order_month)
                 .prefetch_related('items__material'))
+
+    if releases.filter(source_type='levelup_auto').exists():
+        messages.warning(request, '단계업관리에서 자동 생성된 출고 그룹은 교구출고에서 직접 삭제할 수 없습니다.')
+        return redirect('release_list')
 
     if not releases.exists():
         messages.info(request, '삭제할 내역이 없습니다.')
