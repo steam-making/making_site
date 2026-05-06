@@ -26,6 +26,7 @@ from filebrowser.sites import site
 from django.contrib.sitemaps.views import sitemap
 from main.sitemaps import sitemaps_dict
 from django.http import HttpResponse
+from django.views.generic.base import RedirectView
 
 def robots_txt(request):
     lines = [
@@ -40,6 +41,8 @@ urlpatterns = [
     path("grappelli/", include("grappelli.urls")),  # ✅ grappelli 먼저
     path("admin/filebrowser/", site.urls),          # ✅ filebrowser 경로
     path('admin/', admin.site.urls),
+    path('tag', RedirectView.as_view(url='/', permanent=True)),
+    path('tag/', RedirectView.as_view(url='/', permanent=True)),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps_dict}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', robots_txt),
     path('', include('main.urls')),  # main 앱의 URL 포함
