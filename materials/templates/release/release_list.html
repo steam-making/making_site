@@ -204,6 +204,17 @@
     background: #f8fafc;
   }
 
+  .release-teacher-quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+  }
+
+  .release-teacher-quick-filters .btn {
+    border-radius: 999px;
+  }
+
   @media (max-width: 991.98px) {
     .release-filter-shell {
       top: 58px;
@@ -513,6 +524,17 @@
           </select>
         </div>
       </div>
+
+      {% if request.user.is_staff %}
+      <div class="release-teacher-quick-filters d-none d-md-flex">
+        <a href="?teacher=&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+           class="btn btn-sm {% if not selected_teacher_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
+        {% for t in teachers %}
+        <a href="?teacher={{ t.id }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+           class="btn btn-sm {% if selected_teacher_id == t.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ t.first_name|default:t.username }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
     </form>
     </div>
   </div>

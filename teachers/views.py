@@ -6,12 +6,14 @@ from django.shortcuts import render
 from django.db.models import Q
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from datetime import datetime
 from django.contrib.auth.models import User
 from .models import TeachingInstitution, TeachingDay
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .models import Certificate, Career
 from .forms import CertificateForm, CareerForm
+from collections import OrderedDict
 
 
 
@@ -44,6 +46,7 @@ from django.shortcuts import render
 @login_required
 def institution_list(request):
     teacher_query = request.GET.get('teacher_q', '').strip()
+    selected_teacher_id = request.GET.get('teacher_id', '').strip()
     institution_query = request.GET.get('institution_q', '').strip()
     program_query = request.GET.get('program_q', '').strip()
 
@@ -51,6 +54,8 @@ def institution_list(request):
 
     if request.user.is_staff:
         institutions = TeachingInstitution.objects.select_related('teacher', 'school').prefetch_related('days').all()
+        if selected_teacher_id.isdigit():
+            institutions = institutions.filter(teacher_id=int(selected_teacher_id))
         if teacher_query:
             institutions = institutions.filter(
                 Q(teacher__first_name__icontains=teacher_query)
@@ -68,14 +73,21 @@ def institution_list(request):
     if program_query:
         institutions = institutions.filter(program__icontains=program_query)
 
-    institutions = institutions.order_by('is_closed', '-created_at')
+    institutions = institutions.order_by('teacher__first_name', 'teacher__username', 'is_closed', '-created_at')
+
+    grouped_institutions = OrderedDict()
+    for institution in institutions:
+        teacher_name = institution.teacher.first_name or institution.teacher.username
+        grouped_institutions.setdefault(teacher_name, []).append(institution)
 
     context = {
         'teachers': teachers,
-        'institutions': institutions,
+        'grouped_institutions': grouped_institutions,
         'teacher_query': teacher_query,
+        'selected_teacher_id': selected_teacher_id,
         'institution_query': institution_query,
         'program_query': program_query,
+        'today': timezone.now().date(),
     }
     return render(request, 'teachers/institution_list.html', context)
 
@@ -227,9 +239,19 @@ def institution_close(request, pk):
         messages.error(request, "종료 권한이 없습니다.")
         return redirect('institution_list')
 
+    close_date_raw = (request.POST.get("close_date") or "").strip()
+    closed_at = timezone.now()
+    if close_date_raw:
+        try:
+            close_date = datetime.strptime(close_date_raw, "%Y-%m-%d").date()
+            closed_at = timezone.make_aware(datetime.combine(close_date, datetime.min.time()))
+        except ValueError:
+            messages.error(request, "종료일 형식이 올바르지 않습니다.")
+            return redirect('institution_list')
+
     updated = TeachingInstitution.objects.filter(pk=inst.pk, is_closed=False).update(
         is_closed=True,
-        closed_at=timezone.now(),
+        closed_at=closed_at,
     )
 
     if updated == 0:
