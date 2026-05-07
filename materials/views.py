@@ -1989,6 +1989,7 @@ def release_material_item(request, item_id):
     """관리자만 품목 출고/취소 토글"""
     item = get_object_or_404(MaterialReleaseItem, id=item_id)
     material = item.material
+    from robot_LvUP.views import find_levelup_release, sync_levelup_shipment_status
 
     if item.status == 'released':
         # ✅ 출고 취소: 센터수령만 재고 복구 + 상태 되돌림
@@ -2012,6 +2013,9 @@ def release_material_item(request, item_id):
         item.status = 'pending'
         item.released_at = None
         item.save(update_fields=['status', 'released_at'])
+        matched_release = find_levelup_release(item.release.institution, item.release.order_month)
+        if matched_release and matched_release.id == item.release.id:
+            sync_levelup_shipment_status(item.release)
         messages.success(request, "출고 완료를 취소했습니다.")
 
     else:
@@ -2040,6 +2044,9 @@ def release_material_item(request, item_id):
         item.status = 'released'
         item.released_at = timezone.now()
         item.save(update_fields=['status', 'released_at'])
+        matched_release = find_levelup_release(item.release.institution, item.release.order_month)
+        if matched_release and matched_release.id == item.release.id:
+            sync_levelup_shipment_status(item.release)
         messages.success(request, "출고를 완료했습니다.")
 
     from .utils import redirect_with_filters
@@ -2053,6 +2060,7 @@ def release_material_item(request, item_id):
 def unrelease_material_item(request, item_id):
     """관리자만 출고 취소(되돌리기)"""
     item = get_object_or_404(MaterialReleaseItem, id=item_id)
+    from robot_LvUP.views import find_levelup_release, sync_levelup_shipment_status
     if request.method != 'POST':
         messages.error(request, '잘못된 요청입니다.')
         return redirect('release_list')
@@ -2065,6 +2073,9 @@ def unrelease_material_item(request, item_id):
     item.status = 'pending'
     item.released_at = None
     item.save()
+    matched_release = find_levelup_release(item.release.institution, item.release.order_month)
+    if matched_release and matched_release.id == item.release.id:
+        sync_levelup_shipment_status(item.release)
 
     # ✅ 품목별 출고방법 체크
     if item.release_method == '센터수령':

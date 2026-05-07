@@ -157,12 +157,32 @@
             animation: 150,
             handle: '.drag-handle', // 이 아이콘으로만 드래그 가능하게 설정
             ghostClass: 'bg-info-subtle', // 드래그 중인 행의 스타일
-            onEnd: function() {
+            onEnd: function(evt) {
+                keepChildRowsWithParent(evt.item);
                 // 드래그가 끝나면 순서 서버로 전송
                 saveFullOrder();
             }
         });
     });
+
+    function keepChildRowsWithParent(movedRow) {
+        if (!movedRow || !movedRow.classList.contains('top-menu-row')) {
+            return;
+        }
+
+        const parentId = movedRow.getAttribute('data-id');
+        const childRows = Array.from(document.querySelectorAll(`.sub-menu-row[data-parent-id="${parentId}"]`));
+
+        if (!childRows.length) {
+            return;
+        }
+
+        let insertAfter = movedRow;
+        childRows.forEach((childRow) => {
+            insertAfter.insertAdjacentElement('afterend', childRow);
+            insertAfter = childRow;
+        });
+    }
 
     function saveFullOrder() {
         const rows = document.querySelectorAll('.menu-row');

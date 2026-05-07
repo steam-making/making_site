@@ -18,6 +18,142 @@ def _build_levelup_release_title(institution, year_month):
     return f"{year_month} {institution.name} 단계업 자동 출고"
 
 
+def _build_levelup_summary(records):
+    summary = {}
+    for record in records:
+        if not record.material_id:
+            continue
+        summary[record.material_id] = summary.get(record.material_id, 0) + 1
+    return summary
+
+
+def find_levelup_release(institution, year_month, records=None):
+    auto_release = (
+        MaterialRelease.objects
+        .filter(
+            institution=institution,
+            order_month=year_month,
+            source_type=AUTO_RELEASE_SOURCE,
+        )
+        .prefetch_related("items")
+        .first()
+    )
+    if auto_release:
+        return auto_release
+
+    if records is None:
+        records = RobotLevelUp.objects.filter(
+            institution=institution,
+            year_month=year_month,
+        ).select_related("material")
+
+    target_summary = _build_levelup_summary(records)
+    if not target_summary:
+        return None
+
+    candidate_releases = (
+        MaterialRelease.objects
+        .filter(institution=institution, order_month=year_month)
+        .prefetch_related("items")
+        .order_by("-created_at", "-id")
+    )
+    for release in candidate_releases:
+        release_summary = {}
+        for item in release.items.all():
+            release_summary[item.material_id] = release_summary.get(item.material_id, 0) + item.quantity
+        if release_summary == target_summary:
+            return release
+
+    return None
+
+
+def sync_levelup_shipment_status(release):
+    if not release:
+        return
+
+    records = RobotLevelUp.objects.filter(
+        institution=release.institution,
+        year_month=release.order_month,
+    )
+    if not records.exists():
+        return
+
+    records.update(shipped_done=False, shipped_date=None)
+
+    for item in release.items.filter(status="released"):
+        shipped_date = item.released_at.date() if item.released_at else None
+        records.filter(material_id=item.material_id).update(
+            shipped_done=True,
+            shipped_date=shipped_date,
+        )
+
+
+def sync_institution_shipment_status(institution):
+    records = list(
+        RobotLevelUp.objects.filter(institution=institution).only(
+            "id", "year_month", "material_id"
+        )
+    )
+    if not records:
+        return
+
+    month_summaries = {}
+    months = set()
+    for record in records:
+        months.add(record.year_month)
+        if not record.material_id:
+            continue
+        summary = month_summaries.setdefault(record.year_month, {})
+        summary[record.material_id] = summary.get(record.material_id, 0) + 1
+
+    releases = list(
+        MaterialRelease.objects.filter(
+            institution=institution,
+            order_month__in=months,
+        ).prefetch_related("items").order_by("-created_at", "-id")
+    )
+
+    matched_releases = {}
+    for year_month, target_summary in month_summaries.items():
+        if not target_summary:
+            continue
+
+        auto_release = next(
+            (
+                release for release in releases
+                if release.order_month == year_month and release.source_type == AUTO_RELEASE_SOURCE
+            ),
+            None,
+        )
+        if auto_release:
+            matched_releases[year_month] = auto_release
+            continue
+
+        for release in releases:
+            if release.order_month != year_month:
+                continue
+            release_summary = {}
+            for item in release.items.all():
+                release_summary[item.material_id] = release_summary.get(item.material_id, 0) + item.quantity
+            if release_summary == target_summary:
+                matched_releases[year_month] = release
+                break
+
+    RobotLevelUp.objects.filter(institution=institution).update(shipped_done=False, shipped_date=None)
+
+    for year_month, release in matched_releases.items():
+        month_records = RobotLevelUp.objects.filter(
+            institution=institution,
+            year_month=year_month,
+        )
+        for item in release.items.filter(status="released"):
+            shipped_date = item.released_at.date() if item.released_at else None
+            month_records.filter(material_id=item.material_id).update(
+                shipped_done=True,
+                shipped_date=shipped_date,
+            )
+
+
 def _sync_levelup_release(institution, year_month, user=None):
     records = list(
         RobotLevelUp.objects.filter(
@@ -26,15 +162,7 @@ def _sync_levelup_release(institution, year_month, user=None):
         ).select_related("material__vendor")
     )
 
-    release = (
-        MaterialRelease.objects
-        .filter(
-            institution=institution,
-            order_month=year_month,
-            source_type=AUTO_RELEASE_SOURCE,
-        )
-        .first()
-    )
+    release = find_levelup_release(institution, year_month, records)
 
     if not records:
         if release:
@@ -59,6 +187,8 @@ def _sync_levelup_release(institution, year_month, user=None):
         RobotLevelUp.objects.filter(institution=institution, year_month=year_month).update(
             release_done=False,
             release_date=None,
+            shipped_done=False,
+            shipped_date=None,
         )
         return
 
@@ -103,6 +233,7 @@ def _sync_levelup_release(institution, year_month, user=None):
             release_done=True,
             release_date=timezone.now().date(),
         )
+        sync_levelup_shipment_status(release)
 
 def release_preview(request, institution_id, year_month):
 
@@ -249,6 +380,9 @@ def levelup_by_institution(request, institution_id):
     if not request.user.is_staff and institution.teacher != request.user:
         return render(request, "403.html", status=403)
 
+    # 기존 교구출고 이력을 현재 단계업 출고 상태와 맞춘다.
+    sync_institution_shipment_status(institution)
+
     # ✅ 기본 레코드 (정렬 유지)
     records = (
         RobotLevelUp.objects
@@ -272,6 +406,7 @@ def levelup_by_institution(request, institution_id):
     total_price = records.aggregate(Sum("price"))["price__sum"] or 0
     guide_done = records.filter(guide_done=True).count()
     release_done = records.filter(release_done=True).count()
+    shipped_done = records.filter(shipped_done=True).count()
     delivery_done = records.filter(delivery_done=True).count()
 
     # =========================================================
@@ -279,7 +414,7 @@ def levelup_by_institution(request, institution_id):
     # =========================================================
     undelivered_materials = (
         records
-        .filter(release_done=True, delivery_done=False)
+        .filter(shipped_done=True, delivery_done=False)
         .values("material__name")
         .annotate(qty=Count("id"))
         .order_by("material__name")
@@ -300,12 +435,13 @@ def levelup_by_institution(request, institution_id):
 
         guide_cnt = sum(1 for i in items if i.guide_done)
         release_cnt = sum(1 for i in items if i.release_done)
+        shipped_cnt = sum(1 for i in items if i.shipped_done)
         delivered_cnt = sum(1 for i in items if i.delivery_done)
 
         # 월별 전달 미완료 교구 집계
         undelivered = {}
         for i in items:
-            if i.release_done and not i.delivery_done:
+            if i.shipped_done and not i.delivery_done:
                 name = i.material.name
                 undelivered[name] = undelivered.get(name, 0) + 1
 
@@ -323,10 +459,16 @@ def levelup_by_institution(request, institution_id):
             "total": total_cnt,
             "guide_done": guide_cnt,
             "release_done": release_cnt,
+            "shipped_done": shipped_cnt,
             "delivered": delivered_cnt,
             "undelivered": undelivered,
             "release_materials": release_materials,
-            "all_done": (guide_cnt == total_cnt and release_cnt == total_cnt and delivered_cnt == total_cnt),
+            "all_done": (
+                guide_cnt == total_cnt
+                and release_cnt == total_cnt
+                and shipped_cnt == total_cnt
+                and delivered_cnt == total_cnt
+            ),
         }
 
 
@@ -344,6 +486,7 @@ def levelup_by_institution(request, institution_id):
         "total_price": total_price,
         "guide_done": guide_done,
         "release_done": release_done,
+        "shipped_done": shipped_done,
         "delivery_done": delivery_done,
 
         # 전체 미전달 요약

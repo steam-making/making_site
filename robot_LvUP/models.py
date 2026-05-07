@@ -33,6 +33,8 @@ class RobotLevelUp(models.Model):
     guide_date = models.DateField("안내일", null=True, blank=True)
     release_done = models.BooleanField("출고완료", default=False)
     release_date = models.DateField("출고일", null=True, blank=True)
+    shipped_done = models.BooleanField("실출고완료", default=False)
+    shipped_date = models.DateField("실출고일", null=True, blank=True)
     delivery_done = models.BooleanField("전달완료", default=False)
     delivery_date = models.DateField("전달일", null=True, blank=True)
 
