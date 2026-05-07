@@ -4,6 +4,156 @@
 {% extends "base.html" %}
 {% load humanize mul_filters %}
 {% block content %}
+<style>
+  .estimate-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .estimate-actions .btn,
+  .estimate-actions form {
+    flex: 1 1 180px;
+    margin: 0;
+  }
+
+  .estimate-actions form {
+    display: flex;
+  }
+
+  .estimate-actions .btn,
+  .estimate-actions form .btn {
+    width: 100%;
+    height: 46px;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+    line-height: 1;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .estimate-item-table {
+    table-layout: fixed;
+  }
+
+  .estimate-item-table th,
+  .estimate-item-table td {
+    vertical-align: middle;
+  }
+
+  .estimate-item-table thead th {
+    white-space: nowrap;
+    font-size: 0.95rem;
+  }
+
+  .estimate-item-table .estimate-col-include {
+    width: 6%;
+  }
+
+  .estimate-item-table .estimate-col-material {
+    width: 30%;
+  }
+
+  .estimate-item-table .estimate-col-group {
+    width: 30%;
+  }
+
+  .estimate-item-table .estimate-col-price {
+    width: 10%;
+  }
+
+  .estimate-item-table .estimate-col-qty {
+    width: 8%;
+  }
+
+  .estimate-item-table .estimate-col-total {
+    width: 16%;
+  }
+
+  @media (max-width: 767.98px) {
+    .estimate-item-table-wrap {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .estimate-item-table {
+      min-width: 720px;
+    }
+
+    .estimate-item-table thead th,
+    .estimate-item-table td {
+      font-size: 0.84rem;
+      padding: 0.55rem 0.4rem;
+    }
+
+    .estimate-item-table .estimate-col-include {
+      width: 7%;
+    }
+
+    .estimate-item-table .estimate-col-material {
+      width: 24%;
+    }
+
+    .estimate-item-table .estimate-col-group {
+      width: 29%;
+    }
+
+    .estimate-item-table .estimate-col-price {
+      width: 13%;
+    }
+
+    .estimate-item-table .estimate-col-qty {
+      width: 8%;
+    }
+
+    .estimate-item-table .estimate-col-total {
+      width: 19%;
+    }
+
+    .estimate-item-table .fs-6 {
+      font-size: 0.92rem !important;
+      line-height: 1.25;
+      word-break: keep-all;
+    }
+
+    .estimate-item-table .group-name-display,
+    .estimate-item-table input[name$='group_name'] {
+      font-size: 0.8rem;
+    }
+
+    .estimate-item-table .edit-group-btn,
+    .estimate-item-table .save-group-btn {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+
+    .estimate-actions .btn,
+    .estimate-actions form .btn {
+      height: 42px;
+      min-height: 42px;
+      font-size: 0.9rem;
+    }
+
+    .estimate-summary-row {
+      row-gap: 0.75rem !important;
+    }
+
+    .estimate-summary-col-half {
+      width: 50%;
+      flex: 0 0 auto;
+    }
+
+    .estimate-summary-col-full {
+      width: 100%;
+      flex: 0 0 auto;
+    }
+  }
+</style>
 <div class="container mt-4" style="max-width:960px;">
   <div class="card shadow-sm border-0 rounded-3">
     <div class="card-header fw-semibold">
@@ -11,15 +161,7 @@
     </div>
 
     <div class="card-body">
-      <!-- 알림 -->
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
+      <div id="estimateStatus" class="alert d-none" role="alert"></div>
 
       <!-- 상단 요약 -->
       <p class="mb-2">
@@ -65,6 +207,9 @@
             <div class="d-flex justify-content-between align-items-center mb-2">
               <h5 class="mb-0"><i class="bi bi-box-seam"></i> 교구재 선택</h5>
               <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="autoGroup">
+                  <i class="bi bi-magic"></i> 자동그룹
+                </button>
                 <button type="button" class="btn btn-outline-secondary btn-sm" id="checkAll">
                   <i class="bi bi-check2-square"></i> 전체 선택
                 </button>
@@ -74,15 +219,16 @@
               </div>
             </div>
 
-            <table class="table table-bordered align-middle text-center">
+            <div class="estimate-item-table-wrap">
+            <table class="table table-bordered align-middle text-center estimate-item-table">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 6%;">포함</th>
-                  <th style="width: 30%;">교구재명</th>
-                  <th style="width: 30%;">그룹명</th>
-                  <th style="width: 10%;">단가(원)</th>
-                  <th style="width: 8%;">수량</th>
-                  <th style="width: 16%;">소계(원)</th>
+                  <th class="estimate-col-include">포함</th>
+                  <th class="estimate-col-material">교구재명</th>
+                  <th class="estimate-col-group">그룹명</th>
+                  <th class="estimate-col-price">단가(원)</th>
+                  <th class="estimate-col-qty">수량</th>
+                  <th class="estimate-col-total">소계(원)</th>
                 </tr>
               </thead>
               <tbody id="itemTbody">
@@ -114,6 +260,7 @@
               {% endfor %}
               </tbody>
             </table>
+            </div>
 
             <small class="text-muted">※ 단가는 VAT 포함가로 가정합니다.</small>
           </div>
@@ -123,20 +270,20 @@
         <div class="card mb-3 shadow-sm border-0">
           <div class="card-body">
             <h5 class="mb-3"><i class="bi bi-calculator"></i> 합계 (선택 반영 미리보기)</h5>
-            <div class="row g-3">
-              <div class="col-md-4">
+            <div class="row g-3 estimate-summary-row">
+              <div class="col-md-4 estimate-summary-col-half">
                 <div class="p-3 bg-light rounded-3">
                   <div class="small text-muted">공급가액</div>
                   <div class="fs-5 fw-semibold" id="supplySum">-</div>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 estimate-summary-col-half">
                 <div class="p-3 bg-light rounded-3">
                   <div class="small text-muted">부가세</div>
                   <div class="fs-5 fw-semibold" id="vatSum">-</div>
                 </div>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-4 estimate-summary-col-full">
                 <div class="p-3 bg-light rounded-3">
                   <div class="small text-muted">총 합계(VAT 포함)</div>
                   <div class="fs-5 fw-semibold" id="totalSum">-</div>
@@ -152,12 +299,7 @@
       <!-- ✅ 저장폼 끝 -->
 
       <!-- 버튼 그룹 (4개 한 줄) -->
-      <div class="d-flex gap-2 flex-wrap">
-        <!-- 저장 -->
-        <button type="submit" form="estimateForm" class="btn btn-primary">
-          <i class="bi bi-save"></i> 저장
-        </button>
-
+      <div class="estimate-actions">
         <!-- PDF 미리보기 -->
         <a href="{{ pdf_url }}" target="_blank" class="btn btn-outline-primary">
           <i class="bi bi-filetype-pdf"></i> PDF 미리보기
@@ -184,6 +326,43 @@
 <script>
   function nfmt(n){ return (n||0).toLocaleString(); }
   function calcVatFromTotal(total){ return Math.floor((total + 5) / 11); }
+  let isSavingEstimate = false;
+
+  function setEstimateStatus(message, level) {
+    const box = document.getElementById('estimateStatus');
+    if (!box) return;
+    box.className = `alert alert-${level}`;
+    box.textContent = message;
+  }
+
+  async function submitEstimateForm(){
+    if (isSavingEstimate) return;
+
+    const form = document.getElementById('estimateForm');
+    const formData = new FormData(form);
+    isSavingEstimate = true;
+
+    try {
+      const response = await fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setEstimateStatus(data.message || '저장했습니다.', 'success');
+      } else {
+        setEstimateStatus(data.message || '저장에 실패했습니다.', 'danger');
+      }
+    } catch (error) {
+      setEstimateStatus('저장 중 오류가 발생했습니다.', 'danger');
+    } finally {
+      isSavingEstimate = false;
+    }
+  }
 
   function recalc(){
     const rows = document.querySelectorAll('#itemTbody tr');
@@ -206,15 +385,33 @@
 
   document.addEventListener('DOMContentLoaded', function(){
     document.querySelectorAll('#itemTbody input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener('change', recalc);
+      cb.addEventListener('change', () => {
+        recalc();
+        submitEstimateForm();
+      });
     });
     document.getElementById('checkAll').addEventListener('click', () => {
       document.querySelectorAll('#itemTbody input[type="checkbox"]').forEach(cb => cb.checked = true);
       recalc();
+      submitEstimateForm();
     });
     document.getElementById('uncheckAll').addEventListener('click', () => {
       document.querySelectorAll('#itemTbody input[type="checkbox"]').forEach(cb => cb.checked = false);
       recalc();
+      submitEstimateForm();
+    });
+    document.getElementById('autoGroup').addEventListener('click', () => {
+      document.querySelectorAll('#itemTbody tr').forEach(row => {
+        const materialName = row.querySelector('td:nth-child(2) .fs-6')?.textContent.trim() || '';
+        const groupInput = row.querySelector('input[name$="group_name"]');
+        if (!groupInput || !materialName) return;
+
+        const firstSpace = materialName.indexOf(' ');
+        groupInput.value = firstSpace > 0 ? materialName.slice(0, firstSpace) : materialName;
+        const display = row.querySelector('.group-name-display');
+        if (display) display.textContent = groupInput.value;
+      });
+      submitEstimateForm();
     });
     recalc();
   });
@@ -239,6 +436,7 @@
         td.querySelector(".group-name-display").classList.remove("d-none");
         td.querySelector(".edit-group-btn").classList.remove("d-none");
         td.querySelector(".group-name-edit").classList.add("d-none");
+        submitEstimateForm();
       });
     });
   });

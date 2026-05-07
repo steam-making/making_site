@@ -1835,9 +1835,28 @@ def estimate_preview(request, institution_id, order_month):
                 form.instance.title = auto_title
 
             form.save()
-            formset.save()
+            for item_form in formset.forms:
+                item = item_form.instance
+                item.included = item_form.cleaned_data.get("included", False)
+                item.group_name = (item_form.cleaned_data.get("group_name") or "").strip() or item.material.name
+                item.save(update_fields=["included", "group_name"])
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "message": "견적서 내용을 저장했습니다.",
+                })
             messages.success(request, "견적서 내용(제목/비고)과 교구재 포함여부/그룹명을 저장했습니다.")
             return redirect("estimate_preview", institution_id=institution_id, order_month=order_month)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({
+                "success": False,
+                "message": "저장에 실패했습니다. 입력값을 다시 확인해주세요.",
+                "errors": {
+                    "form": form.errors,
+                    "formset": formset.errors,
+                },
+            }, status=400)
+        messages.error(request, "저장에 실패했습니다. 입력값을 다시 확인해주세요.")
     else:
         # GET: 저장된 제목이 없으면 자동 제목을 미리 채워서 폼에 표시
         if not (release.title or "").strip():
