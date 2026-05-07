@@ -58,6 +58,12 @@
     font-size: 1rem;
     font-weight: 700;
     color: #0f172a;
+    white-space: nowrap;
+  }
+
+  .release-group-program {
+    color: #64748b;
+    font-weight: 600;
   }
 
   .release-group-meta {
@@ -260,7 +266,7 @@
 
       <div class="col-12 col-md-auto d-flex flex-wrap gap-2 justify-content-end">
         <!-- 강사 선택 -->
-        <div class="flex-grow-1 flex-md-grow-0 position-relative" style="min-width: 140px;">
+        <div class="flex-grow-1 flex-md-grow-0 position-relative" style="min-width: 110px; max-width: 130px;">
           <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색">
           <ul id="teacherSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1050; margin-top: 5px; max-height: 250px; overflow-y: auto; padding: 0;">
             {% for t in teachers %}
@@ -275,13 +281,13 @@
         </div>
 
         <!-- 출강 장소 -->
-        <div class="flex-grow-1 flex-md-grow-0 position-relative" style="min-width: 160px;">
+        <div class="flex-grow-1 flex-md-grow-0 position-relative" style="min-width: 260px; max-width: 360px;">
           <input type="text" id="institutionInput" class="form-control" autocomplete="off" placeholder="장소 검색">
           <ul id="institutionSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1050; margin-top: 5px; max-height: 250px; overflow-y: auto; padding: 0;">
             {% regroup institutions|dictsort:"program" by program as program_groups %}
             {% for group in program_groups %}
                 {% for inst in group.list|dictsort:"name" %}
-                  <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem; white-space: normal;" data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}">[{{ group.grouper|default:'미지정' }}] {{ inst.name }}</button></li>
+                  <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem; white-space: nowrap;" data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.program %} · {{ inst.program }}{% endif %}</button></li>
                 {% endfor %}
             {% endfor %}
             <li class="dropdown-item text-muted empty-msg py-2" style="display: none; pointer-events: none; font-size: 0.85rem;">검색 결과 없음</li>
@@ -315,9 +321,9 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div>
             <div class="release-group-title">
-              {{ group.order_month }} · {{ group.institution.name }}
+              {{ group.order_month }} · {% if group.institution.school %}{{ group.institution.school.name }}{% else %}{{ group.institution.name }}{% endif %}
               {% if group.institution.program %}
-                <span class="text-muted fw-semibold">{{ group.institution.program }}</span>
+                <span class="release-group-program"> · {{ group.institution.program }}</span>
               {% endif %}
             </div>
             <div class="release-group-meta mt-1">강사 {{ group.teacher.first_name }} · 총 {{ group.total_qty }}개 · {{ group.total_price|intcomma }}원</div>

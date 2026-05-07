@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F
 from django.db import transaction
 from django.utils import timezone
 from datetime import date
@@ -12,6 +12,7 @@ from students.models import Student   # ✅ 출강장소별 학생정보 추가
 
 
 AUTO_RELEASE_SOURCE = "levelup_auto"
+LEGACY_SHIPPED_CUTOFF = "2026-05"
 
 
 def _build_levelup_release_title(institution, year_month):
@@ -140,8 +141,17 @@ def sync_institution_shipment_status(institution):
                 break
 
     RobotLevelUp.objects.filter(institution=institution).update(shipped_done=False, shipped_date=None)
+    RobotLevelUp.objects.filter(
+        institution=institution,
+        year_month__lt=LEGACY_SHIPPED_CUTOFF,
+    ).update(
+        shipped_done=True,
+        shipped_date=F("release_date"),
+    )
 
     for year_month, release in matched_releases.items():
+        if year_month < LEGACY_SHIPPED_CUTOFF:
+            continue
         month_records = RobotLevelUp.objects.filter(
             institution=institution,
             year_month=year_month,

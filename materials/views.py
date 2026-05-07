@@ -289,7 +289,7 @@ def release_list(request):
         .annotate(has_pending=Exists(has_pending_subq))
     )
 
-    institutions = TeachingInstitution.objects.filter(is_closed=False).select_related('teacher')
+    institutions = TeachingInstitution.objects.filter(is_closed=False).select_related('teacher', 'school').order_by('school__name', 'name', 'program')
 
     # ✅ 필터
     
