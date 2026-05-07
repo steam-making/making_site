@@ -6,11 +6,42 @@ from django.db.models import Max
 from django.http import JsonResponse
 from teachers.models import TeachingInstitution
 from .models import MenuItem
+from collections import OrderedDict
+
+
+def _normalize_program_group(program_name):
+    name = (program_name or '').strip()
+    if not name:
+        return '기타 프로그램'
+
+    if any(keyword in name for keyword in ['과학실험', '과학탐구', '생명과학', '융합과학']):
+        return '과학'
+    if '창의수학' in name:
+        return '창의수학'
+    if '로봇' in name:
+        return '로봇코딩'
+    if '코딩' in name:
+        return '코딩'
+    if '3D' in name or '3d' in name:
+        return '3D'
+    return name
+
 
 def home(request):
-    institutions = TeachingInstitution.objects.all().order_by('-id')[:6]
+    institutions = list(
+        TeachingInstitution.objects.select_related('school')
+        .filter(is_closed=False)
+        .order_by('program', 'school__name', 'name')
+    )
+
+    institutions_by_program = OrderedDict()
+    for institution in institutions:
+        program_name = _normalize_program_group(institution.program)
+        institutions_by_program.setdefault(program_name, []).append(institution)
+
     return render(request, 'main/home.html', {
-        'institutions': institutions
+        'institutions': institutions,
+        'institutions_by_program': institutions_by_program,
     })
 
 def making_page(request):

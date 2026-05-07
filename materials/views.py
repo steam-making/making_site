@@ -288,6 +288,7 @@ def release_list(request):
         .prefetch_related('items__vendor__vendor_type', 'items__material')
         .annotate(has_pending=Exists(has_pending_subq))
     )
+    all_releases = releases
 
     institutions = TeachingInstitution.objects.filter(is_closed=False).select_related('teacher', 'school').order_by('school__name', 'name', 'program')
 
@@ -319,15 +320,36 @@ def release_list(request):
         institutions = institutions.filter(teacher=user)
         selected_teacher_id = user.id
 
+    if selected_institution_id and selected_institution_id.isdigit():
+        all_releases = all_releases.filter(institution_id=int(selected_institution_id))
+
+    if selected_teacher_id:
+        try:
+            all_releases = all_releases.filter(teacher_id=int(selected_teacher_id))
+        except ValueError:
+            pass
+
+    if not user.is_staff:
+        all_releases = all_releases.filter(teacher=user)
+
     # ✅ 년월 필터
     if selected_order_month:
         releases = releases.filter(order_month=selected_order_month.strip())
+        all_releases = all_releases.filter(order_month=selected_order_month.strip())
+
+    unpaid_group_keys = {
+        (order.order_month, order.institution_id)
+        for order in all_releases.filter(payment_status="unpaid")
+    }
+    unpaid_group_count = len(unpaid_group_keys)
         
     # ✅ 미수금 여부 필터
     if unpaid_filter == "unpaid":
         releases = releases.filter(payment_status="unpaid")
+        all_releases = all_releases.filter(payment_status="unpaid")
     elif unpaid_filter == "paid":
         releases = releases.filter(payment_status="paid")
+        all_releases = all_releases.filter(payment_status="paid")
 
     # ✅ 정렬
     releases = releases.order_by('-order_month', '-has_pending', '-created_at').distinct()
@@ -380,9 +402,24 @@ def release_list(request):
         grouped_data[key]["orders"].append(order)
 
     grouped_list = []
+    teacher_new_flags = {}
+    for order in all_releases:
+        is_new = not (
+            bool(getattr(order, 'estimate_sent', False))
+            or bool(getattr(order, 'tax_invoice_sent', False))
+            or getattr(order, 'payment_status', '') == 'paid'
+        )
+        if is_new:
+            teacher_new_flags[order.teacher_id] = True
+
     for data in grouped_data.values():
         # 교구재명 오름차순 정렬
         data["materials_summary"] = dict(sorted(data["materials_summary"].items()))
+        data["is_new"] = not (
+            data["estimate_sent"]
+            or data["tax_invoice_sent"]
+            or data["payment_status"] == "paid"
+        )
         grouped_list.append(data)
 
     # ✅ 필터 select용 정렬
@@ -403,6 +440,8 @@ def release_list(request):
         'selected_order_month': selected_order_month,
         'selected_institution_id': selected_institution_id,
         'unpaid_filter': unpaid_filter,
+        'teacher_new_ids': [teacher_id for teacher_id, has_new in teacher_new_flags.items() if has_new],
+        'unpaid_group_count': unpaid_group_count,
     })
     
     

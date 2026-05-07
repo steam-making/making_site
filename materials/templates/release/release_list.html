@@ -35,6 +35,44 @@
     font-size: 0.92rem;
   }
 
+  .release-desktop-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .release-desktop-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .release-desktop-controls .form-control,
+  .release-desktop-controls .btn {
+    min-height: 40px;
+  }
+
+  .release-desktop-controls .release-filter-teacher {
+    min-width: 160px;
+    max-width: 180px;
+  }
+
+  .release-desktop-controls .release-filter-institution {
+    min-width: 280px;
+    max-width: 340px;
+  }
+
+  .release-desktop-controls .release-filter-month {
+    min-width: 150px;
+  }
+
+  .release-unpaid-toggle {
+    white-space: nowrap;
+  }
+
   .release-filter-card .form-control,
   .release-filter-card .form-select,
   .release-filter-card .btn {
@@ -215,6 +253,35 @@
     border-radius: 999px;
   }
 
+  .release-quick-filter-panel {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .release-quick-filter-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.55rem;
+  }
+
+  .release-new-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-left: 0.35rem;
+  }
+
   @media (max-width: 991.98px) {
     .release-filter-shell {
       top: 58px;
@@ -274,6 +341,14 @@
       align-items: center;
       justify-content: space-between;
       gap: 0.75rem;
+    }
+
+    .release-desktop-controls {
+      display: none;
+    }
+
+    .release-quick-filter-panel {
+      display: none;
     }
 
     .release-filter-header .btn {
@@ -459,7 +534,7 @@
 
   <div class="sticky-top mb-4 release-filter-shell">
     <div class="release-filter-card">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 release-filter-header">
+      <div class="d-flex d-md-none flex-wrap justify-content-between align-items-center gap-2 mb-3 release-filter-header">
         <div>
           <div class="release-page-title">교구출고</div>
           <div class="release-page-subtitle">기관별 출고 현황, 수금 상태, 견적서 발행 흐름을 한 번에 관리합니다.</div>
@@ -471,13 +546,36 @@
 
       <!-- 새 출고 + 검색 필터 -->
       <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between">
-      <div class="col-12 col-md-auto mb-2 mb-md-0 d-none d-md-block">
-        <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary w-100 w-md-auto px-3">
-          <i class="bi bi-plus-lg"></i> 새 출고
-        </a>
+      <div class="col-12 d-none d-md-block mb-2">
+        <div class="release-desktop-header-row">
+          <div class="release-page-title mb-0">교구출고</div>
+          <div class="release-desktop-controls">
+            <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary px-3">
+              <i class="bi bi-plus-lg"></i> 새 출고
+            </a>
+            <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={% if unpaid_filter == 'unpaid' %}{% else %}unpaid{% endif %}"
+               class="btn px-3 release-unpaid-toggle {% if unpaid_filter == 'unpaid' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+              미결제 {{ unpaid_group_count }}
+            </a>
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopTeacherFilters" aria-expanded="true" aria-controls="desktopTeacherFilters">
+              강사검색
+            </button>
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopSchoolFilters" aria-expanded="false" aria-controls="desktopSchoolFilters">
+              학교검색
+            </button>
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopCenterFilters" aria-expanded="false" aria-controls="desktopCenterFilters">
+              기관검색
+            </button>
+            <div class="release-filter-month">
+              <input type="month" name="order_month" class="form-control"
+                     value="{{ selected_order_month|default_if_none:'' }}"
+                     onchange="this.form.submit()">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="col-12 col-md-auto d-flex flex-wrap gap-2 justify-content-end release-filter-fields">
+      <div class="col-12 col-md-auto d-flex d-md-none flex-wrap gap-2 justify-content-end release-filter-fields">
         <!-- 강사 선택 -->
         <div class="flex-grow-1 flex-md-grow-0 position-relative release-filter-teacher" style="min-width: 110px; max-width: 130px;">
           <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색">
@@ -515,24 +613,50 @@
                  onchange="this.form.submit()">
         </div>
 
-        <!-- 미수금 여부 -->
-        <div class="flex-grow-1 flex-md-grow-0 release-filter-unpaid" style="min-width: 120px;">
-          <select name="unpaid" class="form-select" onchange="this.form.submit()">
-            <option value="">-- 수금 --</option>
-            <option value="unpaid" {% if unpaid_filter == 'unpaid' %}selected{% endif %}>미수금만</option>
-            <option value="paid" {% if unpaid_filter == 'paid' %}selected{% endif %}>수금완료만</option>
-          </select>
-        </div>
+        <input type="hidden" name="unpaid" value="{{ unpaid_filter|default_if_none:'' }}">
       </div>
 
       {% if request.user.is_staff %}
-      <div class="release-teacher-quick-filters d-none d-md-flex">
-        <a href="?teacher=&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-           class="btn btn-sm {% if not selected_teacher_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
-        {% for t in teachers %}
-        <a href="?teacher={{ t.id }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-           class="btn btn-sm {% if selected_teacher_id == t.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ t.first_name|default:t.username }}</a>
-        {% endfor %}
+      <div id="desktopQuickFilters" class="d-none d-md-block">
+      <div class="collapse show release-quick-filter-panel" id="desktopTeacherFilters" data-bs-parent="#desktopQuickFilters">
+        <div class="release-quick-filter-title">강사 선택</div>
+        <div class="release-teacher-quick-filters">
+          <a href="?teacher=&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+             class="btn btn-sm {% if not selected_teacher_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
+          {% for t in teachers %}
+          <a href="?teacher={{ t.id }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+             class="btn btn-sm {% if selected_teacher_id == t.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ t.first_name|default:t.username }}{% if t.id in teacher_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="collapse release-quick-filter-panel" id="desktopSchoolFilters" data-bs-parent="#desktopQuickFilters">
+        <div class="release-quick-filter-title">학교/유치원 선택</div>
+        <div class="release-teacher-quick-filters">
+          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+             class="btn btn-sm {% if not selected_institution_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
+          {% for inst in institutions %}
+          {% if inst.place_type == 'school' or inst.place_type == 'kindergarten' %}
+          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}</a>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="collapse release-quick-filter-panel" id="desktopCenterFilters" data-bs-parent="#desktopQuickFilters">
+        <div class="release-quick-filter-title">기관 선택</div>
+        <div class="release-teacher-quick-filters">
+          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+             class="btn btn-sm {% if not selected_institution_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
+          {% for inst in institutions %}
+          {% if inst.place_type == 'child_center' or inst.place_type == 'culture_center' or inst.place_type == 'other' %}
+          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}</a>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
       </div>
       {% endif %}
     </form>
@@ -549,6 +673,7 @@
               {% if group.institution.program %}
                 <span class="release-group-program"> · {{ group.institution.program }}</span>
               {% endif %}
+              {% if group.is_new %}<span class="release-new-badge">NEW</span>{% endif %}
             </div>
             <div class="release-group-meta mt-1">강사 {{ group.teacher.first_name }} · 총 {{ group.total_qty }}개 · {{ group.total_price|intcomma }}원</div>
           </div>
@@ -951,26 +1076,35 @@
 <script>
   // Custom Autocomplete Dropdown Script
   document.addEventListener('DOMContentLoaded', function() {
-      function setupCustomAutocomplete(inputId, hiddenId, dropdownId) {
-          const input = document.getElementById(inputId);
+      function setupCustomAutocomplete(inputIds, hiddenId, dropdownId) {
+          const inputs = inputIds
+              .map((inputId) => document.getElementById(inputId))
+              .filter(Boolean);
           const hidden = document.getElementById(hiddenId);
           const dropdown = document.getElementById(dropdownId);
-          if (!input || !hidden || !dropdown) return;
+          if (!inputs.length || !hidden || !dropdown) return;
 
           const items = dropdown.querySelectorAll('li > button.dropdown-item');
           const emptyMsg = dropdown.querySelector('.empty-msg');
+          let activeInput = inputs[0];
+
+          function syncInputs(value) {
+              inputs.forEach((inputEl) => {
+                  inputEl.value = value;
+              });
+          }
 
           // 초기 로드 시 hidden 값에 맞는 텍스트 표시
           if (hidden.value !== '') {
               const opt = dropdown.querySelector(`button[data-id="${hidden.value}"]`);
               if (opt) {
-                  input.value = opt.textContent;
+                  syncInputs(opt.textContent);
               }
           }
 
           // 드롭다운 열기 및 필터링
           function filterAndShow() {
-              const val = input.value.toLowerCase().trim();
+              const val = activeInput.value.toLowerCase().trim();
               let hasMatch = false;
 
               items.forEach(btn => {
@@ -987,35 +1121,39 @@
               dropdown.style.display = 'block';
           }
 
-          input.addEventListener('input', function() {
-              // 사용자 입력 중엔 hidden 지우기 (확정 안됨)
-              if (hidden.value !== '') hidden.value = '';
-              filterAndShow();
-              // 값이 텅 비게 되면 필터 폼 제출 (해제)
-              if (this.value.trim() === '') {
-                  document.getElementById('filterForm').submit();
-              }
-          });
+          inputs.forEach((input) => {
+              input.addEventListener('input', function() {
+                  activeInput = input;
+                  syncInputs(input.value);
+                  if (hidden.value !== '') hidden.value = '';
+                  filterAndShow();
+                  if (this.value.trim() === '') {
+                      document.getElementById('filterForm').submit();
+                  }
+              });
 
-          input.addEventListener('focus', function() {
-              filterAndShow();
+              input.addEventListener('focus', function() {
+                  activeInput = input;
+                  filterAndShow();
+              });
           });
 
           // 외부 클릭 시 닫기
           document.addEventListener('click', function(e) {
-              if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+              const clickedInsideInput = inputs.some((input) => input.contains(e.target));
+              if (!clickedInsideInput && !dropdown.contains(e.target)) {
                   dropdown.classList.remove('show');
                   dropdown.style.display = 'none';
                   // 무의미한 텍스트를 남기고 나갔을경우 리셋 후 서브밋
-                  if (hidden.value === '' && input.value.trim() !== '') {
+                  if (hidden.value === '' && activeInput.value.trim() !== '') {
                       let exactMatch = null;
                       items.forEach(btn => {
-                          if (btn.textContent === input.value) exactMatch = btn;
+                          if (btn.textContent === activeInput.value) exactMatch = btn;
                       });
                       if (exactMatch) {
                           exactMatch.click();
                       } else {
-                          input.value = '';
+                          syncInputs('');
                           document.getElementById('filterForm').submit();
                       }
                   }
@@ -1026,7 +1164,7 @@
           items.forEach(btn => {
               btn.addEventListener('click', function(e) {
                   e.preventDefault();
-                  input.value = this.textContent;
+                  syncInputs(this.textContent);
                   hidden.value = this.getAttribute('data-id');
                   dropdown.classList.remove('show');
                   dropdown.style.display = 'none';
@@ -1043,8 +1181,8 @@
           });
       }
 
-      setupCustomAutocomplete('teacherInput', 'teacherHidden', 'teacherSearchDropdown');
-      setupCustomAutocomplete('institutionInput', 'institutionHidden', 'institutionSearchDropdown');
+      setupCustomAutocomplete(['teacherInput', 'teacherInputDesktop'], 'teacherHidden', 'teacherSearchDropdown');
+      setupCustomAutocomplete(['institutionInput', 'institutionInputDesktop'], 'institutionHidden', 'institutionSearchDropdown');
   });
 </script>
 
