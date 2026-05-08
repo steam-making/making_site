@@ -91,7 +91,59 @@ def redirect_after_login(request):
 
 @staff_member_required
 def admin_dashboard(request):
-    return render(request, 'admin_dashboard.html')
+    from teachers.models import TeachingInstitution
+    from materials.models import Material, MaterialRelease, Vendor, VendorType
+    from django.contrib.auth.models import User
+    from django.db.models import Count, Q
+    
+    # ✅ 주요 통계 데이터
+    # 회원 통계
+    total_users = User.objects.count()
+    active_users = User.objects.filter(is_active=True).count()
+    pending_users = User.objects.filter(is_active=False).count()
+    teachers = User.objects.filter(profile__user_type='teacher').count()
+    center_teachers = User.objects.filter(profile__user_type='center_teacher').count()
+    
+    # 기관/장소 통계
+    total_institutions = TeachingInstitution.objects.count()
+    active_institutions = TeachingInstitution.objects.filter(is_closed=False).count()
+    
+    # 교구재 통계
+    total_materials = Material.objects.count()
+    total_vendors = Vendor.objects.count()
+    total_vendor_types = VendorType.objects.count()
+    
+    # 출고/주문 통계
+    total_releases = MaterialRelease.objects.count()
+    unpaid_releases = MaterialRelease.objects.filter(payment_status='unpaid').count()
+    paid_releases = MaterialRelease.objects.filter(payment_status='paid').count()
+    
+    # ✅ 최근 활동 (최근 7일)
+    recent_releases = MaterialRelease.objects.order_by('-created_at')[:5]
+    
+    context = {
+        # 회원
+        'total_users': total_users,
+        'active_users': active_users,
+        'pending_users': pending_users,
+        'teachers': teachers,
+        'center_teachers': center_teachers,
+        # 기관
+        'total_institutions': total_institutions,
+        'active_institutions': active_institutions,
+        # 교구재
+        'total_materials': total_materials,
+        'total_vendors': total_vendors,
+        'total_vendor_types': total_vendor_types,
+        # 출고
+        'total_releases': total_releases,
+        'unpaid_releases': unpaid_releases,
+        'paid_releases': paid_releases,
+        # 최근 활동
+        'recent_releases': recent_releases,
+    }
+    
+    return render(request, 'admin_dashboard.html', context)
 
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
