@@ -402,8 +402,12 @@ def release_list(request):
         grouped_data[key]["orders"].append(order)
 
     grouped_list = []
-    # ✅ 미수금(미결제) 상태인 강사만 N 표시
+    # ✅ 미수금(미결제) 상태인 강사만 N 표시 (필터와 무관하게 전체에서 계산)
     teacher_new_flags = {}
+    all_releases_for_n_flag = MaterialRelease.objects.filter(payment_status="unpaid").values_list('teacher_id', flat=True).distinct()
+    for teacher_id in all_releases_for_n_flag:
+        teacher_new_flags[teacher_id] = True
+
     for order in all_releases:
         # 미수금 상태인 경우에만 N 표시
         if getattr(order, 'payment_status', '') == 'unpaid':
