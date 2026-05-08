@@ -3,7 +3,7 @@ from django import forms
 from .forms import TeachingInstitutionForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from datetime import datetime
@@ -149,7 +149,70 @@ def add_institution(request):
 
 @login_required
 def teacher_dashboard(request):
-    return render(request, 'teachers/teacher_dashboard.html')
+    profile = getattr(request.user, "profile", None)
+    user_type = getattr(profile, "user_type", "")
+
+    if not request.user.is_staff and user_type not in ("teacher", "center_teacher"):
+        return redirect("home")
+
+    from students.models import ProgramDivision, Student
+    from tasks.models import Task
+    from notices.models import Notice
+    from materials.models import MaterialRelease
+
+    institutions = (
+        TeachingInstitution.objects
+        .filter(teacher=request.user)
+        .annotate(student_count=Count("divisions__students", distinct=True))
+        .prefetch_related("days", "divisions")
+        .order_by("is_closed", "school__name", "name", "program")
+    )
+
+    active_institutions = institutions.filter(is_closed=False)
+    total_students = Student.objects.filter(division__institution__teacher=request.user).count()
+    total_divisions = ProgramDivision.objects.filter(institution__teacher=request.user).count()
+    total_certificates = Certificate.objects.filter(teacher=request.user).count()
+    total_careers = Career.objects.filter(teacher=request.user).count()
+
+    open_tasks = Task.objects.filter(created_by=request.user, completed=False)
+    due_soon_tasks = open_tasks.filter(due_date__isnull=False, due_date__lte=timezone.now().date())
+
+    release_queryset = MaterialRelease.objects.filter(teacher=request.user)
+    recent_releases = (
+        release_queryset
+        .select_related("institution")
+        .order_by("-created_at")[:5]
+    )
+    unpaid_releases = release_queryset.filter(
+        payment_status__in=["unpaid", "partial"],
+    ).count()
+
+    notices = (
+        Notice.objects
+        .filter(status="published", audience__in=["all", "teacher"])
+        .order_by("-is_pinned", "-published_at")[:5]
+    )
+
+    context = {
+        "dashboard_role": "센터 강사" if user_type == "center_teacher" else "강사",
+        "institutions": institutions[:6],
+        "institution_count": institutions.count(),
+        "active_institution_count": active_institutions.count(),
+        "closed_institution_count": institutions.filter(is_closed=True).count(),
+        "total_students": total_students,
+        "total_divisions": total_divisions,
+        "total_certificates": total_certificates,
+        "total_careers": total_careers,
+        "open_tasks_count": open_tasks.count(),
+        "due_soon_tasks_count": due_soon_tasks.count(),
+        "total_releases_count": release_queryset.count(),
+        "upcoming_tasks": open_tasks.order_by("due_date", "-created_at")[:5],
+        "recent_releases": recent_releases,
+        "unpaid_releases_count": unpaid_releases,
+        "notices": notices,
+        "today": timezone.now().date(),
+    }
+    return render(request, 'teachers/teacher_dashboard.html', context)
 
 
 @login_required

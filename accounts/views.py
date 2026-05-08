@@ -86,8 +86,17 @@ def kakao_callback(request):
 @login_required
 def redirect_after_login(request):
     if request.user.is_staff:
-        return redirect('admin_dashboard')  # 관리자이면 관리자 대시보드로
-    return redirect('home')  # 일반 유저는 홈
+        return redirect('admin_dashboard')
+
+    profile = getattr(request.user, "profile", None)
+    user_type = getattr(profile, "user_type", "")
+
+    if user_type in ["teacher", "center_teacher"]:
+        return redirect('teacher_dashboard')
+    if user_type == "parent":
+        return redirect('parent_dashboard')
+
+    return redirect('home')
 
 @staff_member_required
 def admin_dashboard(request):
