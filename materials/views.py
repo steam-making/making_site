@@ -402,24 +402,18 @@ def release_list(request):
         grouped_data[key]["orders"].append(order)
 
     grouped_list = []
+    # ✅ 미수금(미결제) 상태인 강사만 N 표시
     teacher_new_flags = {}
     for order in all_releases:
-        is_new = not (
-            bool(getattr(order, 'estimate_sent', False))
-            or bool(getattr(order, 'tax_invoice_sent', False))
-            or getattr(order, 'payment_status', '') == 'paid'
-        )
-        if is_new:
+        # 미수금 상태인 경우에만 N 표시
+        if getattr(order, 'payment_status', '') == 'unpaid':
             teacher_new_flags[order.teacher_id] = True
 
     for data in grouped_data.values():
         # 교구재명 오름차순 정렬
         data["materials_summary"] = dict(sorted(data["materials_summary"].items()))
-        data["is_new"] = not (
-            data["estimate_sent"]
-            or data["tax_invoice_sent"]
-            or data["payment_status"] == "paid"
-        )
+        # ✅ 미수금 상태일 때만 NEW 표시
+        data["is_new"] = data["payment_status"] == "unpaid"
         grouped_list.append(data)
 
     # ✅ 필터 select용 정렬
@@ -452,15 +446,23 @@ from django.contrib import messages
 def set_payment_date(request, institution_id, order_month):
     if request.method == "POST":
         date_val = request.POST.get("payment_date", "").strip()
+        action = request.POST.get("action", "")  # ✅ 버튼 구분: 'mark_paid' or 'mark_unpaid'
 
         releases = MaterialRelease.objects.filter(
             institution_id=institution_id,
             order_month=order_month
         )
 
-        if date_val:  
+        # ✅ '미수금' 버튼 클릭 시 날짜 없더라도 수금완료로 처리
+        if action == "mark_paid":
+            releases.update(payment_date=None, payment_status="paid")
+        elif action == "mark_unpaid":
+            releases.update(payment_date=None, payment_status="unpaid")
+        elif date_val:
+            # ✅ 날짜 입력 시 수금완료
             releases.update(payment_date=date_val, payment_status="paid")
-        else:  
+        else:
+            # ✅ 날짜 없고 버튼도 없으면 미수금
             releases.update(payment_date=None, payment_status="unpaid")
 
     # ✅ 돌아갈 URL: Referer 우선 → 없으면 release_list

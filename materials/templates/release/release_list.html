@@ -818,7 +818,7 @@
               {% endfor %}
             {% endfor %}
             <tr class="fw-bold release-total-row d-none d-md-table-row">
-              <!-- ✅ 수금 상태 -->
+<!-- ✅ 수금 상태 -->
               <td class="text-center d-none d-md-table-cell" colspan="4" data-label="수금 상태">
                 <form method="post" action="{% url 'set_payment_date' group.institution.id group.order_month %}">
                   {% csrf_token %}
@@ -831,9 +831,9 @@
                       onchange="this.form.submit();">
 
                     {% if group.payment_status == 'paid' %}
-                      <button type="submit" class="btn btn-sm btn-success">수금완료</button>
+                      <button type="submit" name="action" value="mark_unpaid" class="btn btn-sm btn-success">수금완료</button>
                     {% else %}
-                      <button type="submit" class="btn btn-sm btn-danger">미수금</button>
+                      <button type="submit" name="action" value="mark_paid" class="btn btn-sm btn-danger">미수금</button>
                     {% endif %}
                   </div>
                 </form>
@@ -1025,6 +1025,21 @@
         updateUI();
         form.submit();  // ✅ 자동 제출 → DB 저장
       });
+    });
+  });
+
+  // ✅ 수금 버튼 클릭 후 제자리에서 새로고침
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('form[action*="set_payment_date"]').forEach(function(form) {
+      const originalSubmit = form.onsubmit;
+      form.onsubmit = function(e) {
+        if (originalSubmit && !originalSubmit(e)) {
+          return false;
+        }
+        // 폼 제출 후 페이지 새로고침
+        window.location.reload();
+        return true;
+      };
     });
   });
 
