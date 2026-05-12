@@ -48,10 +48,13 @@ from .forms import ChildForm
 from .forms import InstitutionSignUpForm
 from django.views.decorators.http import require_POST
 
+from django.urls import reverse
+
 def kakao_login(request):
     client_id = settings.KAKAO_REST_API_KEY
-    redirect_uri = "http://127.0.0.1:8000/oauth/kakao/callback/" if settings.DEBUG else "http://133.186.144.151/oauth/kakao/callback/"
-    # talk_message, friends 권한 추가
+    # 현재 접속 중인 도메인을 기반으로 리다이렉트 URI 생성
+    redirect_uri = request.build_absolute_uri(reverse('kakao_callback'))
+    
     kakao_auth_url = (
         f"https://kauth.kakao.com/oauth/authorize?"
         f"client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=talk_message,friends"
@@ -65,14 +68,12 @@ def kakao_callback(request):
 
     # 1. 토큰 요청
     token_url = "https://kauth.kakao.com/oauth/token"
+    redirect_uri = request.build_absolute_uri(reverse('kakao_callback'))
+    
     data = {
         "grant_type": "authorization_code",
         "client_id": settings.KAKAO_REST_API_KEY,
-        "redirect_uri": (
-            "http://127.0.0.1:8000/oauth/kakao/callback/"
-            if settings.DEBUG else
-            "http://133.186.144.151/oauth/kakao/callback/"
-        ),
+        "redirect_uri": redirect_uri,
         "code": code,
     }
     res = requests.post(token_url, data=data)
