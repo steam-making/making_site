@@ -3,7 +3,10 @@ from django.shortcuts import render
 
 # ✅ 관리자 또는 강사만 접근 허용
 def is_staff_or_teacher(user):
-    return user.is_staff or getattr(user.profile, 'user_type', '') == 'center_teacher'
+    # 프로필이 없는 경우(예: 관리자 계정)를 고려하여 getattr 사용
+    profile = getattr(user, 'profile', None)
+    user_type = getattr(profile, 'user_type', '') if profile else ''
+    return user.is_staff or user_type in ('teacher', 'center_teacher')
 
 @login_required
 @user_passes_test(is_staff_or_teacher)

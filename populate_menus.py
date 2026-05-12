@@ -29,6 +29,30 @@ def populate_menus():
     MenuItem.objects.get_or_create(title="자격안내", url="/#certification", order=3, parent=m_info, access_level="all")
     MenuItem.objects.get_or_create(title="공지사항", url="/notices/", order=4, parent=m_info, access_level="all")
 
+    # --- [수업자료] 그룹 ---
+    m_class_resources = MenuItem.objects.get_or_create(title="수업자료", url="#", icon_class="bi-book-fill", order=2, access_level="teacher")[0]
+    
+    resource_categories = [
+        {"slug": "3dpen", "name": "3D펜"},
+        {"slug": "robot", "name": "로봇"},
+        {"slug": "science", "name": "과학"},
+        {"slug": "math", "name": "창의수학"},
+        {"slug": "coding", "name": "코딩"},
+        {"slug": "drone", "name": "항공드론"},
+        {"slug": "career", "name": "진로체험"},
+    ]
+
+    for i, category in enumerate(resource_categories):
+        MenuItem.objects.get_or_create(
+            title=category["name"],
+            url=f'/resources/{category["slug"]}/',
+            order=i + 1,
+            parent=m_class_resources,
+            access_level="teacher"
+        )
+
+
+
     # --- [관리자 전용] 관리 ---
     m_admin = MenuItem.objects.get_or_create(title="관리", url="#", icon_class="bi-gear-fill", order=100, access_level="staff")[0]
     MenuItem.objects.get_or_create(title="공지사항 관리", url="/notices/", order=1, parent=m_admin, access_level="staff")
