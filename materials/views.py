@@ -378,6 +378,7 @@ def release_list(request):
                 "program_display": program_display,
                 "materials_summary": {},
                 "source_type": getattr(order, 'source_type', ''),
+                "request_sent": order.request_sent,
             }
             
         # ✅ payment_status=paid 인 경우, 날짜 없어도 수금완료로 인식
@@ -445,6 +446,7 @@ def release_list(request):
     
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
+from django.http import HttpResponseNotAllowed
 
 @login_required
 def set_payment_date(request, institution_id, order_month):
@@ -473,6 +475,80 @@ def set_payment_date(request, institution_id, order_month):
     referer = request.META.get("HTTP_REFERER")
     if referer:
         return redirect(referer)
+    return redirect("release_list")
+
+@login_required
+def request_release_notification(request, institution_id, order_month):
+    """강사가 관리자에게 출고 요청 알림을 친구 메시지로 발송"""
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    # 1. 해당 그룹의 모든 출고 건 가져오기
+    releases = MaterialRelease.objects.filter(
+        institution_id=institution_id,
+        order_month=order_month,
+        teacher=request.user
+    )
+    if not releases.exists():
+        messages.error(request, "해당하는 출고 내역이 없습니다.")
+        return redirect("release_list")
+
+    # 2. 관리자 찾기 (withjongseok@naver.com 를 기본 관리자로 가정)
+    admin_user = User.objects.filter(username="withjongseok@naver.com").first()
+    if not admin_user:
+        admin_user = User.objects.filter(is_staff=True).first()
+
+    if not admin_user:
+        messages.error(request, "알림을 받을 관리자를 찾을 수 없습니다.")
+        return redirect("release_list")
+
+    # 3. 관리자의 kakao_id 확인
+    admin_profile = getattr(admin_user, "profile", None)
+    if not admin_profile or not admin_profile.kakao_id:
+        messages.error(request, "관리자의 카카오 계정이 연동되어 있지 않습니다.")
+        return redirect("release_list")
+
+    # 4. 강사(발신자)의 친구 목록에서 관리자의 uuid 찾기
+    from accounts.utils import find_friend_uuid, send_kakao_friend_message
+    receiver_uuid = find_friend_uuid(request.user, admin_profile.kakao_id)
+
+    if not receiver_uuid:
+        messages.error(request, "관리자가 친구 목록에 없거나 친구 메시지 권한이 없습니다. (서로 친구여야 하며 권한 승인이 필요합니다)")
+        return redirect("release_list")
+
+    # 5. 메시지 구성
+    institution = releases.first().institution
+    mat_counts = {}
+    for r in releases:
+        for item in r.items.all():
+            mat_name = item.material.name
+            mat_counts[mat_name] = mat_counts.get(mat_name, 0) + item.quantity
+    
+    item_summary = []
+    for name, qty in sorted(mat_counts.items()):
+        item_summary.append(f"- {name} {qty}개")
+    
+    items_text = "\n".join(item_summary)
+    message = (
+        f"[출고 요청 알림]\n"
+        f"강사: {request.user.first_name or request.user.username}\n"
+        f"출강장소: {institution.name}\n"
+        f"주문년월: {order_month}\n"
+        f"------------------\n"
+        f"{items_text}"
+    )
+
+    # 6. 메시지 발송
+    from django.conf import settings
+    res = send_kakao_friend_message(request.user, receiver_uuid, message, local_test=bool(settings.DEBUG))
+
+    if "error" in res:
+        messages.error(request, f"카카오 알림 발송 중 오류가 발생했습니다: {res.get('error')}")
+    else:
+        # 7. 상태 업데이트
+        releases.update(request_sent=True)
+        messages.success(request, "관리자에게 출고 요청 알림을 보냈습니다.")
+
     return redirect("release_list")
 
 

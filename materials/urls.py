@@ -76,5 +76,6 @@ urlpatterns = [
     # ✅ 강사용 반납 목록
     path("returns/", views.return_list, name="return_list"),
     path("release/payment/<int:institution_id>/<str:order_month>/",views.set_payment_date,name="set_payment_date",),
+    path("release/request-notification/<int:institution_id>/<str:order_month>/", views.request_release_notification, name="request_release_notification"),
 ]
 

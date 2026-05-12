@@ -14,6 +14,45 @@
                     {% endfor %}
                 {% endif %}
 
+                <!-- ✅ 카카오 계정 연동 섹션 -->
+                <div class="card bg-light mb-4 border-0">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="bi bi-chat-fill text-warning me-1"></i> 카카오 계정 연동
+                                {% if user.profile.kakao_id and user.profile.kakao_name %}
+                                    <span class="text-primary ms-1">({{ user.profile.kakao_name }})</span>
+                                {% endif %}
+                            </h6>
+                            {% if user.profile.kakao_id %}
+                                <span class="badge bg-success">연동 완료</span>
+                                <small class="text-muted ms-2">
+                                    {% if user.profile.kakao_name %}
+                                        <strong>{{ user.profile.kakao_name }}</strong> 님 계정으로 로그인 가능
+                                    {% else %}
+                                        카카오 계정으로 로그인할 수 있습니다.
+                                    {% endif %}
+                                </small>
+                            {% else %}
+                                <span class="badge bg-secondary">미연동</span>
+                                <small class="text-muted ms-2">카카오 계정을 연동하여 편리하게 로그인하세요.</small>
+                            {% endif %}
+                        </div>
+                        {% if not user.profile.kakao_id %}
+                            <a href="{% url 'kakao_login' %}" class="btn btn-sm" style="background-color: #FEE500; color: #000000; font-weight: 600;">
+                                계정 연동하기
+                            </a>
+                        {% else %}
+                            <form method="post" action="{% url 'kakao_unlink' %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('카카오 계정 연동을 해제하시겠습니까?');">
+                                    연동 해제
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <form method="post">
                     {% csrf_token %}
 

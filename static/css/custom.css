@@ -140,6 +140,18 @@ a:hover {
     color: var(--secondary-color);
 }
 
+.custom-navbar .dropdown-item i {
+    width: 1.2rem;
+    text-align: center;
+    color: var(--secondary-color); /* 아이콘에 포인트 컬러 적용 */
+    transition: all 0.2s;
+}
+
+.custom-navbar .dropdown-item:hover i {
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
 /* Mobile Navbar Scroll */
 .navbar-scroll {
     overflow-x: auto;

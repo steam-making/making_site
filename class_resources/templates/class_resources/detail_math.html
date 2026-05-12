@@ -1,38 +1,99 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4 mb-5" style="max-width:900px;">
-  <h3 class="mb-4 text-center">
-    <i class="bi bi-calculator text-warning"></i> 창의수학 수업자료
-  </h3>
+<style>
+  .resource-header {
+    background: linear-gradient(135deg, #fff9db 0%, #fff3bf 100%);
+    padding: 3rem 0;
+    border-radius: 0 0 40px 40px;
+    margin-bottom: 3rem;
+  }
+  .quick-link-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    height: 100%;
+  }
+  .quick-link-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    color: #f08c00;
+  }
+  .content-section {
+    background: #fff;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+  .breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+  }
+</style>
 
-  <!-- ✅ 바로가기 버튼 4개 -->
-  <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
-    <a href="http://www.mathtrip.co.kr/" target="_blank"
-       class="btn btn-outline-success btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-bus-front"></i> 창의수학여행
-    </a>
-    <a href="http://intra.mathtrip.co.kr/" target="_blank"
-       class="btn btn-outline-primary btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-cart"></i> 창의수학여행 교구재주문
-    </a>
-    <a href="https://www.nemosemo.co.kr/" target="_blank"
-       class="btn btn-outline-warning btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-shop"></i> 네모세모 쇼핑몰
-    </a>
-    <a href="http://www.oneclickb.com/" target="_blank"
-       class="btn btn-outline-info btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-browser-chrome"></i> 원클릭비
-    </a>
+<div class="resource-header text-center">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb justify-content-center mb-3">
+        <li class="breadcrumb-item"><a href="{% url 'resource_list' %}" class="text-decoration-none text-muted">수업자료</a></li>
+        <li class="breadcrumb-item active fw-bold text-warning" aria-current="page">창의수학</li>
+      </ol>
+    </nav>
+    <h1 class="fw-bold mb-2"><i class="bi bi-calculator me-2 text-warning"></i>창의수학 수업자료</h1>
+    <p class="text-muted fs-5">논리적 사고와 공간 지각력을 키우는 메이킹 창의수학 교육 리소스</p>
+  </div>
+</div>
+
+<div class="container mb-5" style="max-width: 1000px;">
+  <!-- 바로가기 링크 -->
+  <div class="row g-3 mb-5">
+    <div class="col-6 col-md-3">
+      <a href="http://www.mathtrip.co.kr/" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-bus-front display-5 text-success mb-3"></i>
+          <h5 class="mb-0 fw-bold">창의수학여행</h5>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="http://intra.mathtrip.co.kr/" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-cart-check display-5 text-primary mb-3"></i>
+          <h5 class="mb-0 fw-bold">교구재주문</h5>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="https://www.nemosemo.co.kr/" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-shop display-5 text-warning mb-3"></i>
+          <h5 class="mb-0 fw-bold">네모세모 몰</h5>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-3">
+      <a href="http://www.oneclickb.com/" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-cursor-fill display-5 text-info mb-3"></i>
+          <h5 class="mb-0 fw-bold">원클릭비</h5>
+        </div>
+      </a>
+    </div>
   </div>
 
-  <!-- ✅ 수업자료 예시 -->
-  <div class="card shadow-sm border-0">
-    <div class="card-body">
-      <h5 class="fw-semibold mb-3"><i class="bi bi-journal-text me-2"></i> 수업자료 예시 (준비중) </h5>
-      <ul class="list-group">
-        <li class="list-group-item"><i class="bi bi-file-earmark-pdf me-2"></i> 창의수학 퍼즐 교안 (PDF)</li>
-        <li class="list-group-item"><i class="bi bi-play-circle me-2"></i> 도형놀이 수업 영상</li>
-      </ul>
+  <!-- 수업자료 목록 -->
+  <div class="content-section">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3 class="fw-bold mb-0"><i class="bi bi-journal-text me-2 text-warning"></i>상세 수업자료</h3>
+      <span class="badge bg-warning-subtle text-warning px-3 py-2 fs-6">Update 예정</span>
+    </div>
+    
+    <div class="text-center py-5 border rounded-4 bg-light bg-opacity-50">
+      <i class="bi bi-cone-striped display-4 text-muted mb-3 d-block"></i>
+      <h4 class="fw-bold text-muted">콘텐츠 준비 중</h4>
+      <p class="text-muted mb-0">창의수학 퍼즐 교안 및 도형놀이 수업 영상을 준비하고 있습니다.<br>더 나은 교육 자료로 곧 찾아뵙겠습니다.</p>
     </div>
   </div>
 </div>

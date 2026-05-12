@@ -1,30 +1,142 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-  <h4 class="mb-3"><i class="bi bi-robot"></i> 로봇 수업자료</h4>
+<style>
+  .robot-card {
+    transition: all 0.3s ease;
+    border-radius: 20px;
+    border: none;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .robot-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  }
+  .robot-icon-wrap {
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.8rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  }
+  .robot-card-body {
+    padding: 1.5rem;
+    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .robot-title {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: #2d3436;
+    font-size: 1.25rem;
+  }
+  .robot-desc {
+    font-size: 0.9rem;
+    color: #636e72;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    flex-grow: 1;
+  }
+  .robot-btn {
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+  .robot-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+  }
   
-  <div class="row row-cols-1 row-cols-md-4 g-3">
-    <div class="col">
-      <a href="{% url 'robot_olloai' %}" class="btn btn-outline-primary w-100 py-3">올로AI</a>
-    </div>
-    <div class="col">
-      <a href="{% url 'robot_probo' %}" class="btn btn-outline-success w-100 py-3">프로보</a>
-    </div>
-    <div class="col">
-      <a href="{% url 'robot_xrobo' %}" class="btn btn-outline-warning w-100 py-3">엑스로보</a>
-    </div>
-    <div class="col">
-      <a href="{% url 'robot_jrobo' %}" class="btn btn-outline-danger w-100 py-3">제이로보</a>
-    </div>
-  </div>
+  /* 브랜드 색상 및 아이콘 효과 */
+  .color-olloai { color: #0d6efd; filter: drop-shadow(0 4px 8px rgba(13, 110, 253, 0.2)); }
+  .bg-olloai { background: linear-gradient(45deg, #0d6efd, #0b5ed7); color: white; }
+  
+  .color-probo { color: #198754; filter: drop-shadow(0 4px 8px rgba(25, 135, 84, 0.2)); }
+  .bg-probo { background: linear-gradient(45deg, #198754, #157347); color: white; }
+  
+  .color-xrobo { color: #fd7e14; filter: drop-shadow(0 4px 8px rgba(253, 126, 20, 0.2)); }
+  .bg-xrobo { background: linear-gradient(45deg, #fd7e14, #e8710a); color: white; }
+  
+  .color-jrobo { color: #dc3545; filter: drop-shadow(0 4px 8px rgba(220, 53, 69, 0.2)); }
+  .bg-jrobo { background: linear-gradient(45deg, #dc3545, #bb2d3b); color: white; }
 
-  <div class="list-group">
-    <a href="#" class="list-group-item list-group-item-action">
-      <i class="bi bi-file-earmark-pdf me-2"></i> LEGO SPIKE Prime 실습 자료 (PDF)
-    </a>
-    <a href="#" class="list-group-item list-group-item-action">
-      <i class="bi bi-file-earmark-play me-2"></i> 로봇 제어 예제 영상
-    </a>
+  @media (max-width: 768px) {
+    .robot-icon-wrap { height: 100px; font-size: 2.8rem; }
+  }
+</style>
+
+<div class="container py-5">
+  <div class="text-center mb-5">
+    <h2 class="fw-bold"><i class="bi bi-robot me-2 text-primary"></i>로봇 수업자료</h2>
+    <p class="text-muted fs-5">메이킹에서 제공하는 다양한 로봇 플랫폼별 전문 교육자료입니다.</p>
+  </div>
+  
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+    <!-- 올로AI -->
+    <div class="col">
+      <div class="robot-card">
+        <div class="robot-icon-wrap">
+          <i class="bi bi-cpu color-olloai"></i>
+        </div>
+        <div class="robot-card-body">
+          <h5 class="robot-title">올로AI</h5>
+          <p class="robot-desc">인공지능과 로봇의 결합, 스마트한 프로그래밍 교육을 위한 단계별 지침서</p>
+          <a href="{% url 'robot_olloai' %}" class="btn w-100 robot-btn bg-olloai">자료실 입장</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 프로보 -->
+    <div class="col">
+      <div class="robot-card">
+        <div class="robot-icon-wrap">
+          <i class="bi bi-gear-wide-connected color-probo"></i>
+        </div>
+        <div class="robot-card-body">
+          <h5 class="robot-title">프로보</h5>
+          <p class="robot-desc">창의적인 로봇 조립과 직관적인 제어 교육을 위한 레벨별 커리큘럼</p>
+          <a href="{% url 'robot_probo' %}" class="btn w-100 robot-btn bg-probo">자료실 입장</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 엑스로보 -->
+    <div class="col">
+      <div class="robot-card">
+        <div class="robot-icon-wrap">
+          <i class="bi bi-controller color-xrobo"></i>
+        </div>
+        <div class="robot-card-body">
+          <h5 class="robot-title">엑스로보</h5>
+          <p class="robot-desc">정밀한 모터 제어와 다양한 센서 활용을 배우는 전문 로봇 코딩 가이드</p>
+          <a href="{% url 'robot_xrobo' %}" class="btn w-100 robot-btn bg-xrobo">자료실 입장</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 제이로보 -->
+    <div class="col">
+      <div class="robot-card">
+        <div class="robot-icon-wrap">
+          <i class="bi bi-motherboard color-jrobo"></i>
+        </div>
+        <div class="robot-card-body">
+          <h5 class="robot-title">제이로보</h5>
+          <p class="robot-desc">기초 메카닉부터 심화 피지컬 컴퓨팅까지 아우르는 맞춤형 실습 자료</p>
+          <a href="{% url 'robot_jrobo' %}" class="btn w-100 robot-btn bg-jrobo">자료실 입장</a>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

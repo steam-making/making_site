@@ -20,6 +20,28 @@ from django.conf import settings
 from django.http import JsonResponse, HttpResponse
 from .models import KakaoToken
 from django.utils import timezone
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login
+from .forms import SignUpForm
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from .forms import UserUpdateForm, CustomPasswordChangeForm
+from django.http import JsonResponse
+from django.contrib.auth.models import User
+from .models import Profile
+from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
+from django.core.mail import EmailMessage
+from django.db.models import Q
+from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import user_passes_test, login_required
+from django.shortcuts import render
+import requests
+from django.conf import settings
+from django.http import JsonResponse, HttpResponse
+from .models import KakaoToken
+from django.utils import timezone
 from datetime import timedelta
 from .models import Profile, Child
 from .forms import ChildForm
@@ -27,11 +49,12 @@ from .forms import InstitutionSignUpForm
 from django.views.decorators.http import require_POST
 
 def kakao_login(request):
-    client_id = settings.KAKAO_REST_API_KEY  # settings.py에 등록 필요
+    client_id = settings.KAKAO_REST_API_KEY
     redirect_uri = "http://127.0.0.1:8000/oauth/kakao/callback/" if settings.DEBUG else "http://133.186.144.151/oauth/kakao/callback/"
+    # talk_message, friends 권한 추가
     kakao_auth_url = (
         f"https://kauth.kakao.com/oauth/authorize?"
-        f"client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=talk_message"
+        f"client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=talk_message,friends"
     )
     return redirect(kakao_auth_url)
 
@@ -40,6 +63,7 @@ def kakao_callback(request):
     if not code:
         return HttpResponse("인가 코드가 없습니다.", status=400)
 
+    # 1. 토큰 요청
     token_url = "https://kauth.kakao.com/oauth/token"
     data = {
         "grant_type": "authorization_code",
@@ -53,20 +77,40 @@ def kakao_callback(request):
     }
     res = requests.post(token_url, data=data)
     token_json = res.json()
-    print("🔍 카카오 토큰 요청 데이터:", data)
-    print("🔍 카카오 응답:", token_json)
-    
 
     if "access_token" not in token_json:
         return JsonResponse(token_json, status=400)
 
-    # ✅ 관리자 User에 강제 저장
-    admin_user = User.objects.get(username="withjongseok@naver.com")
-    
-    # ✅ 토큰 저장 (모델 필드에 맞춤)
+    access_token = token_json["access_token"]
+
+    # 2. 사용자 정보 요청
+    user_info_url = "https://kapi.kakao.com/v2/user/me"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    user_res = requests.get(user_info_url, headers=headers)
+    user_info = user_res.json()
+
+    kakao_id = str(user_info.get("id"))
+    kakao_account = user_info.get("kakao_account", {})
+    email = kakao_account.get("email")
+    nickname = kakao_account.get("profile", {}).get("nickname", "")
+
+    # 3. 로그인/연동/가입 로직
     if request.user.is_authenticated:
+        # 로그인 상태: 현재 계정에 카카오 연동
+        # ⚠️ 이미 다른 계정에 연동된 카카오 ID인지 확인
+        existing_profile = Profile.objects.filter(kakao_id=kakao_id).exclude(user=request.user).first()
+        if existing_profile:
+            messages.error(request, f"이 카카오 계정은 이미 다른 사용자({existing_profile.user.username})에게 연동되어 있습니다.")
+            return redirect("profile")
+
+        profile, created = Profile.objects.get_or_create(user=request.user)
+        profile.kakao_id = kakao_id
+        profile.kakao_name = nickname # ✅ 카카오 닉네임 저장
+        profile.save()
+        
+        # 토큰 저장
         KakaoToken.objects.update_or_create(
-            user=admin_user,
+            user=request.user,
             defaults={
                 "access_token": token_json["access_token"],
                 "refresh_token": token_json.get("refresh_token", ""),
@@ -74,14 +118,81 @@ def kakao_callback(request):
                 "refresh_token_expires_in": token_json.get("refresh_token_expires_in", 0),
             }
         )
-    else:
-        return JsonResponse({"error": "로그인한 사용자 없음"}, status=401)
+        messages.success(request, "카카오 계정이 연동되었습니다.")
+        return redirect("profile")
 
-    return JsonResponse({
-        "message": "카카오 로그인 성공",
-        "access_token": token_json["access_token"],
-        "token_info": token_json,
-    })
+    else:
+        # 비로그인 상태: 로그인 또는 가입 처리
+        profile = Profile.objects.filter(kakao_id=kakao_id).first()
+        
+        if not profile and email:
+            # 카카오 ID는 없지만 이메일이 일치하는 사용자가 있는 경우 자동 연동
+            user = User.objects.filter(email=email).first()
+            if user:
+                profile, created = Profile.objects.get_or_create(user=user)
+                profile.kakao_id = kakao_id
+                profile.kakao_name = nickname # ✅ 카카오 닉네임 저장
+                profile.save()
+
+        if profile:
+            # 기존 사용자 로그인
+            login(request, profile.user)
+            
+            # 토큰 저장
+            KakaoToken.objects.update_or_create(
+                user=profile.user,
+                defaults={
+                    "access_token": token_json["access_token"],
+                    "refresh_token": token_json.get("refresh_token", ""),
+                    "expires_in": token_json.get("expires_in", 0),
+                    "refresh_token_expires_in": token_json.get("refresh_token_expires_in", 0),
+                }
+            )
+            messages.success(request, f"{profile.user.first_name or profile.user.username}님, 환영합니다!")
+            return redirect("home")
+        else:
+            # 신규 가입 처리 (임시)
+            # 닉네임과 이메일을 기반으로 유저 생성
+            username = email if email else f"kakao_{kakao_id}"
+            if User.objects.filter(username=username).exists():
+                username = f"{username}_{kakao_id[:5]}"
+            
+            user = User.objects.create_user(
+                username=username,
+                email=email if email else "",
+                first_name=nickname,
+                is_active=False # 관리자 승인 대기
+            )
+            Profile.objects.create(user=user, kakao_id=kakao_id, kakao_name=nickname)
+            
+            # 토큰 저장
+            KakaoToken.objects.update_or_create(
+                user=user,
+                defaults={
+                    "access_token": token_json["access_token"],
+                    "refresh_token": token_json.get("refresh_token", ""),
+                    "expires_in": token_json.get("expires_in", 0),
+                    "refresh_token_expires_in": token_json.get("refresh_token_expires_in", 0),
+                }
+            )
+            messages.success(request, "카카오 계정으로 가입 신청이 완료되었습니다. 관리자 승인 후 이용 가능합니다.")
+            return redirect("login")
+
+@login_required
+@require_POST
+def kakao_unlink(request):
+    """카카오 계정 연동 해제"""
+    profile = getattr(request.user, 'profile', None)
+    if profile:
+        profile.kakao_id = None
+        profile.kakao_name = None
+        profile.save()
+        
+        # 관련 토큰 삭제
+        KakaoToken.objects.filter(user=request.user).delete()
+        
+        messages.success(request, "카카오 계정 연동이 해제되었습니다.")
+    return redirect("profile")
 
 @login_required
 def redirect_after_login(request):

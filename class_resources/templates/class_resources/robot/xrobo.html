@@ -1,162 +1,162 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
-<div class="container mt-4 mb-5" style="max-width:900px;">
-  <h3 class="mb-4 text-center">
-    <i class="bi bi-robot text-danger"></i> 엑스로보 수업자료
-  </h3>
+<style>
+  .resource-header {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+    padding: 3rem 0;
+    border-radius: 0 0 40px 40px;
+    margin-bottom: 3rem;
+  }
+  .quick-link-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    height: 100%;
+  }
+  .quick-link-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    color: #dc3545;
+  }
+  .program-section {
+    background: #fff;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  }
+  .list-group-item {
+    border: none;
+    border-bottom: 1px solid #f1f3f5;
+    padding: 1.25rem 1.5rem;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .list-group-item:last-child {
+    border-bottom: none;
+  }
+  .list-group-item:hover {
+    background-color: #f8f9fa;
+    padding-left: 2rem;
+  }
+</style>
 
-  <!-- ✅ 바로가기 버튼 4개 -->
-  <div class="d-flex justify-content-center flex-wrap gap-3 mb-4">
-
-    <!-- 엑스로보 홈페이지 -->
-    <a href="https://xrobo.co.kr/" target="_blank"
-       class="btn btn-outline-primary btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-house-door"></i>
-      엑스로보 홈페이지
-    </a>
-
-    <!-- 엑스로보 쇼핑몰 -->
-    <a href="https://smartstore.naver.com/xrobo" target="_blank"
-       class="btn btn-outline-success btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-cart"></i>
-      엑스로보 쇼핑몰
-    </a>
-
-    <!-- 엑스로보 카페 -->
-    <a href="https://cafe.naver.com/xroboextreme" target="_blank"
-       class="btn btn-outline-warning btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-chat-dots"></i>
-      엑스로보 네이버카페
-    </a>
-
-    <!-- 엑스로보 웹하드 -->
-    <a href="https://1drv.ms/f/c/382cc15dda19e21d/Eh3iGdpdwSwggDgSNAEAAAABjc9fBZR0Rgaibj6S0DAPLw?e=xsTTYN" target="_blank"
-       class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-cloud-arrow-down"></i>
-      엑스로보 웹하드
-    </a>
-
-    <!-- MLink 다운 -->
-    <a href="https://dls-cdn.makeblock.com/download-site/mblock5/win32/mLink2-V2.1.1.exe?KEY1=e8d9b8bce9da78fb6e3522b712ffb436&KEY2=690B5B03&__cf_chl_tk=gQcqxU8X0wB_YlViKik.G.0.y7enUYCSXS8O3wijSzo-1762351886-1.0.1.1-0ZIanW54xT_XbNwpuRXSeaMyjJ6xZLXjXv5MRpOhVgw" target="_blank"
-       class="btn btn-outline-secondary btn-lg d-flex align-items-center gap-2">
-      <i class="bi bi-gear-wide-connected"></i>
-      MLink 다운
-    </a>
-  </div>
-
-
-
-  <!-- ✅ 메인 다운로드 버튼 -->
-  <div class="text-center mb-4">
-
-    <!-- 🔹 엑스로보 로고 이미지 -->
-    <img src="{% static 'class_resources/robot/xrobo/images/xrobo.png' %}"
-        alt="엑스로보 로고"
-        class="img-fluid d-block mx-auto mb-3"
-        style="max-width:500px;">
-
-    <!-- 🔹 통합프로그램 다운로드 버튼 -->
-    <button class="btn btn-lg btn-danger mt-2" id="togglePrograms">
-      <i class="bi bi-download"></i>
-      통합프로그램 다운로드
-    </button>
-
-  </div>
-
-  <!-- ✅ 단계별 다운로드 목록 -->
-  <div id="programList" class="d-none">
-    <div class="list-group shadow-sm">
-
-      <!-- 🔴 안내 문구 -->
-      <div class="alert alert-danger fw-semibold text-center py-2 mb-0">
-        ※ MLink 다운 및 설치 후 이용하세요
-      </div>
-
-      <!-- ✅ 예시 1~3단계: 실제 다운로드 링크 -->
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676681"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 1단계 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676688"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 2단계 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676689"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 3단계 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676692"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 4단계 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676695"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 4단계 XB 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676697"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 4단계 SD 1~4 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676702"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 4단계 SD 5~8 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676704"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 5단계 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676705"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 5단계 XW 통합프로그램 다운받기
-      </a>
-
-      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676708"
-         target="_blank"
-         class="list-group-item list-group-item-action fw-semibold">
-        <i class="bi bi-box-arrow-up-right me-2"></i>
-        엑스로보 6단계 통합프로그램 다운받기
-      </a>
-
-    </div>
+<div class="resource-header text-center">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb justify-content-center mb-3">
+        <li class="breadcrumb-item"><a href="{% url 'resource_list' %}" class="text-decoration-none text-muted">수업자료</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'resource_detail' 'robot' %}" class="text-decoration-none text-muted">로봇</a></li>
+        <li class="breadcrumb-item active fw-bold text-danger" aria-current="page">엑스로보</li>
+      </ol>
+    </nav>
+    <img src="{% static 'class_resources/robot/xrobo/images/xrobo.png' %}" alt="엑스로보 로고" class="mb-3" style="max-height: 80px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));">
+    <h1 class="fw-bold mb-2"><i class="bi bi-controller me-2 text-danger"></i>엑스로보 수업자료</h1>
+    <p class="text-muted fs-5">창의력과 논리력을 키우는 엑스로보 익스트림 교육 리소스</p>
   </div>
 </div>
 
-<!-- ✅ JS 토글 스크립트 -->
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const toggleBtn = document.getElementById("togglePrograms");
-  const list = document.getElementById("programList");
+<div class="container mb-5" style="max-width: 1100px;">
+  <!-- 바로가기 링크 -->
+  <div class="row g-3 mb-5">
+    <div class="col-6 col-md-4 col-lg">
+      <a href="https://xrobo.co.kr/" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-house-door display-5 text-primary mb-3"></i>
+          <h6 class="mb-0 fw-bold">홈페이지</h6>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <a href="https://smartstore.naver.com/xrobo" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-cart display-5 text-success mb-3"></i>
+          <h6 class="mb-0 fw-bold">쇼핑몰</h6>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <a href="https://cafe.naver.com/xroboextreme" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-chat-dots display-5 text-warning mb-3"></i>
+          <h6 class="mb-0 fw-bold">네이버카페</h6>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <a href="https://1drv.ms/f/c/382cc15dda19e21d/Eh3iGdpdwSwggDgSNAEAAAABjc9fBZR0Rgaibj6S0DAPLw?e=xsTTYN" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-cloud-arrow-down display-5 text-secondary mb-3"></i>
+          <h6 class="mb-0 fw-bold">웹하드</h6>
+        </div>
+      </a>
+    </div>
+    <div class="col-6 col-md-4 col-lg">
+      <a href="https://dls-cdn.makeblock.com/download-site/mblock5/win32/mLink2-V2.1.1.exe" target="_blank" class="card quick-link-card">
+        <div class="card-body text-center py-4">
+          <i class="bi bi-gear-wide-connected display-5 text-dark mb-3"></i>
+          <h6 class="mb-0 fw-bold">MLink 다운</h6>
+        </div>
+      </a>
+    </div>
+  </div>
 
-  toggleBtn.addEventListener("click", function() {
-    list.classList.toggle("d-none");
-  });
-});
-</script>
+  <!-- 통합프로그램 다운로드 -->
+  <div class="program-section">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <h3 class="fw-bold mb-0"><i class="bi bi-download me-2 text-danger"></i>통합프로그램 다운로드</h3>
+      <div class="alert alert-danger py-2 px-3 mb-0 small fw-bold rounded-pill">
+        <i class="bi bi-exclamation-circle me-1"></i> MLink 설치 후 이용해 주세요
+      </div>
+    </div>
+    
+    <div class="list-group shadow-sm" style="border-radius: 15px; overflow: hidden; border: 1px solid #eee;">
+      
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676681" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 1단계 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676688" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 2단계 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676689" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 3단계 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676692" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 4단계 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676695" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 4단계 XB 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676697" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 4단계 SD 1~4 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676702" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 4단계 SD 5~8 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676704" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 5단계 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676705" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 5단계 XW 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+      <a href="https://ide.mblock.cc/#/?cloudProjectId=6676708" target="_blank" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-arrow-up-right me-3 text-danger"></i>엑스로보 6단계 통합프로그램</span>
+        <span class="btn btn-sm btn-outline-danger">바로가기</span>
+      </a>
+    </div>
+  </div>
+</div>
 {% endblock %}

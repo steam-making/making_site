@@ -5,9 +5,25 @@
 <!-- SortableJS CDN 추가 -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
+<style>
+    .btn-xs { padding: 0.1rem 0.3rem; font-size: 0.75rem; }
+    .drag-handle { color: #ccc; transition: color 0.2s; padding: 5px; }
+    .drag-handle:hover { color: #0d6efd; }
+    .sortable-ghost { background-color: #e9ecef !important; opacity: 0.6; }
+    .table-hover tbody tr:hover { background-color: rgba(0,0,0,0.02) !important; }
+    
+    .toggle-icon { cursor: pointer; transition: transform 0.2s; }
+    .toggle-icon.collapsed { transform: rotate(-90deg); }
+    
+    .icon-preview { font-size: 1.2rem; width: 40px; display: inline-block; text-align: center; }
+    .sub-menu-row.collapsed { display: none !important; }
+    
+    .menu-row.top-menu-row { border-left: 4px solid var(--secondary-color); }
+</style>
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-list-columns-reverse me-2"></i>네비게이션 메뉴 관리</h2>
+        <h2><i class="bi bi-list-columns-reverse me-2 text-primary"></i>네비게이션 메뉴 관리</h2>
         <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#menuModal" onclick="resetForm()">
             <i class="bi bi-plus-circle me-1"></i>새 메뉴 추가
         </button>
@@ -30,10 +46,11 @@
                 <table class="table table-hover mb-0 align-middle" id="menuTable">
                     <thead class="table-dark">
                         <tr>
-                            <th width="8%" class="text-center">순서</th>
-                            <th width="22%">메뉴 제목</th>
+                            <th width="5%" class="text-center">순서</th>
+                            <th width="20%">메뉴 제목</th>
+                            <th width="8%" class="text-center">아이콘</th>
                             <th width="25%">이동 경로 (URL)</th>
-                            <th width="15%">권한</th>
+                            <th width="12%">권한</th>
                             <th width="10%">상태</th>
                             <th width="20%" class="text-center">관리</th>
                         </tr>
@@ -45,12 +62,24 @@
                             <td class="text-center">
                                 <span class="drag-handle" style="cursor: grab;"><i class="bi bi-grip-vertical fs-5"></i></span>
                             </td>
-                            <td><i class="bi {{ menu.icon_class|default:'bi-layers' }} me-2 text-primary"></i>{{ menu.title }}</td>
+                            <td>
+                                {% if menu.sub_menus.all %}
+                                <i class="bi bi-chevron-down toggle-icon me-2" onclick="toggleSubMenus('{{ menu.id }}', this)"></i>
+                                {% else %}
+                                <i class="bi bi-dot me-2 text-muted"></i>
+                                {% endif %}
+                                {{ menu.title }}
+                            </td>
+                            <td class="text-center">
+                                <div class="icon-preview text-primary">
+                                    <i class="bi {{ menu.icon_class|default:'bi-question-circle text-muted' }}"></i>
+                                </div>
+                            </td>
                             <td><code class="small">{{ menu.url }}</code></td>
                             <td><span class="badge bg-secondary">{{ menu.get_access_level_display }}</span></td>
                             <td>{% if menu.is_active %}<span class="badge bg-success">활성</span>{% else %}<span class="badge bg-danger">비활성</span>{% endif %}</td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-info text-white me-1" onclick="editMenu('{{ menu.id }}', '{{ menu.title }}', '{{ menu.url }}', '{{ menu.icon_class }}', '{{ menu.access_level }}', '{{ menu.is_active|yesno:'true,false' }}', '')">
+                                <button class="btn btn-sm btn-info text-white me-1" onclick="editMenu('{{ menu.id }}', '{{ menu.title|escapejs }}', '{{ menu.url|escapejs }}', '{{ menu.icon_class|escapejs }}', '{{ menu.access_level }}', '{{ menu.is_active|yesno:'true,false' }}', '')">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
                                 <form method="POST" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
@@ -61,18 +90,23 @@
                                 </form>
                             </td>
                         </tr>
-                            <!-- 하위 메뉴들 (대메뉴 바로 뒤에 정렬될 수 있게 구성) -->
+                            <!-- 하위 메뉴들 -->
                             {% for sub in menu.sub_menus.all %}
-                            <tr class="menu-row sub-menu-row" data-id="{{ sub.id }}" data-access="{{ sub.access_level }}" data-parent-id="{{ menu.id }}">
+                            <tr class="menu-row sub-menu-row parent-{{ menu.id }}" data-id="{{ sub.id }}" data-access="{{ sub.access_level }}" data-parent-id="{{ menu.id }}">
                                 <td class="text-center">
                                     <span class="drag-handle ps-3" style="cursor: grab;"><i class="bi bi-grip-vertical text-muted"></i></span>
                                 </td>
-                                <td class="ps-5 text-muted"><i class="bi bi-arrow-return-right me-1"></i> {{ sub.title }}</td>
+                                <td class="ps-5 text-muted small"><i class="bi bi-arrow-return-right me-1"></i> {{ sub.title }}</td>
+                                <td class="text-center">
+                                    <div class="icon-preview text-info">
+                                        <i class="bi {{ sub.icon_class|default:'bi-question-circle text-muted' }}"></i>
+                                    </div>
+                                </td>
                                 <td><code class="small text-muted">{{ sub.url }}</code></td>
                                 <td><span class="badge bg-light text-dark border">{{ sub.get_access_level_display }}</span></td>
                                 <td>{% if sub.is_active %}<small class="text-success">활성</small>{% else %}<small class="text-danger">비활성</small>{% endif %}</td>
                                 <td class="text-center">
-                                    <button class="btn btn-xs btn-outline-info me-1" onclick="editMenu('{{ sub.id }}', '{{ sub.title }}', '{{ sub.url }}', '{{ sub.icon_class }}', '{{ sub.access_level }}', '{{ sub.is_active|yesno:'true,false' }}', '{{ menu.id }}')">
+                                    <button class="btn btn-xs btn-outline-info me-1" onclick="editMenu('{{ sub.id }}', '{{ sub.title|escapejs }}', '{{ sub.url|escapejs }}', '{{ sub.icon_class|escapejs }}', '{{ sub.access_level }}', '{{ sub.is_active|yesno:'true,false' }}', '{{ menu.id }}')">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <form method="POST" class="d-inline" onsubmit="return confirm('정말 삭제하시겠습니까?');">
@@ -114,7 +148,7 @@
                     <input type="text" name="url" id="form_url" class="form-control" placeholder="예: /tasks/ 또는 # (하위메류용)" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold">아이콘 클래스 (선택)</label>
+                    <label class="form-label fw-bold">아이콘 클래스 (자동맞춤생성)</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-brush"></i></span>
                         <input type="text" name="icon_class" id="form_icon_class" class="form-control" placeholder="bi-gear">
@@ -155,28 +189,38 @@
         const el = document.getElementById('sortable-menus');
         new Sortable(el, {
             animation: 150,
-            handle: '.drag-handle', // 이 아이콘으로만 드래그 가능하게 설정
-            ghostClass: 'bg-info-subtle', // 드래그 중인 행의 스타일
+            handle: '.drag-handle',
+            ghostClass: 'bg-info-subtle',
             onEnd: function(evt) {
                 keepChildRowsWithParent(evt.item);
-                // 드래그가 끝나면 순서 서버로 전송
                 saveFullOrder();
             }
         });
     });
 
-    function keepChildRowsWithParent(movedRow) {
-        if (!movedRow || !movedRow.classList.contains('top-menu-row')) {
-            return;
+    function toggleSubMenus(parentId, icon) {
+        const subRows = document.querySelectorAll(`.sub-menu-row.parent-${parentId}`);
+        const isCollapsed = icon.classList.contains('collapsed');
+        
+        subRows.forEach(row => {
+            if (isCollapsed) {
+                row.classList.remove('collapsed');
+            } else {
+                row.classList.add('collapsed');
+            }
+        });
+        
+        if (isCollapsed) {
+            icon.classList.remove('collapsed');
+        } else {
+            icon.classList.add('collapsed');
         }
+    }
 
+    function keepChildRowsWithParent(movedRow) {
+        if (!movedRow || !movedRow.classList.contains('top-menu-row')) return;
         const parentId = movedRow.getAttribute('data-id');
         const childRows = Array.from(document.querySelectorAll(`.sub-menu-row[data-parent-id="${parentId}"]`));
-
-        if (!childRows.length) {
-            return;
-        }
-
         let insertAfter = movedRow;
         childRows.forEach((childRow) => {
             insertAfter.insertAdjacentElement('afterend', childRow);
@@ -187,7 +231,6 @@
     function saveFullOrder() {
         const rows = document.querySelectorAll('.menu-row');
         const orderedIds = Array.from(rows).map(row => row.getAttribute('data-id'));
-        
         const formData = new FormData();
         formData.append('action', 'save_order');
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -196,16 +239,11 @@
         fetch('{% url "menu_management" %}', {
             method: 'POST',
             body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'success') {
-                console.log('순서가 저장되었습니다.');
-                // 가시적인 피드백 (선택 사항): 토스트 메시지 등
-            }
+            if (data.status === 'success') console.log('순서 저장 완료');
         });
     }
 
@@ -249,13 +287,33 @@
         document.getElementById('form_is_active').checked = (active === 'true');
         new bootstrap.Modal(document.getElementById('menuModal')).show();
     }
-</script>
 
-<style>
-    .btn-xs { padding: 0.1rem 0.3rem; font-size: 0.75rem; }
-    .drag-handle { color: #ccc; transition: color 0.2s; padding: 5px; }
-    .drag-handle:hover { color: #0d6efd; }
-    .sortable-ghost { background-color: #e9ecef !important; opacity: 0.6; }
-    .table-hover tbody tr:hover { background-color: rgba(0,0,0,0.02) !important; }
-</style>
+    const iconMapping = {
+        '홈': 'bi-house-door', '공지': 'bi-megaphone', '게시판': 'bi-journal-text',
+        '출결': 'bi-calendar-check', '수업': 'bi-book', '자료': 'bi-folder2-open',
+        '강사': 'bi-person-badge', '기관': 'bi-building', '학생': 'bi-people',
+        '회원': 'bi-person-circle', '설정': 'bi-gear', '도구': 'bi-tools',
+        '통계': 'bi-bar-chart', '로봇': 'bi-robot', '코딩': 'bi-code-slash',
+        '과학': 'bi-vial', '수학': 'bi-calculator', '드론': 'bi-airplane',
+        '진로': 'bi-compass', '메뉴': 'bi-list-ul', '내정보': 'bi-person-vcard',
+        '로그': 'bi-clock-history', '작업': 'bi-check2-square', '카드': 'bi-card-list',
+        '이미지': 'bi-image', '갤러리': 'bi-images', '다운로드': 'bi-download',
+        '링크': 'bi-link-45deg', '문의': 'bi-question-circle', '알림': 'bi-bell',
+        '출고': 'bi-truck', '교구': 'bi-box-seam', '예상지': 'bi-file-earmark-text'
+    };
+
+    const titleInput = document.getElementById('form_title');
+    const iconInput = document.getElementById('form_icon_class');
+
+    titleInput.addEventListener('input', function() {
+        const titleValue = this.value;
+        if (!titleValue) return;
+        for (const [keyword, iconClass] of Object.entries(iconMapping)) {
+            if (titleValue.includes(keyword)) {
+                iconInput.value = iconClass;
+                break;
+            }
+        }
+    });
+</script>
 {% endblock %}

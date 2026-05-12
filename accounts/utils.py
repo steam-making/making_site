@@ -117,10 +117,10 @@ def _refresh_token(token: KakaoToken) -> KakaoToken | None:
     return None
 
 def send_kakao_message(user, text, local_test=False):
+    """나에게 보내기 (기존 유지)"""
     try:
         token = KakaoToken.objects.filter(user=user).order_by("-created_at").first()
         if not token:
-            print(f"[카카오 발송 실패] 토큰 없음: {user.username}")
             return {"error": "no_token"}
 
         link_url = "http://127.0.0.1:8000" if local_test else "http://133.186.144.151"
@@ -132,25 +132,86 @@ def send_kakao_message(user, text, local_test=False):
         }
         data = {"template_object": json.dumps(template_obj, ensure_ascii=False)}
 
-        print("[카카오 발송] user:", user.username, "data:", data)
-
-        # 1차 전송
         res = requests.post(KAKAO_MEMO_SEND_URL, headers=_kakao_headers(token.access_token), data=data, timeout=10)
-        print("[카카오 응답-1]", res.status_code, res.text)
-
         result = res.json()
 
-        # 만료/권한 문제면 갱신 후 재시도
         if res.status_code in (401, 403) or result.get("code") == -401:
-            print("⚠️ access_token 만료/권한 문제 → 갱신 시도")
             if _refresh_token(token):
                 res = requests.post(KAKAO_MEMO_SEND_URL, headers=_kakao_headers(token.access_token), data=data, timeout=10)
-                print("[카카오 응답-2]", res.status_code, res.text)
                 result = res.json()
-
         return result
     except Exception as e:
-        print("[카카오 알림 오류]", e)
+        print("[카카오 나에게 보내기 오류]", e)
+        return {"error": str(e)}
+
+def get_kakao_friends(user):
+    """카카오 친구 목록 가져오기"""
+    try:
+        token = KakaoToken.objects.filter(user=user).order_by("-created_at").first()
+        if not token:
+            return None
+        
+        url = "https://kapi.kakao.com/v1/api/talk/friends"
+        res = requests.get(url, headers=_kakao_headers(token.access_token), timeout=10)
+        result = res.json()
+
+        if res.status_code in (401, 403) or result.get("code") == -401:
+            if _refresh_token(token):
+                res = requests.get(url, headers=_kakao_headers(token.access_token), timeout=10)
+                result = res.json()
+        
+        return result.get("elements", [])
+    except Exception as e:
+        print("[카카오 친구 목록 조회 오류]", e)
+        return None
+
+def find_friend_uuid(sender_user, target_kakao_id):
+    """친구 목록에서 특정 kakao_id를 가진 친구의 uuid를 찾음"""
+    friends = get_kakao_friends(sender_user)
+    if not friends:
+        print(f"[find_friend_uuid] {sender_user}의 친구 목록이 비어있거나 권한이 없습니다.")
+        return None
+    
+    target_kakao_id_str = str(target_kakao_id)
+    for friend in friends:
+        # 친구가 앱 사용자여야 id가 존재함
+        if str(friend.get("id")) == target_kakao_id_str:
+            return friend.get("uuid")
+    
+    print(f"[find_friend_uuid] 친구 목록에서 {target_kakao_id_str}를 찾을 수 없습니다.")
+    return None
+
+def send_kakao_friend_message(sender_user, receiver_uuid, text, local_test=False):
+    """친구에게 보내기"""
+    try:
+        token = KakaoToken.objects.filter(user=sender_user).order_by("-created_at").first()
+        if not token:
+            return {"error": "no_token"}
+
+        url = "https://kapi.kakao.com/v1/api/talk/friends/message/default/send"
+        link_url = "http://127.0.0.1:8000" if local_test else "http://133.186.144.151"
+        
+        template_obj = {
+            "object_type": "text",
+            "text": text,
+            "link": {"web_url": link_url, "mobile_web_url": link_url},
+            "button_title": "바로가기",
+        }
+        data = {
+            "receiver_uuids": json.dumps([receiver_uuid]),
+            "template_object": json.dumps(template_obj, ensure_ascii=False)
+        }
+
+        res = requests.post(url, headers=_kakao_headers(token.access_token), data=data, timeout=10)
+        result = res.json()
+
+        if res.status_code in (401, 403) or result.get("code") == -401:
+            if _refresh_token(token):
+                res = requests.post(url, headers=_kakao_headers(token.access_token), data=data, timeout=10)
+                result = res.json()
+        return result
+    except Exception as e:
+        print("[카카오 친구에게 보내기 오류]", e)
         return {"error": str(e)}
 
 

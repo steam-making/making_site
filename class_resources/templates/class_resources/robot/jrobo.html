@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .coming-soon-container {
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .coming-soon-icon {
+    font-size: 6rem;
+    color: #e9ecef;
+    margin-bottom: 2rem;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 0.5; }
+  }
+  .resource-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 3rem 0;
+    border-radius: 0 0 40px 40px;
+    margin-bottom: 2rem;
+  }
+</style>
+
+<div class="resource-header text-center">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb justify-content-center mb-3">
+        <li class="breadcrumb-item"><a href="{% url 'resource_list' %}" class="text-decoration-none text-muted">수업자료</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'resource_detail' 'robot' %}" class="text-decoration-none text-muted">로봇</a></li>
+        <li class="breadcrumb-item active fw-bold" aria-current="page">제이로보</li>
+      </ol>
+    </nav>
+    <h1 class="fw-bold mb-2"><i class="bi bi-motherboard me-2 text-danger"></i>제이로보 수업자료</h1>
+  </div>
+</div>
+
+<div class="container py-5">
+  <div class="coming-soon-container">
+    <div class="coming-soon-icon">
+      <i class="bi bi-cone-striped text-danger"></i>
+    </div>
+    <h2 class="fw-bold mb-3">콘텐츠 준비 중</h2>
+    <p class="text-muted fs-5 mb-4">현재 제이로보 로봇 수업자료를 정성껏 준비하고 있습니다.<br>빠른 시일 내에 더 좋은 자료로 찾아뵙겠습니다.</p>
+    <a href="{% url 'resource_detail' 'robot' %}" class="btn btn-danger px-5 py-3 shadow" style="border-radius: 999px; font-weight: 700;">
+      <i class="bi bi-arrow-left me-2"></i>로봇 자료실 목록으로
+    </a>
+  </div>
+</div>
+{% endblock %}

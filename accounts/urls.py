@@ -12,6 +12,7 @@ urlpatterns = [
     path('change-password/', change_password, name='change_password'),  # 비밀번호 변경 페이지
     path('check-username/', check_username, name='check_username'),  # ✅ 추가
     path('approve_users/', approve_users, name='approve_users'), #관리자 승인 페이지
+    path('kakao/unlink/', views.kakao_unlink, name='kakao_unlink'),
     path('redirect/', views.redirect_after_login, name='redirect_after_login'),
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('members/', views.admin_user_list, name='admin_user_list'),

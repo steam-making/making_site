@@ -38,10 +38,13 @@
                             </div>
                         </div>
 
-                        <div class="d-grid">
+                        <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-box-arrow-in-right"></i> 로그인
                             </button>
+                            <a href="{% url 'kakao_login' %}" class="btn btn-lg w-100" style="background-color: #FEE500; color: #000000; border: none;">
+                                <i class="bi bi-chat-fill"></i> 카카오 로그인 / 회원가입
+                            </a>
                         </div>
                     </form>
                 </div>

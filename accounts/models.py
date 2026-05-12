@@ -18,6 +18,10 @@ class Profile(models.Model):
     address = models.CharField(max_length=255, blank=True)
     detail_address = models.CharField(max_length=255, blank=True)
 
+    # ✅ 카카오 연동 필드
+    kakao_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    kakao_name = models.CharField(max_length=100, null=True, blank=True)  # 카카오 닉네임 저장
+
     # ✅ 탈퇴 상태
     withdrawal_requested = models.BooleanField(default=False)
     

@@ -186,6 +186,11 @@ class MaterialRelease(models.Model):
         default=''
     )
 
+    request_sent = models.BooleanField(
+        default=False,
+        verbose_name="출고 요청 알림 발송 여부"
+    )
+
     def __str__(self):
         return f"{self.teacher.first_name} - {self.release_date} 출고"
 

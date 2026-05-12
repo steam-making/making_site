@@ -851,6 +851,22 @@
               <td colspan="2" class="text-center" data-label="그룹 처리">
                 <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-wrap">
 
+                  {# ✅ 출고 요청 알림 (강사용) #}
+                  {% if not user.is_staff %}
+                    <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}">
+                      {% csrf_token %}
+                      {% if group.request_sent %}
+                        <button type="button" class="btn btn-sm btn-success" disabled>
+                          <i class="bi bi-chat-dots-fill"></i> 요청완료
+                        </button>
+                      {% else %}
+                        <button type="submit" class="btn btn-sm btn-outline-primary" onclick="return confirm('관리자에게 출고 요청 알림을 보내시겠습니까?');">
+                          <i class="bi bi-chat-dots"></i> 출고요청
+                        </button>
+                      {% endif %}
+                    </form>
+                  {% endif %}
+
                   {# ✅ 견적서 발행 → 발송완료로 대체 #}
                   {% if group.estimate_sent %}
                     <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" 
@@ -919,7 +935,22 @@
               <td colspan="2" class="text-end release-price">{{ group.total_price|intcomma }}원</td>
               <td>{{ group.total_qty }}</td>
               <td class="text-center">
-                <div class="release-total-mobile-actions">
+                <div class="release-total-mobile-actions d-flex flex-wrap gap-1 justify-content-center">
+                  {% if not user.is_staff %}
+                    <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}">
+                      {% csrf_token %}
+                      {% if group.request_sent %}
+                        <button type="button" class="btn btn-sm btn-success" disabled>
+                          <i class="bi bi-chat-dots-fill"></i> <span class="release-mobile-short">완료</span><span class="release-desktop-full">요청완료</span>
+                        </button>
+                      {% else %}
+                        <button type="submit" class="btn btn-sm btn-outline-primary" onclick="return confirm('관리자에게 출고 요청 알림을 보내시겠습니까?');">
+                          <i class="bi bi-chat-dots"></i> <span class="release-mobile-short">요청</span><span class="release-desktop-full">출고요청</span>
+                        </button>
+                      {% endif %}
+                    </form>
+                  {% endif %}
+
                   {% if group.estimate_sent %}
                     <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" 
                       class="btn btn-sm btn-success"><i class="bi bi-check-circle-fill"></i> <span class="release-mobile-short">견적서</span><span class="release-desktop-full">견적서 완료</span></a>
