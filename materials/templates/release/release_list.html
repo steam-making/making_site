@@ -545,7 +545,7 @@
       </div>
 
       <!-- 새 출고 + 검색 필터 -->
-      <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between">
+      <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between" data-is-staff="{{ request.user.is_staff|yesno:'true,false' }}">
       <div class="col-12 d-none d-md-block mb-2">
         <div class="release-desktop-header-row">
           <div class="release-page-title mb-0">교구출고</div>
@@ -557,17 +557,19 @@
                class="btn px-3 release-unpaid-toggle {% if unpaid_filter == 'unpaid' %}btn-danger{% else %}btn-outline-danger{% endif %}">
               미결제 {{ unpaid_group_count }}
             </a>
-            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopTeacherFilters" aria-expanded="true" aria-controls="desktopTeacherFilters">
+            {% if request.user.is_staff %}
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopTeacherFilters" aria-expanded="{% if not selected_institution_id %}true{% else %}false{% endif %}" aria-controls="desktopTeacherFilters">
               강사검색
             </button>
-            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopSchoolFilters" aria-expanded="false" aria-controls="desktopSchoolFilters">
+            {% endif %}
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopSchoolFilters" aria-expanded="{% if not request.user.is_staff or selected_institution_id %}true{% else %}false{% endif %}" aria-controls="desktopSchoolFilters">
               학교검색
             </button>
             <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopCenterFilters" aria-expanded="false" aria-controls="desktopCenterFilters">
               기관검색
             </button>
             <div class="release-filter-month">
-              <input type="month" name="order_month" class="form-control"
+              <input type="month" name="order_month_desktop" class="form-control"
                      value="{{ selected_order_month|default_if_none:'' }}"
                      onchange="this.form.submit()">
             </div>
@@ -576,9 +578,11 @@
       </div>
 
       <div class="col-12 col-md-auto d-flex d-md-none flex-wrap gap-2 justify-content-end release-filter-fields">
-        <!-- 강사 선택 -->
+        <!-- 강사 선택 (관리자 전용, 장소 미선택 시에만 노출) -->
+        {% if request.user.is_staff and not selected_institution_id %}
         <div class="flex-grow-1 flex-md-grow-0 position-relative release-filter-teacher" style="min-width: 110px; max-width: 130px;">
-          <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색">
+          <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색" 
+                 value="{% for t in teachers %}{% if selected_teacher_id == t.id|stringformat:'s' %}{{ t.first_name }}{% endif %}{% endfor %}{% for ct in center_teachers %}{% if selected_teacher_id == ct.id|stringformat:'s' %}{{ ct.first_name }}{% endif %}{% endfor %}">
           <ul id="teacherSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1050; margin-top: 5px; max-height: 250px; overflow-y: auto; padding: 0;">
             {% for t in teachers %}
               <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem;" data-id="{{ t.id }}">{{ t.first_name }}</button></li>
@@ -590,10 +594,14 @@
           </ul>
           <input type="hidden" name="teacher" id="teacherHidden" value="{{ selected_teacher_id|default_if_none:'' }}">
         </div>
+        {% else %}
+          <input type="hidden" name="teacher" id="teacherHidden" value="{{ user.id }}">
+        {% endif %}
 
-        <!-- 출강 장소 -->
+        <!-- Institution search -->
         <div class="flex-grow-1 flex-md-grow-0 position-relative release-filter-institution" style="min-width: 260px; max-width: 360px;">
-          <input type="text" id="institutionInput" class="form-control" autocomplete="off" placeholder="장소 검색">
+          <input type="text" id="institutionInput" class="form-control" autocomplete="off" placeholder="Place search"
+                 value="{% for inst in institutions %}{% if selected_institution_id == inst.id|stringformat:'s' %}{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.program %} · {{ inst.program }}{% endif %}{% endif %}{% endfor %}">
           <ul id="institutionSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1050; margin-top: 5px; max-height: 250px; overflow-y: auto; padding: 0;">
             {% regroup institutions|dictsort:"program" by program as program_groups %}
             {% for group in program_groups %}
@@ -608,7 +616,7 @@
 
         <!-- 년월 선택 -->
         <div class="flex-grow-1 flex-md-grow-0 release-filter-month" style="min-width: 130px;">
-          <input type="month" name="order_month" class="form-control"
+          <input type="month" name="order_month_mobile" class="form-control"
                  value="{{ selected_order_month|default_if_none:'' }}"
                  onchange="this.form.submit()">
         </div>
@@ -616,49 +624,60 @@
         <input type="hidden" name="unpaid" value="{{ unpaid_filter|default_if_none:'' }}">
       </div>
 
-      {% if request.user.is_staff %}
       <div id="desktopQuickFilters" class="d-none d-md-block">
-      <div class="collapse show release-quick-filter-panel" id="desktopTeacherFilters" data-bs-parent="#desktopQuickFilters">
+        {% if request.user.is_staff %}
+      <div class="collapse {% if show_teacher_panel %}show{% endif %} release-quick-filter-panel" id="desktopTeacherFilters" data-bs-parent="#desktopQuickFilters">
         <div class="release-quick-filter-title">강사 선택</div>
         <div class="release-teacher-quick-filters">
-          <a href="?teacher=&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+          <a href="?teacher=&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
              class="btn btn-sm {% if not selected_teacher_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
           {% for t in teachers %}
-          <a href="?teacher={{ t.id }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+          <a href="?teacher={{ t.id }}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
              class="btn btn-sm {% if selected_teacher_id == t.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ t.first_name|default:t.username }}{% if t.id in teacher_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
           {% endfor %}
         </div>
-      </div>
 
-      <div class="collapse release-quick-filter-panel" id="desktopSchoolFilters" data-bs-parent="#desktopQuickFilters">
+        {# ✅ 선택된 강사의 출강 장소 (추가된 요구사항) #}
+        {% if selected_teacher_id and selected_teacher_institutions %}
+          <div class="release-quick-filter-title mt-3"><i class="bi bi-geo-alt-fill me-1"></i>선택된 강사의 출강 장소</div>
+          <div class="release-teacher-quick-filters">
+            {% for inst in selected_teacher_institutions %}
+            <a href="?teacher={{ selected_teacher_id }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+               class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+               {% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}
+            </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <div class="collapse {% if show_school_panel %}show{% endif %} release-quick-filter-panel" id="desktopSchoolFilters" data-bs-parent="#desktopQuickFilters">
         <div class="release-quick-filter-title">학교/유치원 선택</div>
         <div class="release-teacher-quick-filters">
-          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+          <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
              class="btn btn-sm {% if not selected_institution_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
           {% for inst in institutions %}
           {% if inst.place_type == 'school' or inst.place_type == 'kindergarten' %}
-          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+          <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
              class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}</a>
           {% endif %}
           {% endfor %}
         </div>
       </div>
 
-      <div class="collapse release-quick-filter-panel" id="desktopCenterFilters" data-bs-parent="#desktopQuickFilters">
+      <div class="collapse {% if show_center_panel %}show{% endif %} release-quick-filter-panel" id="desktopCenterFilters" data-bs-parent="#desktopQuickFilters">
         <div class="release-quick-filter-title">기관 선택</div>
         <div class="release-teacher-quick-filters">
-          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+          <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
              class="btn btn-sm {% if not selected_institution_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
           {% for inst in institutions %}
           {% if inst.place_type == 'child_center' or inst.place_type == 'culture_center' or inst.place_type == 'other' %}
-          <a href="?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
+          <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
              class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}</a>
           {% endif %}
           {% endfor %}
         </div>
       </div>
-      </div>
-      {% endif %}
     </form>
     </div>
   </div>
@@ -753,10 +772,21 @@
                   </td>
                   <td data-label="수량">{{ item.quantity }}</td>
                   <td data-label="출고방법" class="d-none d-md-table-cell">
-                    {% if item.release_method == '택배' %}
-                      <span class="badge bg-primary">택배</span>
-                    {% elif item.release_method == '센터수령' %}
-                      <span class="badge bg-success">센터수령</span>
+                    {% if user.is_staff or user.is_superuser %}
+                      <form action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
+                        {% csrf_token %}
+                        {% if item.release_method == '택배' %}
+                          <button type="submit" class="btn btn-sm btn-primary">택배</button>
+                        {% elif item.release_method == '센터수령' %}
+                          <button type="submit" class="btn btn-sm btn-success">센터수령</button>
+                        {% endif %}
+                      </form>
+                    {% else %}
+                      {% if item.release_method == '택배' %}
+                        <span class="badge bg-primary">택배</span>
+                      {% elif item.release_method == '센터수령' %}
+                        <span class="badge bg-success">센터수령</span>
+                      {% endif %}
                     {% endif %}
                   </td>
                   <td data-label="출고처리">
@@ -768,6 +798,16 @@
                       {% endif %}
 
                       <div class="release-actions d-flex flex-nowrap justify-content-center align-items-center gap-1">
+                        {% if user.is_staff or user.is_superuser %}
+                          <form class="d-md-none" action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
+                            {% csrf_token %}
+                            {% if item.release_method == '택배' %}
+                              <button type="submit" class="btn btn-sm btn-primary">택배</button>
+                            {% elif item.release_method == '센터수령' %}
+                              <button type="submit" class="btn btn-sm btn-success">센터수령</button>
+                            {% endif %}
+                          </form>
+                        {% endif %}
                         {% if item.status == 'released' %}
                           {% if user.is_staff or user.is_superuser %}
                             <form class="js-async-action-form" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
@@ -1044,6 +1084,21 @@
         } else {
           btn.textContent = "미수금";
           btn.classList.remove("btn-success");
+
+  // ✅ 수금일 입력 시 버튼 토글 스크립트
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".payment-date-input").forEach(function (input) {
+      const form = input.closest("form");
+      const btn = form.querySelector(".payment-btn");
+
+      function updateUI() {
+        if (input.value) {
+          btn.textContent = "수금완료";
+          btn.classList.remove("btn-danger");
+          btn.classList.add("btn-success");
+        } else {
+          btn.textContent = "미수금";
+          btn.classList.remove("btn-success");
           btn.classList.add("btn-danger");
         }
       }
@@ -1163,6 +1218,7 @@
               });
 
               emptyMsg.style.display = hasMatch ? 'none' : 'block';
+
               dropdown.classList.add('show');
               dropdown.style.display = 'block';
           }
@@ -1215,11 +1271,26 @@
                   dropdown.classList.remove('show');
                   dropdown.style.display = 'none';
 
-                  // 장소 선택 시 강사 자동 셋팅
+                  // 장소 선택 시 동작
                   if (hiddenId === 'institutionHidden') {
-                      const teacherId = this.getAttribute('data-teacher');
-                      if (teacherId) {
-                          document.getElementById('teacherHidden').value = teacherId;
+                      const isStaff = document.getElementById('filterForm').dataset.isStaff === 'true';
+                      if (isStaff) {
+                          // 관리자는 장소 선택 시 강사 필터를 해제함 (사용자 요청)
+                          const teacherHidden = document.getElementById('teacherHidden');
+                          const teacherInput = document.getElementById('teacherInput');
+                          if (teacherHidden) teacherHidden.value = '';
+                          if (teacherInput) teacherInput.value = '';
+                      }
+                  }
+                  // 강사 선택 시 동작
+                  if (hiddenId === 'teacherHidden') {
+                      const isStaff = document.getElementById('filterForm').dataset.isStaff === 'true';
+                      if (isStaff) {
+                          // 관리자는 강사 선택 시 장소 필터를 해제함 (사용자 요청)
+                          const instHidden = document.getElementById('institutionHidden');
+                          const instInput = document.getElementById('institutionInput');
+                          if (instHidden) instHidden.value = '';
+                          if (instInput) instInput.value = '';
                       }
                   }
                   document.getElementById('filterForm').submit();
@@ -1227,8 +1298,8 @@
           });
       }
 
-      setupCustomAutocomplete(['teacherInput', 'teacherInputDesktop'], 'teacherHidden', 'teacherSearchDropdown');
-      setupCustomAutocomplete(['institutionInput', 'institutionInputDesktop'], 'institutionHidden', 'institutionSearchDropdown');
+      setupCustomAutocomplete(['teacherInput'], 'teacherHidden', 'teacherSearchDropdown');
+      setupCustomAutocomplete(['institutionInput'], 'institutionHidden', 'institutionSearchDropdown');
   });
 </script>
 

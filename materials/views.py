@@ -89,6 +89,35 @@ def extract_group_name(material_name: str, vendor_type_name: str) -> str:
     return name  # 전체 교구명 반환
 
 # ✅ 관리자만 접근 가능하게 하는 함수
+def _get_release_admin_user():
+    admin_user = User.objects.filter(username="withjongseok@naver.com").first()
+    if admin_user:
+        return admin_user
+    return User.objects.filter(is_staff=True).order_by("id").first()
+
+
+def _build_release_admin_message(release, teacher_user, item_summary_map, total_quantity):
+    created_at = timezone.localtime(release.created_at)
+    teacher_name = teacher_user.first_name or teacher_user.get_full_name() or teacher_user.username
+    summary_lines = [
+        f"- {name} {qty}개"
+        for name, qty in sorted(item_summary_map.items())
+    ]
+    items_text = "\n".join(summary_lines) if summary_lines else "- 품목 없음"
+
+    return (
+        "[출고 등록 알림]\n"
+        f"주문일시: {created_at.strftime('%Y-%m-%d %H:%M')}\n"
+        f"등록자: {teacher_name}\n"
+        f"출고처: {release.institution.name}\n"
+        f"주문월: {release.order_month}\n"
+        f"출고예정일: {release.expected_date.strftime('%Y-%m-%d') if release.expected_date else '-'}\n"
+        f"총 수량: {total_quantity}개\n"
+        "------------------\n"
+        f"{items_text}"
+    )
+
+
 def is_admin(user):
     return user.is_staff or user.is_superuser
 
@@ -112,7 +141,7 @@ from django.contrib.auth.decorators import login_required
 from urllib.parse import urlencode
 
 @login_required
-def create_release(request):
+def _legacy_create_release_old(request):
     
     selected_teacher_id = request.GET.get("teacher")
     selected_institution_id = request.GET.get("institution")
@@ -270,10 +299,188 @@ def create_release(request):
 
 
 @login_required
+def create_release(request):
+    selected_teacher_id = request.GET.get("teacher")
+    selected_institution_id = request.GET.get("institution")
+
+    vendor_types = VendorType.objects.all()
+    vendors = Vendor.objects.select_related("vendor_type").all()
+    materials = Material.objects.all().order_by("vendor", "vendor_order", "name")
+    vendor_kinds = (
+        Vendor.objects.exclude(vendor_type__isnull=True)
+        .values_list("vendor_type__name", flat=True)
+        .distinct()
+    )
+
+    if request.user.is_staff:
+        teachers = User.objects.filter(profile__user_type="teacher").order_by("first_name")
+        center_teachers = User.objects.filter(profile__user_type="center_teacher").order_by("first_name")
+        institutions = TeachingInstitution.objects.all()
+    else:
+        teachers = User.objects.filter(id=request.user.id, profile__user_type="teacher")
+        center_teachers = User.objects.filter(id=request.user.id, profile__user_type="center_teacher")
+        institutions = TeachingInstitution.objects.filter(teacher=request.user)
+
+    row_count = int(request.POST.get("row_count", 1))
+    rows_data = []
+    for i in range(1, row_count + 1):
+        rows_data.append(
+            {
+                "index": i,
+                "vendor": request.POST.get(f"vendor_{i}", ""),
+                "material": request.POST.get(f"material_{i}", ""),
+                "unit_price": request.POST.get(f"unit_price_{i}", ""),
+                "quantity": request.POST.get(f"quantity_{i}", ""),
+                "release_method": request.POST.get(f"release_method_{i}", "택배"),
+            }
+        )
+
+    base_context = {
+        "vendor_types": vendor_types,
+        "vendor_kinds": vendor_kinds,
+        "vendors": vendors,
+        "materials": materials,
+        "teachers": teachers,
+        "center_teachers": center_teachers,
+        "institutions": institutions,
+        "form_data": request.POST if request.method == "POST" else {},
+        "row_count": row_count,
+        "rows_data": rows_data,
+        "selected_teacher_id": selected_teacher_id,
+        "selected_institution_id": selected_institution_id,
+    }
+
+    if request.method == "POST":
+        teacher_user = request.user
+        if request.user.is_staff:
+            teacher_id = request.POST.get("teacher")
+            if teacher_id:
+                teacher_user = User.objects.get(id=teacher_id)
+
+        institution_id = request.POST.get("institution")
+        if not institution_id:
+            return render(
+                request,
+                "release/release_form.html",
+                {**base_context, "error": "출강 장소를 선택해주세요."},
+            )
+
+        institution = TeachingInstitution.objects.get(id=institution_id)
+
+        order_year = request.POST.get("order_year")
+        order_month = request.POST.get("order_month")
+        if not order_year or not order_month:
+            return render(
+                request,
+                "release/release_form.html",
+                {**base_context, "error": "올바른 주문 연월을 선택해주세요."},
+            )
+
+        order_month = order_month.zfill(2)
+        order_month_str = f"{order_year}-{order_month}"
+
+        expected_date = request.POST.get("expected_date")
+        if not expected_date:
+            return render(
+                request,
+                "release/release_form.html",
+                {**base_context, "error": "출고 예정일을 선택해주세요."},
+            )
+
+        release = MaterialRelease.objects.create(
+            teacher=teacher_user,
+            institution=institution,
+            order_month=order_month_str,
+            expected_date=expected_date,
+            created_by=request.user,
+        )
+
+        any_saved = False
+        item_summary_map = defaultdict(int)
+        total_quantity = 0
+
+        for i in range(1, row_count + 1):
+            material_id = request.POST.get(f"material_{i}")
+            quantity = request.POST.get(f"quantity_{i}")
+            unit_price = request.POST.get(f"unit_price_{i}") or 0
+            item_release_method = request.POST.get(f"release_method_{i}", "택배")
+
+            if material_id and quantity and int(quantity) > 0:
+                try:
+                    material = Material.objects.get(id=int(material_id))
+                    group_name = extract_group_name(
+                        material.name,
+                        material.vendor.vendor_type.name if material.vendor and material.vendor.vendor_type else "",
+                    )
+                    quantity_value = int(quantity)
+                    MaterialReleaseItem.objects.create(
+                        release=release,
+                        vendor=material.vendor,
+                        material=material,
+                        unit_price=int(unit_price),
+                        quantity=quantity_value,
+                        release_method=item_release_method,
+                        group_name=group_name,
+                    )
+                    any_saved = True
+                    item_summary_map[material.name] += quantity_value
+                    total_quantity += quantity_value
+                except Exception as e:
+                    print(f"[release create error] row {i}: {e}")
+
+        if not any_saved:
+            release.delete()
+            return render(
+                request,
+                "release/release_form.html",
+                {**base_context, "error": "출고 품목을 입력해주세요."},
+            )
+
+        try:
+            admin_user = _get_release_admin_user()
+            if admin_user:
+                message = _build_release_admin_message(
+                    release=release,
+                    teacher_user=teacher_user,
+                    item_summary_map=item_summary_map,
+                    total_quantity=total_quantity,
+                )
+                kakao_result = send_kakao_message(
+                    admin_user,
+                    message,
+                    local_test=bool(settings.DEBUG),
+                )
+                if kakao_result and kakao_result.get("error"):
+                    messages.warning(
+                        request,
+                        f"출고는 등록되었지만 관리자 카카오 알림 전송은 실패했습니다. ({kakao_result.get('error')})",
+                    )
+                else:
+                    messages.success(request, "출고 등록이 완료되었고 관리자에게 카카오톡으로 전달되었습니다.")
+            else:
+                messages.warning(request, "출고는 등록되었지만 알림을 받을 관리자 계정을 찾지 못했습니다.")
+        except Exception as e:
+            print("[카카오 알림 오류]", e)
+            messages.warning(request, "출고는 등록되었지만 관리자 카카오 알림 전송 중 오류가 발생했습니다.")
+
+        query_string = request.GET.urlencode()
+        url = reverse("release_list")
+        if query_string:
+            url += f"?{query_string}"
+        return redirect(url)
+
+    return render(request, "release/release_form.html", base_context)
+
+
+@login_required
 def release_list(request):
     user = request.user
     selected_teacher_id = request.GET.get('teacher')
-    selected_order_month = request.GET.get('order_month')
+    selected_order_month = (
+        request.GET.get('order_month')
+        or request.GET.get('order_month_desktop')
+        or request.GET.get('order_month_mobile')
+    )
     selected_institution_id = request.GET.get('institution')
     unpaid_filter = request.GET.get('unpaid')
 
@@ -284,41 +491,51 @@ def release_list(request):
 
     releases = (
         MaterialRelease.objects
-        .select_related('institution', 'teacher')  # ✅ program 제거
+        .select_related('institution', 'teacher')
         .prefetch_related('items__vendor__vendor_type', 'items__material')
         .annotate(has_pending=Exists(has_pending_subq))
     )
     all_releases = releases
 
+    # Institution list for filters
     institutions = TeachingInstitution.objects.filter(is_closed=False).select_related('teacher', 'school').order_by('school__name', 'name', 'program')
-
-    # ✅ 필터
     
-    # ✅ 강사 필터
-    if selected_teacher_id:
-        releases = releases.filter(teacher_id=selected_teacher_id)
-        institutions = institutions.filter(teacher_id=selected_teacher_id)
-
-    # ✅ 기관 필터
+    selected_institution = None
     if selected_institution_id and selected_institution_id.isdigit():
-      releases = releases.filter(institution_id=int(selected_institution_id))
+        try:
+            selected_institution = TeachingInstitution.objects.get(id=int(selected_institution_id))
+        except TeachingInstitution.DoesNotExist:
+            pass
+    # Selected teacher's institutions (for admin view)
+    selected_teacher_institutions = None
+    if user.is_staff and selected_teacher_id:
+        try:
+            selected_teacher_institutions = institutions.filter(teacher_id=int(selected_teacher_id))
+        except (ValueError, TypeError):
+            pass
 
-    
-     # ✅ 관리자/강사 구분
+    # Teacher filter (result filtering)
+    if selected_teacher_id:
+        try:
+            releases = releases.filter(teacher_id=int(selected_teacher_id))
+        except (ValueError, TypeError):
+            pass
+
+    # Institution filter (result filtering)
+    if selected_institution_id and selected_institution_id.isdigit():
+        releases = releases.filter(institution_id=int(selected_institution_id))
+
+    # Staff vs Teacher logic
     teachers = None
     if user.is_staff:
         teachers = User.objects.filter(profile__user_type='teacher').order_by('first_name')
-        if selected_teacher_id:
-            try:
-                tid = int(selected_teacher_id)
-                releases = releases.filter(teacher_id=tid)
-                institutions = institutions.filter(teacher_id=tid)
-            except ValueError:
-                pass
+        center_teachers = User.objects.filter(profile__user_type='center_teacher').order_by('first_name')
     else:
+        # Teacher only sees their own data
         releases = releases.filter(teacher=user)
         institutions = institutions.filter(teacher=user)
         selected_teacher_id = user.id
+        center_teachers = User.objects.filter(id=user.id, profile__user_type='center_teacher')
 
     if selected_institution_id and selected_institution_id.isdigit():
         all_releases = all_releases.filter(institution_id=int(selected_institution_id))
@@ -326,13 +543,13 @@ def release_list(request):
     if selected_teacher_id:
         try:
             all_releases = all_releases.filter(teacher_id=int(selected_teacher_id))
-        except ValueError:
+        except (ValueError, TypeError):
             pass
 
     if not user.is_staff:
         all_releases = all_releases.filter(teacher=user)
 
-    # ✅ 년월 필터
+    # Order month filter
     if selected_order_month:
         releases = releases.filter(order_month=selected_order_month.strip())
         all_releases = all_releases.filter(order_month=selected_order_month.strip())
@@ -343,7 +560,7 @@ def release_list(request):
     }
     unpaid_group_count = len(unpaid_group_keys)
         
-    # ✅ 미수금 여부 필터
+    # Unpaid filter
     if unpaid_filter == "unpaid":
         releases = releases.filter(payment_status="unpaid")
         all_releases = all_releases.filter(payment_status="unpaid")
@@ -351,16 +568,15 @@ def release_list(request):
         releases = releases.filter(payment_status="paid")
         all_releases = all_releases.filter(payment_status="paid")
 
-    # ✅ 정렬
+    # Order
     releases = releases.order_by('-order_month', '-has_pending', '-created_at').distinct()
 
-    # ✅ 그룹핑/합계
+    # Grouping/Sums
     grouped_data = {}
     for order in releases:
         key = f"{order.order_month}_{order.institution_id}"
         if key not in grouped_data:
             inst = order.institution
-            # program은 CharField → 그대로 사용
             program_display = inst.program or ''
 
             grouped_data[key] = {
@@ -381,7 +597,6 @@ def release_list(request):
                 "request_sent": order.request_sent,
             }
             
-        # ✅ payment_status=paid 인 경우, 날짜 없어도 수금완료로 인식
         if order.payment_status == "paid" and not order.payment_date:
             grouped_data[key]["payment_status"] = "paid"
 
@@ -403,47 +618,110 @@ def release_list(request):
         grouped_data[key]["orders"].append(order)
 
     grouped_list = []
-    # ✅ 미수금(미결제) 상태인 강사만 N 표시 (필터와 무관하게 전체에서 계산)
     teacher_new_flags = {}
     all_releases_for_n_flag = MaterialRelease.objects.filter(payment_status="unpaid").values_list('teacher_id', flat=True).distinct()
     for teacher_id in all_releases_for_n_flag:
         teacher_new_flags[teacher_id] = True
 
     for order in all_releases:
-        # 미수금 상태인 경우에만 N 표시
         if getattr(order, 'payment_status', '') == 'unpaid':
             teacher_new_flags[order.teacher_id] = True
 
     for data in grouped_data.values():
-        # 교구재명 오름차순 정렬
         data["materials_summary"] = dict(sorted(data["materials_summary"].items()))
-        # ✅ 미수금 상태일 때만 NEW 표시
         data["is_new"] = data["payment_status"] == "unpaid"
         grouped_list.append(data)
 
-    # ✅ 필터 select용 정렬
     if user.is_staff:
         teachers = User.objects.filter(profile__user_type='teacher').order_by('first_name')
         center_teachers = User.objects.filter(profile__user_type='center_teacher').order_by('first_name')
     else:
-        # 강사일 경우 본인만 선택 가능, 센터강사도 동일 처리
         teachers = User.objects.filter(id=user.id, profile__user_type='teacher')
         center_teachers = User.objects.filter(id=user.id, profile__user_type='center_teacher')
+
+    show_teacher_panel = False
+    show_school_panel = False
+    show_center_panel = False
+
+    if user.is_staff:
+        if not selected_institution_id or selected_teacher_id:
+            show_teacher_panel = True
+        elif selected_institution and selected_institution.place_type in ['school', 'kindergarten']:
+            show_school_panel = True
+        elif selected_institution and selected_institution.place_type in ['child_center', 'culture_center', 'other']:
+            show_center_panel = True
+    else:
+        if not selected_institution_id or (selected_institution and selected_institution.place_type in ['school', 'kindergarten']):
+            show_school_panel = True
+        elif selected_institution and selected_institution.place_type in ['child_center', 'culture_center', 'other']:
+            show_center_panel = True
 
     return render(request, 'release/release_list.html', {
         'grouped_list': grouped_list,
         'teachers': teachers,
-        'center_teachers': center_teachers,  # ✅ 추가
+        'center_teachers': center_teachers,
         'institutions': institutions,
+        'selected_teacher_institutions': selected_teacher_institutions,
         'selected_teacher_id': selected_teacher_id,
         'selected_order_month': selected_order_month,
         'selected_institution_id': selected_institution_id,
+        'selected_institution': selected_institution,
         'unpaid_filter': unpaid_filter,
         'teacher_new_ids': [teacher_id for teacher_id, has_new in teacher_new_flags.items() if has_new],
         'unpaid_group_count': unpaid_group_count,
+        'show_teacher_panel': show_teacher_panel,
+        'show_school_panel': show_school_panel,
+        'show_center_panel': show_center_panel,
     })
     
     
+@login_required
+@user_passes_test(is_admin)
+@require_POST
+def toggle_release_method(request, item_id):
+    item = get_object_or_404(MaterialReleaseItem.objects.select_related("material", "release"), id=item_id)
+    material = item.material
+    old_method = item.release_method
+    new_method = '센터수령' if old_method == '택배' else '택배'
+
+    if item.status == 'released' and material and hasattr(material, 'stock'):
+        if old_method == '택배' and new_method == '센터수령':
+            if (material.stock or 0) < (item.quantity or 0):
+                messages.error(request, f"재고가 부족합니다. (현재 재고: {material.stock})")
+                return redirect_with_filters(request, "release_list")
+
+            old_stock = material.stock
+            material.stock = F('stock') - (item.quantity or 0)
+            material.save(update_fields=['stock'])
+            material.refresh_from_db(fields=["stock"])
+            log_material_history(
+                material=material,
+                user=request.user,
+                change_type="stock_decrease",
+                old_value=old_stock,
+                new_value=material.stock,
+                note=f"출고방법 변경(택배→센터수령, 출고항목ID {item.id}, 수량 {item.quantity})",
+            )
+        elif old_method == '센터수령' and new_method == '택배':
+            old_stock = material.stock
+            material.stock = F('stock') + (item.quantity or 0)
+            material.save(update_fields=['stock'])
+            material.refresh_from_db(fields=["stock"])
+            log_material_history(
+                material=material,
+                user=request.user,
+                change_type="stock_restore",
+                old_value=old_stock,
+                new_value=material.stock,
+                note=f"출고방법 변경(센터수령→택배, 출고항목ID {item.id}, 수량 {item.quantity})",
+            )
+
+    item.release_method = new_method
+    item.save(update_fields=["release_method"])
+    messages.success(request, f"출고방법이 {new_method}로 변경되었습니다.")
+    return redirect_with_filters(request, "release_list")
+
+
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponseNotAllowed

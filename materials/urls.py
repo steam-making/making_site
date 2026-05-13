@@ -44,6 +44,7 @@ urlpatterns = [
 
     path('item/<int:item_id>/release/', views.release_material_item, name='release_material_item'),
     path('item/<int:item_id>/unrelease/', views.unrelease_material_item, name='unrelease_material_item'),
+    path('releases/item/<int:item_id>/toggle-method/', views.toggle_release_method, name='toggle_release_method'),
     
     path('releases/item/<int:item_id>/edit/', views.edit_release_item, name='edit_release_item'),
     path('releases/item/<int:item_id>/delete/', views.delete_release_item, name='delete_release_item'),

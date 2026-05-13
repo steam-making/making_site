@@ -221,7 +221,8 @@
       </div>
 
       <div class="text-center mt-4 d-grid gap-2">
-        <button type="submit" class="btn btn-primary">출고 등록</button>
+        <button type="submit" class="btn btn-primary">출고등록 (등록 시 관리자에게 카톡 전달)</button>
+        <div class="small text-muted">출고등록을 누르면 주문일시, 교구명, 수량 등 요약 내용이 관리자 카카오톡으로 전달됩니다.</div>
         <a href="{% url 'release_list' %}?{{ request.GET.urlencode }}" class="btn btn-secondary">취소</a>
       </div>
     </form>
