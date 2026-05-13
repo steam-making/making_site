@@ -579,21 +579,25 @@
 
       <div class="col-12 col-md-auto d-flex d-md-none flex-wrap gap-2 justify-content-end release-filter-fields">
         <!-- 강사 선택 (관리자 전용, 장소 미선택 시에만 노출) -->
-        {% if request.user.is_staff and not selected_institution_id %}
-        <div class="flex-grow-1 flex-md-grow-0 position-relative release-filter-teacher" style="min-width: 110px; max-width: 130px;">
-          <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색" 
-                 value="{% for t in teachers %}{% if selected_teacher_id == t.id|stringformat:'s' %}{{ t.first_name }}{% endif %}{% endfor %}{% for ct in center_teachers %}{% if selected_teacher_id == ct.id|stringformat:'s' %}{{ ct.first_name }}{% endif %}{% endfor %}">
-          <ul id="teacherSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1050; margin-top: 5px; max-height: 250px; overflow-y: auto; padding: 0;">
-            {% for t in teachers %}
-              <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem;" data-id="{{ t.id }}">{{ t.first_name }}</button></li>
-            {% endfor %}
-            {% for ct in center_teachers %}
-              <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem;" data-id="{{ ct.id }}">{{ ct.first_name }}</button></li>
-            {% endfor %}
-            <li class="dropdown-item text-muted empty-msg py-2" style="display: none; pointer-events: none; font-size: 0.85rem;">검색 결과 없음</li>
-          </ul>
-          <input type="hidden" name="teacher" id="teacherHidden" value="{{ selected_teacher_id|default_if_none:'' }}">
-        </div>
+        {% if request.user.is_staff %}
+          {% if not selected_institution_id %}
+          <div class="flex-grow-1 flex-md-grow-0 position-relative release-filter-teacher" style="min-width: 110px; max-width: 130px;">
+            <input type="text" id="teacherInput" class="form-control" autocomplete="off" placeholder="강사 검색" 
+                   value="{% for t in teachers %}{% if selected_teacher_id == t.id|stringformat:'s' %}{{ t.first_name }}{% endif %}{% endfor %}{% for ct in center_teachers %}{% if selected_teacher_id == ct.id|stringformat:'s' %}{{ ct.first_name }}{% endif %}{% endfor %}">
+            <ul id="teacherSearchDropdown" class="dropdown-menu w-100 shadow-sm" style="display: none; position: absolute; left: 0; top: 100%; z-index: 1050; margin-top: 5px; max-height: 250px; overflow-y: auto; padding: 0;">
+              {% for t in teachers %}
+                <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem;" data-id="{{ t.id }}">{{ t.first_name }}</button></li>
+              {% endfor %}
+              {% for ct in center_teachers %}
+                <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem;" data-id="{{ ct.id }}">{{ ct.first_name }}</button></li>
+              {% endfor %}
+              <li class="dropdown-item text-muted empty-msg py-2" style="display: none; pointer-events: none; font-size: 0.85rem;">검색 결과 없음</li>
+            </ul>
+            <input type="hidden" name="teacher" id="teacherHidden" value="{{ selected_teacher_id|default_if_none:'' }}">
+          </div>
+          {% else %}
+            <input type="hidden" name="teacher" id="teacherHidden" value="{{ selected_teacher_id|default_if_none:'' }}">
+          {% endif %}
         {% else %}
           <input type="hidden" name="teacher" id="teacherHidden" value="{{ user.id }}">
         {% endif %}
@@ -774,7 +778,7 @@
                   </td>
                   <td data-label="수량">{{ item.quantity }}</td>
                   <td data-label="출고방법" class="d-none d-md-table-cell">
-                    {% if user.is_staff or user.is_superuser %}
+                    {% if user.is_staff and order.source_type != 'levelup_auto' or user.is_superuser and order.source_type != 'levelup_auto' %}
                       <form action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
                         {% csrf_token %}
                         {% if item.release_method == '택배' %}
@@ -800,15 +804,25 @@
                       {% endif %}
 
                       <div class="release-actions d-flex flex-nowrap justify-content-center align-items-center gap-1">
-                        {% if user.is_staff or user.is_superuser %}
-                          <form class="d-md-none" action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
-                            {% csrf_token %}
+                        {% if user.is_staff and order.source_type != 'levelup_auto' or user.is_superuser and order.source_type != 'levelup_auto' %}
+                          <div class="d-md-none d-flex align-items-center">
+                            <form action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
+                              {% csrf_token %}
+                              {% if item.release_method == '택배' %}
+                                <button type="submit" class="btn btn-sm btn-primary">택배</button>
+                              {% elif item.release_method == '센터수령' %}
+                                <button type="submit" class="btn btn-sm btn-success">센터수령</button>
+                              {% endif %}
+                            </form>
+                          </div>
+                        {% else %}
+                          <div class="d-md-none">
                             {% if item.release_method == '택배' %}
-                              <button type="submit" class="btn btn-sm btn-primary">택배</button>
+                              <span class="badge bg-primary">택배</span>
                             {% elif item.release_method == '센터수령' %}
-                              <button type="submit" class="btn btn-sm btn-success">센터수령</button>
+                              <span class="badge bg-success">센터수령</span>
                             {% endif %}
-                          </form>
+                          </div>
                         {% endif %}
                         {% if item.status == 'released' %}
                           {% if user.is_staff or user.is_superuser %}
