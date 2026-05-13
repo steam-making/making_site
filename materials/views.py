@@ -90,7 +90,7 @@ def extract_group_name(material_name: str, vendor_type_name: str) -> str:
 
 # ✅ 관리자만 접근 가능하게 하는 함수
 def _get_release_admin_user():
-    admin_user = User.objects.filter(username="withjongseok@naver.com").first()
+    admin_user = User.objects.filter(username="robotmaking@naver.com").first()
     if admin_user:
         return admin_user
     return User.objects.filter(is_staff=True).order_by("id").first()
@@ -111,7 +111,7 @@ def _build_release_admin_message(release, teacher_user, item_summary_map, total_
         f"등록자: {teacher_name}\n"
         f"출고처: {release.institution.name}\n"
         f"주문월: {release.order_month}\n"
-        f"출고예정일: {release.expected_date.strftime('%Y-%m-%d') if release.expected_date else '-'}\n"
+        f"출고예정일: {str(release.expected_date) if release.expected_date else '-'}\n"
         f"총 수량: {total_quantity}개\n"
         "------------------\n"
         f"{items_text}"
@@ -436,32 +436,8 @@ def create_release(request):
                 {**base_context, "error": "출고 품목을 입력해주세요."},
             )
 
-        try:
-            admin_user = _get_release_admin_user()
-            if admin_user:
-                message = _build_release_admin_message(
-                    release=release,
-                    teacher_user=teacher_user,
-                    item_summary_map=item_summary_map,
-                    total_quantity=total_quantity,
-                )
-                kakao_result = send_kakao_message(
-                    admin_user,
-                    message,
-                    local_test=bool(settings.DEBUG),
-                )
-                if kakao_result and kakao_result.get("error"):
-                    messages.warning(
-                        request,
-                        f"출고는 등록되었지만 관리자 카카오 알림 전송은 실패했습니다. ({kakao_result.get('error')})",
-                    )
-                else:
-                    messages.success(request, "출고 등록이 완료되었고 관리자에게 카카오톡으로 전달되었습니다.")
-            else:
-                messages.warning(request, "출고는 등록되었지만 알림을 받을 관리자 계정을 찾지 못했습니다.")
-        except Exception as e:
-            print("[카카오 알림 오류]", e)
-            messages.warning(request, "출고는 등록되었지만 관리자 카카오 알림 전송 중 오류가 발생했습니다.")
+        # 새출고 시에는 알림 발송을 생략합니다.
+        messages.success(request, "새 교구출고 등록이 완료되었습니다.")
 
         query_string = request.GET.urlencode()
         url = reverse("release_list")
@@ -771,8 +747,8 @@ def request_release_notification(request, institution_id, order_month):
         messages.error(request, "해당하는 출고 내역이 없습니다.")
         return redirect("release_list")
 
-    # 2. 관리자 찾기 (withjongseok@naver.com 를 기본 관리자로 가정)
-    admin_user = User.objects.filter(username="withjongseok@naver.com").first()
+    # 2. 관리자 찾기 (robotmaking@naver.com 를 기본 관리자로 가정)
+    admin_user = User.objects.filter(username="robotmaking@naver.com").first()
     if not admin_user:
         admin_user = User.objects.filter(is_staff=True).first()
 
@@ -780,21 +756,7 @@ def request_release_notification(request, institution_id, order_month):
         messages.error(request, "알림을 받을 관리자를 찾을 수 없습니다.")
         return redirect("release_list")
 
-    # 3. 관리자의 kakao_id 확인
-    admin_profile = getattr(admin_user, "profile", None)
-    if not admin_profile or not admin_profile.kakao_id:
-        messages.error(request, "관리자의 카카오 계정이 연동되어 있지 않습니다.")
-        return redirect("release_list")
-
-    # 4. 강사(발신자)의 친구 목록에서 관리자의 uuid 찾기
-    from accounts.utils import find_friend_uuid, send_kakao_friend_message
-    receiver_uuid = find_friend_uuid(request.user, admin_profile.kakao_id)
-
-    if not receiver_uuid:
-        messages.error(request, "관리자가 친구 목록에 없거나 친구 메시지 권한이 없습니다. (서로 친구여야 하며 권한 승인이 필요합니다)")
-        return redirect("release_list")
-
-    # 5. 메시지 구성
+    # 3. 메시지 구성
     institution = releases.first().institution
     mat_counts = {}
     for r in releases:
@@ -806,9 +768,12 @@ def request_release_notification(request, institution_id, order_month):
     for name, qty in sorted(mat_counts.items()):
         item_summary.append(f"- {name} {qty}개")
     
+    is_re_request = releases.first().request_sent
+    message_title = "[출고 재요청 알림]" if is_re_request else "[출고 요청 알림]"
+
     items_text = "\n".join(item_summary)
     message = (
-        f"[출고 요청 알림]\n"
+        f"{message_title}\n"
         f"강사: {request.user.first_name or request.user.username}\n"
         f"출강장소: {institution.name}\n"
         f"주문년월: {order_month}\n"
@@ -816,17 +781,39 @@ def request_release_notification(request, institution_id, order_month):
         f"{items_text}"
     )
 
-    # 6. 메시지 발송
     from django.conf import settings
-    res = send_kakao_friend_message(request.user, receiver_uuid, message, local_test=bool(settings.DEBUG))
+    res = None
 
-    if "error" in res:
+    if request.user == admin_user:
+        # 본인이 본인(관리자)에게 발송하는 경우 (예: 관리자가 테스트하거나 대신 누를 때) -> 나에게 보내기
+        from accounts.utils import send_kakao_message
+        res = send_kakao_message(admin_user, message, local_test=bool(settings.DEBUG))
+    else:
+        # 4. 강사(발신자)가 관리자에게 발송하는 경우 -> 친구에게 보내기
+        admin_profile = getattr(admin_user, "profile", None)
+        if not admin_profile or not admin_profile.kakao_id:
+            messages.error(request, "관리자의 카카오 계정이 연동되어 있지 않습니다.")
+            return redirect("release_list")
+
+        from accounts.utils import find_friend_uuid, send_kakao_friend_message
+        receiver_uuid = find_friend_uuid(request.user, admin_profile.kakao_id)
+
+        if not receiver_uuid:
+            messages.error(request, "관리자가 친구 목록에 없거나 친구 메시지 권한이 없습니다. (관리자와 카카오톡 친구를 맺고 메시지 전송 권한에 동의해야 알림 전송이 가능합니다.)")
+            return redirect("release_list")
+        
+        res = send_kakao_friend_message(request.user, receiver_uuid, message, local_test=bool(settings.DEBUG))
+
+    if res and res.get("error"):
         messages.error(request, f"카카오 알림 발송 중 오류가 발생했습니다: {res.get('error')}")
     else:
         # 7. 상태 업데이트
         releases.update(request_sent=True)
         messages.success(request, "관리자에게 출고 요청 알림을 보냈습니다.")
 
+    referer = request.META.get("HTTP_REFERER")
+    if referer:
+        return redirect(referer)
     return redirect("release_list")
 
 

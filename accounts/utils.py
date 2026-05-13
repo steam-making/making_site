@@ -149,6 +149,7 @@ def get_kakao_friends(user):
     try:
         token = KakaoToken.objects.filter(user=user).order_by("-created_at").first()
         if not token:
+            print(f"[get_kakao_friends] {user} has no KakaoToken.")
             return None
         
         url = "https://kapi.kakao.com/v1/api/talk/friends"
@@ -156,10 +157,12 @@ def get_kakao_friends(user):
         result = res.json()
 
         if res.status_code in (401, 403) or result.get("code") == -401:
+            print(f"[get_kakao_friends] Token error or expired: {result}. Attempting refresh.")
             if _refresh_token(token):
                 res = requests.get(url, headers=_kakao_headers(token.access_token), timeout=10)
                 result = res.json()
         
+        print(f"[get_kakao_friends API RESPONSE for {user}]: {result}")
         return result.get("elements", [])
     except Exception as e:
         print("[카카오 친구 목록 조회 오류]", e)
