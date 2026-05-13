@@ -39,10 +39,10 @@
   <body>
     <!-- ✅ 네비게이션 바 -->
     <nav class="navbar navbar-expand-xl navbar-dark custom-navbar fixed-top">
-      <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="/">
+      <div class="container-fluid flex-nowrap">
+        <a class="navbar-brand d-flex align-items-center flex-shrink-0" href="/">
           <!-- ✅ 로고 이미지 -->
-          <img src="{% static 'images/making_logo(500px).png' %}" alt="로고" 
+          <img src="{% static 'images/making_logo(500px).png' %}" alt="로고"
               width="38" height="38" class="me-2">
           <div class="d-flex flex-column lh-1">
             <span class="fs-6 fw-bold">메듀사</span>
@@ -51,8 +51,8 @@
         </a>
         <!-- ✅ 햄버거 버튼 왼쪽에 유저 영역 (항상 표시) -->
         {% if user.is_authenticated %}
-        <div class="d-flex align-items-center gap-2 ms-auto me-2">
-          <span class="text-white small">
+        <div class="d-flex align-items-center gap-2 ms-auto me-2 flex-shrink-0">
+          <span class="text-white small text-truncate" style="max-width: 80px;">
             <i class="bi bi-person-circle me-1"></i>{{ request.user.first_name|default:request.user.username }}님
           </span>
           <a href="{% url 'profile' %}" class="btn btn-warning btn-sm btn-nav-icon">
