@@ -85,6 +85,21 @@ a:hover {
     padding: 0 1rem;
 }
 
+/* 모바일: 상단 행(로고+유저+햄버거)만 nowrap 유지 */
+.custom-navbar > .container-fluid {
+    flex-wrap: wrap;
+}
+.custom-navbar .navbar-brand,
+.custom-navbar .navbar-toggler,
+.custom-navbar > .container-fluid > div.d-flex {
+    flex-shrink: 0;
+}
+/* collapse는 100% 너비로 아래에 펼쳐짐 */
+.custom-navbar .navbar-collapse {
+    flex-basis: 100%;
+    flex-grow: 1;
+}
+
 .custom-navbar .navbar-brand {
     font-weight: 800;
     font-size: 1.25rem;
