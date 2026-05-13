@@ -95,9 +95,16 @@ nav.custom-navbar button.navbar-toggler {
     border: 1px solid rgba(255,255,255,0.35) !important;
     border-radius: 6px !important;
     flex-shrink: 0 !important;
-    display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+}
+nav.custom-navbar button.navbar-toggler:not(.d-xl-none) {
+    display: flex !important;
+}
+@media (min-width: 1200px) {
+    nav.custom-navbar button.navbar-toggler {
+        display: none !important;
+    }
 }
 nav.custom-navbar button.navbar-toggler .navbar-toggler-icon {
     width: 16px !important;
@@ -109,6 +116,11 @@ nav.custom-navbar button.navbar-toggler .navbar-toggler-icon {
 .custom-navbar > .container-fluid {
     flex-wrap: wrap;
     align-items: center;
+}
+@media (min-width: 1200px) {
+    .custom-navbar > .container-fluid {
+        flex-wrap: nowrap;
+    }
 }
 .custom-navbar .navbar-brand {
     flex-shrink: 0;
@@ -123,12 +135,6 @@ nav.custom-navbar button.navbar-toggler .navbar-toggler-icon {
     flex-grow: 1;
 }
 
-/* 모바일: 이름 텍스트 최대 너비 제한 */
-@media (max-width: 575.98px) {
-    .custom-navbar .navbar-brand .d-flex {
-        display: none !important;
-    }
-}
 
 .custom-navbar .navbar-brand {
     font-weight: 800;
