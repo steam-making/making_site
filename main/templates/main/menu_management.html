@@ -150,7 +150,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">아이콘 클래스 (자동맞춤생성)</label>
                     <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-brush"></i></span>
+                        <span class="input-group-text" id="icon_preview"><i class="bi bi-brush"></i></span>
                         <input type="text" name="icon_class" id="form_icon_class" class="form-control" placeholder="bi-gear">
                     </div>
                 </div>
@@ -299,11 +299,26 @@
         '로그': 'bi-clock-history', '작업': 'bi-check2-square', '카드': 'bi-card-list',
         '이미지': 'bi-image', '갤러리': 'bi-images', '다운로드': 'bi-download',
         '링크': 'bi-link-45deg', '문의': 'bi-question-circle', '알림': 'bi-bell',
-        '출고': 'bi-truck', '교구': 'bi-box-seam', '예상지': 'bi-file-earmark-text'
+        '출고': 'bi-box-arrow-up', '교구': 'bi-box-seam', '예상지': 'bi-file-earmark-text',
+        '소개': 'bi-house-heart', '출강안내': 'bi-geo-alt', '출강': 'bi-geo-alt',
+        '자격안내': 'bi-patch-check', '자격증': 'bi-award', '자격': 'bi-patch-check',
+        '미디어': 'bi-play-circle', '입고': 'bi-box-arrow-in-down',
+        '반납': 'bi-box-arrow-in-left', '단계업': 'bi-arrow-up-circle',
+        '3D펜': 'bi-pen', '3d펜': 'bi-pen', '경력': 'bi-briefcase',
+        '장소': 'bi-building', '목록': 'bi-list-check', '이력': 'bi-journal-bookmark'
     };
 
     const titleInput = document.getElementById('form_title');
     const iconInput = document.getElementById('form_icon_class');
+    const iconPreview = document.getElementById('icon_preview');
+
+    function updateIconPreview(iconClass) {
+        if (iconClass && iconClass.startsWith('bi-')) {
+            iconPreview.innerHTML = `<i class="bi ${iconClass}" style="font-size:1.1rem;"></i>`;
+        } else {
+            iconPreview.innerHTML = `<i class="bi bi-brush"></i>`;
+        }
+    }
 
     titleInput.addEventListener('input', function() {
         const titleValue = this.value;
@@ -311,9 +326,14 @@
         for (const [keyword, iconClass] of Object.entries(iconMapping)) {
             if (titleValue.includes(keyword)) {
                 iconInput.value = iconClass;
+                updateIconPreview(iconClass);
                 break;
             }
         }
+    });
+
+    iconInput.addEventListener('input', function() {
+        updateIconPreview(this.value.trim());
     });
 </script>
 {% endblock %}
