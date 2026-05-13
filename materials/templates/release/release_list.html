@@ -210,7 +210,9 @@
 
   .release-actions-wrap .btn,
   .group-actions .btn {
-    min-height: 34px;
+    min-height: 30px;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
     padding-left: 0.8rem;
     padding-right: 0.8rem;
   }
@@ -218,6 +220,30 @@
   .release-total-row td {
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .group-actions {
+    align-content: center;
+    align-items: center;
+  }
+
+  .group-actions > form {
+    display: flex;
+    align-items: center;
+  }
+
+  .release-payment-box .form-control-sm {
+    min-height: 28px !important;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+  }
+
+  .release-payment-box .btn-sm {
+    min-height: 28px !important;
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
   }
 
   .release-total-label {
@@ -229,7 +255,7 @@
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 14px;
-    padding: 0.55rem;
+    padding: 0.25rem 0.5rem;
   }
 
   .release-actions .btn,
@@ -396,46 +422,18 @@
       display: none !important;
     }
 
-    .release-table .table th:nth-child(1),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(1),
-    .release-table .table th:nth-child(3),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(3),
-    .release-table .table th:nth-child(4),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(4),
-    .release-table .table th:nth-child(6),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(6),
-    .release-table .table th:nth-child(7),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(7),
-    .release-table .table th:nth-child(8),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(8),
-    .release-table .table th:nth-child(11),
-    .release-table .table tbody tr:not(.release-total-row) td:nth-child(11) {
-      display: none;
-    }
+    /* d-none d-md-table-cell 이 이미 열 숨김 처리 — nth-child 중복 규칙 제거 */
 
+    /* 주문일자 */
     .release-table .table th:nth-child(2),
     .release-table .table td:nth-child(2) {
-      width: 14%;
+      width: 13%;
     }
 
+    /* 교구재 (작성자·거래처종류·거래처가 d-none이므로 실질 5번째이지만 DOM상 5) */
     .release-table .table th:nth-child(5),
     .release-table .table td:nth-child(5) {
-      width: 30%;
-    }
-
-    .release-table .table th:nth-child(9),
-    .release-table .table td:nth-child(9) {
-      width: 20%;
-    }
-
-    .release-table .table th:nth-child(10),
-    .release-table .table td:nth-child(10) {
-      width: 10%;
-    }
-
-    .release-table .table th:nth-child(12),
-    .release-table .table td:nth-child(12) {
-      width: 26%;
+      width: 28%;
     }
 
     .release-item-name {
@@ -496,6 +494,7 @@
       display: flex;
       flex-direction: row;
       align-items: center;
+      align-content: center;
       justify-content: center;
       flex-wrap: nowrap;
       gap: 0.3rem;
@@ -528,9 +527,10 @@
 </style>
 {% endblock %}
 
+{% block content_container_class %}d-none{% endblock %}
 {% block full_page_content %}
 <link rel="stylesheet" href="{% static 'materials/css/release_list.css' %}">
-<div class="container-fluid mt-4 px-0 release-list-container release-page">
+<div class="container-fluid px-0 release-list-container release-page" style="padding-top: calc(70px + 0.5rem);">
 
   <div class="sticky-top mb-4 release-filter-shell">
     <div class="release-filter-card">
@@ -778,25 +778,28 @@
                   </td>
                   <td data-label="수량">{{ item.quantity }}</td>
                   <td data-label="출고방법" class="d-none d-md-table-cell">
-                    {% if user.is_staff and order.source_type != 'levelup_auto' or user.is_superuser and order.source_type != 'levelup_auto' %}
-                      <form action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
+                    {% if user.is_staff or user.is_superuser %}
+                      <form id="toggleForm-{{ item.id }}" action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post">
                         {% csrf_token %}
                         {% if item.release_method == '택배' %}
-                          <button type="submit" class="btn btn-sm btn-primary">택배</button>
+                          <button type="button" class="btn btn-sm btn-primary js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="센터수령">택배</button>
                         {% elif item.release_method == '센터수령' %}
-                          <button type="submit" class="btn btn-sm btn-success">센터수령</button>
+                          <button type="button" class="btn btn-sm btn-success js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="택배">센터수령</button>
                         {% endif %}
                       </form>
                     {% else %}
                       {% if item.release_method == '택배' %}
-                        <span class="badge bg-primary">택배</span>
+                        <span class="btn btn-sm btn-primary" style="cursor:default; pointer-events:none;">택배</span>
                       {% elif item.release_method == '센터수령' %}
-                        <span class="badge bg-success">센터수령</span>
+                        <span class="btn btn-sm btn-success" style="cursor:default; pointer-events:none;">센터수령</span>
                       {% endif %}
                     {% endif %}
                   </td>
                   <td data-label="출고처리">
                     <div class="release-actions-wrap d-flex flex-nowrap justify-content-center align-items-center gap-1">
+                      {% if order.source_type == 'levelup_auto' %}
+                        <span class="badge bg-warning-subtle text-dark border" style="font-size:0.75rem; white-space:nowrap;">단계업</span>
+                      {% endif %}
                       {% if item.status == 'released' %}
                         <span class="badge bg-success release-status-badge">
                           {{ item.released_at|date:"m-d" }} <span class="d-none d-md-inline">완료</span>
@@ -804,23 +807,20 @@
                       {% endif %}
 
                       <div class="release-actions d-flex flex-nowrap justify-content-center align-items-center gap-1">
-                        {% if user.is_staff and order.source_type != 'levelup_auto' or user.is_superuser and order.source_type != 'levelup_auto' %}
+                        {% if user.is_staff or user.is_superuser %}
                           <div class="d-md-none d-flex align-items-center">
-                            <form action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post" onsubmit="return confirm('출고방법을 {% if item.release_method == '택배' %}센터수령{% else %}택배{% endif %}로 변경하시겠습니까?');">
-                              {% csrf_token %}
-                              {% if item.release_method == '택배' %}
-                                <button type="submit" class="btn btn-sm btn-primary">택배</button>
-                              {% elif item.release_method == '센터수령' %}
-                                <button type="submit" class="btn btn-sm btn-success">센터수령</button>
-                              {% endif %}
-                            </form>
+                            {% if item.release_method == '택배' %}
+                              <button type="button" class="btn btn-sm btn-primary js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="센터수령">택배</button>
+                            {% elif item.release_method == '센터수령' %}
+                              <button type="button" class="btn btn-sm btn-success js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="택배">센터수령</button>
+                            {% endif %}
                           </div>
                         {% else %}
                           <div class="d-md-none">
                             {% if item.release_method == '택배' %}
-                              <span class="badge bg-primary">택배</span>
+                              <span class="btn btn-sm btn-primary" style="cursor:default; pointer-events:none;">택배</span>
                             {% elif item.release_method == '센터수령' %}
-                              <span class="badge bg-success">센터수령</span>
+                              <span class="btn btn-sm btn-success" style="cursor:default; pointer-events:none;">센터수령</span>
                             {% endif %}
                           </div>
                         {% endif %}
@@ -875,8 +875,8 @@
             {% endfor %}
             <tr class="fw-bold release-total-row d-none d-md-table-row">
 <!-- ✅ 수금 상태 -->
-              <td class="text-center d-none d-md-table-cell" colspan="4" data-label="수금 상태">
-                <form method="post" action="{% url 'set_payment_date' group.institution.id group.order_month %}">
+              <td class="text-center d-none d-md-table-cell align-middle" colspan="4" data-label="수금 상태">
+                <form method="post" action="{% url 'set_payment_date' group.institution.id group.order_month %}" class="m-0">
                   {% csrf_token %}
                   <div class="d-flex justify-content-center align-items-center gap-2 release-payment-box">
                     <input type="date"
@@ -884,39 +884,41 @@
                       class="form-control form-control-sm"
                       style="max-width:150px;"
                       value="{{ group.payment_date|date:'Y-m-d' }}"
-                      onchange="this.form.submit();">
+                      onchange="{% if user.is_staff %}this.form.submit();{% endif %}" {% if not user.is_staff %}disabled{% endif %}>
 
                     {% if group.payment_status == 'paid' %}
-                      <button type="submit" name="action" value="mark_unpaid" class="btn btn-sm btn-success">수금완료</button>
+                      <button type="submit" name="action" value="mark_unpaid" class="btn btn-sm btn-success" {% if not user.is_staff %}disabled{% endif %}>수금완료</button>
                     {% else %}
-                      <button type="submit" name="action" value="mark_paid" class="btn btn-sm btn-danger">미수금</button>
+                      <button type="submit" name="action" value="mark_paid" class="btn btn-sm btn-danger" {% if not user.is_staff %}disabled{% endif %}>미수금</button>
                     {% endif %}
                   </div>
                 </form>
               </td>
 
 
-              <td colspan="1" class="text-end release-total-label" data-label="구분">총계</td>
+              <td colspan="1" class="text-end release-total-label align-middle" data-label="구분">총계</td>
               {% if request.user.is_staff %}
-                <td class="text-end d-none d-md-table-cell" data-label="공급가 단가">-</td>
-                <td class="text-end d-none d-md-table-cell" data-label="공급가 합계">{{ group.total_supply|intcomma }}원</td>
+                <td class="text-end d-none d-md-table-cell align-middle" data-label="공급가 단가">-</td>
+                <td class="text-end d-none d-md-table-cell align-middle" data-label="공급가 합계">{{ group.total_supply|intcomma }}원</td>
               {% endif %}
-              <td class="text-end d-none d-md-table-cell" data-label="납품 단가">-</td>
-              <td class="text-end" data-label="납품가 합계">{{ group.total_price|intcomma }}원</td>
-              <td data-label="총 수량">{{ group.total_qty }}</td>
-              <td colspan="2" class="text-center" data-label="그룹 처리">
+              <td class="text-end d-none d-md-table-cell align-middle" data-label="납품 단가">-</td>
+              <td class="text-end align-middle" data-label="납품가 합계">{{ group.total_price|intcomma }}원</td>
+              <td class="align-middle" data-label="총 수량">{{ group.total_qty }}</td>
+              <td colspan="4" class="text-center align-middle" data-label="그룹 처리">
                 <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-wrap">
 
                   {# ✅ 출고 요청 알림 (강사용) #}
                   {% if not user.is_staff %}
-                    <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}">
+                    <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}" class="m-0">
                       {% csrf_token %}
+                      <textarea class="d-none materials-summary-data">{% for mat_name, qty in group.materials_summary.items %}- {{ mat_name }} {{ qty }}개&#10;{% endfor %}</textarea>
+                      
                       {% if group.request_sent %}
-                        <button type="button" class="btn btn-sm btn-success" disabled>
-                          <i class="bi bi-chat-dots-fill"></i> 요청완료
+                        <button type="button" class="btn btn-sm btn-success" onclick="return confirmReleaseNotification(this, true, '{% if group.institution.school %}{{ group.institution.school.name|escapejs }}{% else %}{{ group.institution.name|escapejs }}{% endif %}', '{{ group.order_month|escapejs }}', '{{ request.user.first_name|default:request.user.username|escapejs }}')">
+                          <i class="bi bi-chat-dots-fill"></i> 재요청
                         </button>
                       {% else %}
-                        <button type="submit" class="btn btn-sm btn-outline-primary" onclick="return confirm('관리자에게 출고 요청 알림을 보내시겠습니까?');">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="return confirmReleaseNotification(this, false, '{% if group.institution.school %}{{ group.institution.school.name|escapejs }}{% else %}{{ group.institution.name|escapejs }}{% endif %}', '{{ group.order_month|escapejs }}', '{{ request.user.first_name|default:request.user.username|escapejs }}')">
                           <i class="bi bi-chat-dots"></i> 출고요청
                         </button>
                       {% endif %}
@@ -948,36 +950,10 @@
                     {% endif %}
                   {% endif %}
 
-                  {# ✅ 세금계산서 발행 안내 모달 #}
-                  <div class="modal fade" id="taxInvoiceModal-{{ group.institution.id }}-{{ group.order_month }}" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog">
-                      <form method="post" action="{% url 'tax_invoice_issue' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"  class="modal-content">
-                        {% csrf_token %}
-                        <div class="modal-header">
-                          <h5 class="modal-title">세금계산서 발행 안내</h5>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-                        </div>
-                        <div class="modal-body text-start">
-                          <p>
-                            홈택스에서 <strong>{{ group.institution.name }}</strong> 기관의  
-                            <strong>{{ group.order_month }}</strong>분 출고분에 대해 세금계산서를 발행해 주세요.
-                          </p>
-                          <p class="small text-muted">
-                            이 버튼은 실제 홈택스 연동이 아닌, <b>내부 발행 여부 기록</b>을 위한 처리입니다.<br>
-                            발행 완료 후 상태가 "세금계산서 발행완료"로 표시됩니다.
-                          </p>
-                        </div>
-                        <div class="modal-footer">
-                          <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-                          <button type="submit" class="btn btn-primary">발행 완료로 표시</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-
                   {% if request.user.is_superuser and group.source_type != 'levelup_auto' %}
                     <form action="{% url 'delete_release_group' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
                           method="post"
+                          style="align-self: center; margin: 0;"
                           onsubmit="return confirm('{{ group.order_month }}의 모든 주문을 삭제하시겠습니까? 출고완료 항목은 재고가 복원됩니다.');">
                       {% csrf_token %}
                       <button type="submit" class="btn btn-sm btn-outline-danger">전체삭제</button>
@@ -993,40 +969,44 @@
               <td class="text-center">
                 <div class="release-total-mobile-actions d-flex flex-wrap gap-1 justify-content-center">
                   {% if not user.is_staff %}
-                    <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}">
+                    <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}" style="display:flex;align-items:center;align-self:center;margin:0;">
                       {% csrf_token %}
+                      <textarea class="d-none materials-summary-data">{% for mat_name, qty in group.materials_summary.items %}- {{ mat_name }} {{ qty }}개&#10;{% endfor %}</textarea>
                       {% if group.request_sent %}
-                        <button type="button" class="btn btn-sm btn-success" disabled>
-                          <i class="bi bi-chat-dots-fill"></i> <span class="release-mobile-short">완료</span><span class="release-desktop-full">요청완료</span>
+                        <button type="button" class="btn btn-sm btn-success" title="재요청"
+                          onclick="return confirmReleaseNotification(this, true, '{% if group.institution.school %}{{ group.institution.school.name|escapejs }}{% else %}{{ group.institution.name|escapejs }}{% endif %}', '{{ group.order_month|escapejs }}', '{{ request.user.first_name|default:request.user.username|escapejs }}')">
+                          <i class="bi bi-chat-dots-fill"></i>
                         </button>
                       {% else %}
-                        <button type="submit" class="btn btn-sm btn-outline-primary" onclick="return confirm('관리자에게 출고 요청 알림을 보내시겠습니까?');">
-                          <i class="bi bi-chat-dots"></i> <span class="release-mobile-short">요청</span><span class="release-desktop-full">출고요청</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" title="출고요청"
+                          onclick="return confirmReleaseNotification(this, false, '{% if group.institution.school %}{{ group.institution.school.name|escapejs }}{% else %}{{ group.institution.name|escapejs }}{% endif %}', '{{ group.order_month|escapejs }}', '{{ request.user.first_name|default:request.user.username|escapejs }}')">
+                          <i class="bi bi-chat-dots"></i>
                         </button>
                       {% endif %}
                     </form>
                   {% endif %}
 
                   {% if group.estimate_sent %}
-                    <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" 
-                      class="btn btn-sm btn-success"><i class="bi bi-check-circle-fill"></i> <span class="release-mobile-short">견적서</span><span class="release-desktop-full">견적서 완료</span></a>
+                    <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
+                      class="btn btn-sm btn-success" title="견적서 완료"><i class="bi bi-check-circle-fill"></i></a>
                   {% else %}
-                    <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" 
-                      class="btn btn-sm btn-primary"><i class="bi bi-file-earmark-plus"></i> <span class="release-mobile-short">견적서</span><span class="release-desktop-full">견적서 발행</span></a>
+                    <a href="{% url 'estimate_preview' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
+                      class="btn btn-sm btn-primary" title="견적서 발행"><i class="bi bi-file-earmark-plus"></i></a>
                   {% endif %}
 
                   {% if group.tax_invoice_sent %}
-                    <button type="button" class="btn btn-sm btn-success" disabled><i class="bi bi-check-circle-fill"></i> <span class="release-mobile-short">계산서</span><span class="release-desktop-full">세금계산서 완료</span></button>
+                    <button type="button" class="btn btn-sm btn-success" disabled title="세금계산서 완료"><i class="bi bi-check-circle-fill"></i></button>
                   {% else %}
                     {% if user.is_staff %}
                       <button type="button"
                               class="btn btn-sm btn-warning"
+                              title="세금계산서 발행"
                               data-bs-toggle="modal"
                               data-bs-target="#taxInvoiceModal-{{ group.institution.id }}-{{ group.order_month }}">
-                        <i class="bi bi-receipt"></i> <span class="release-mobile-short">계산서</span><span class="release-desktop-full">세금계산서 발행</span>
+                        <i class="bi bi-receipt"></i>
                       </button>
                     {% else %}
-                      <button type="button" class="btn btn-sm btn-outline-dark" disabled><i class="bi bi-receipt"></i> <span class="release-mobile-short">계산서</span><span class="release-desktop-full">세금계산서 발행</span></button>
+                      <button type="button" class="btn btn-sm btn-outline-dark" disabled title="세금계산서 발행"><i class="bi bi-receipt"></i></button>
                     {% endif %}
                   {% endif %}
                 </div>
@@ -1036,12 +1016,56 @@
           </table>
           </div>
         </div>
+      {# ✅ 세금계산서 발행 안내 모달 (group-actions 바깥으로 분리) #}
+      <div class="modal fade" id="taxInvoiceModal-{{ group.institution.id }}-{{ group.order_month }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <form method="post" action="{% url 'tax_invoice_issue' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" class="modal-content">
+            {% csrf_token %}
+            <div class="modal-header">
+              <h5 class="modal-title">세금계산서 발행 안내</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            </div>
+            <div class="modal-body text-start">
+              <p>
+                홈택스에서 <strong>{{ group.institution.name }}</strong> 기관의
+                <strong>{{ group.order_month }}</strong>분 출고분에 대해 세금계산서를 발행해 주세요.
+              </p>
+              <p class="small text-muted">
+                이 버튼은 실제 홈택스 연동이 아닌, <b>내부 발행 여부 기록</b>을 위한 처리입니다.<br>
+                발행 완료 후 상태가 "세금계산서 발행완료"로 표시됩니다.
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+              <button type="submit" class="btn btn-primary">발행 완료로 표시</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
    {% empty %}
      <p class="text-center">등록된 출고 내역이 없습니다.</p>
    {% endfor %}
- 
+
+   <!-- 출고방법 토글 확인 모달 -->
+   <div class="modal fade" id="toggleMethodModal" tabindex="-1" aria-hidden="true">
+     <div class="modal-dialog modal-dialog-centered">
+       <div class="modal-content">
+         <div class="modal-header">
+           <h5 class="modal-title">출고방법 변경</h5>
+           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+         </div>
+         <div class="modal-body text-center py-4">
+           <p class="mb-0 fs-6"><span id="toggleMethodMsg"></span></p>
+         </div>
+         <div class="modal-footer">
+           <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+           <button type="button" class="btn btn-primary" id="toggleMethodConfirmBtn">변경</button>
+         </div>
+       </div>
+     </div>
+   </div>
+
    <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
      <div class="modal-dialog modal-dialog-centered">
        <form method="post" action="#" class="modal-content" id="returnModalForm">
@@ -1066,127 +1090,50 @@
 </div>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // 교구재명 줄바꿈
     document.querySelectorAll('.release-item-name[data-material-name]').forEach(function (cell) {
       const name = (cell.dataset.materialName || '').trim();
-      if (!name) return;
-
-      if (name.length <= 10) return;
-
+      if (!name || name.length <= 10) return;
       const firstSpace = name.indexOf(' ');
       if (firstSpace > 0) {
-        const first = name.slice(0, firstSpace);
-        const second = name.slice(firstSpace + 1);
-        cell.innerHTML = `<span>${first}</span><span>${second}</span>`;
+        cell.innerHTML = `<span>${name.slice(0, firstSpace)}</span><span>${name.slice(firstSpace + 1)}</span>`;
       }
     });
 
-    // 모달 깜빡임(z-index/overflow 충돌) 문제 해결을 위해 body 끝으로 이동
+    // 모달을 body 끝으로 이동 (z-index 충돌 방지)
     document.querySelectorAll('.modal').forEach(function(modal) {
       document.body.appendChild(modal);
     });
-  });
 
-  // ✅ 수금일 입력 시 버튼 토글 스크립트
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".payment-date-input").forEach(function (input) {
-      const form = input.closest("form");
-      const btn = form.querySelector(".payment-btn");
-
-      function updateUI() {
-        if (input.value) {
-          btn.textContent = "수금완료";
-          btn.classList.remove("btn-danger");
-          btn.classList.add("btn-success");
-        } else {
-          btn.textContent = "미수금";
-          btn.classList.remove("btn-success");
-
-  // ✅ 수금일 입력 시 버튼 토글 스크립트
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".payment-date-input").forEach(function (input) {
-      const form = input.closest("form");
-      const btn = form.querySelector(".payment-btn");
-
-      function updateUI() {
-        if (input.value) {
-          btn.textContent = "수금완료";
-          btn.classList.remove("btn-danger");
-          btn.classList.add("btn-success");
-        } else {
-          btn.textContent = "미수금";
-          btn.classList.remove("btn-success");
-          btn.classList.add("btn-danger");
-        }
-      }
-
-      // 초기 UI 맞추기
-      updateUI();
-
-      // 날짜 변경되면 자동 저장
-      input.addEventListener("change", function () {
-        updateUI();
-        form.submit();  // ✅ 자동 제출 → DB 저장
-      });
-    });
-  });
-
-  // ✅ 수금 버튼 클릭 후 제자리에서 새로고침
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll('form[action*="set_payment_date"]').forEach(function(form) {
-      const originalSubmit = form.onsubmit;
-      form.onsubmit = function(e) {
-        if (originalSubmit && !originalSubmit(e)) {
-          return false;
-        }
-        // 폼 제출 후 페이지 새로고침
-        window.location.reload();
-        return true;
-      };
-    });
-  });
-
-  document.addEventListener("DOMContentLoaded", function () {
+    // 반납 모달
     const returnModalEl = document.getElementById("returnModal");
-    if (!returnModalEl || typeof bootstrap === "undefined") {
-      return;
+    if (returnModalEl && typeof bootstrap !== "undefined") {
+      const returnModal = bootstrap.Modal.getOrCreateInstance(returnModalEl);
+      const returnForm = document.getElementById("returnModalForm");
+      const materialEl = returnModalEl.querySelector("[data-return-material]");
+      const qtyEl = returnModalEl.querySelector("[data-return-qty]");
+      const qtyInput = document.getElementById("returnQtyInput");
+      let pendingFocus = false;
+
+      returnModalEl.addEventListener("shown.bs.modal", function () {
+        if (pendingFocus) { qtyInput.focus(); pendingFocus = false; }
+      });
+
+      document.body.addEventListener("click", function (event) {
+        const button = event.target.closest(".js-return-button");
+        if (!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        returnForm.action = button.dataset.returnAction || "#";
+        materialEl.textContent = button.dataset.materialName || "";
+        const maxQty = button.dataset.maxQty || "";
+        qtyEl.textContent = maxQty ? `출고수량: ${maxQty}개` : "";
+        qtyInput.max = maxQty;
+        qtyInput.value = "";
+        pendingFocus = true;
+        returnModal.show();
+      });
     }
-
-    const returnModal = bootstrap.Modal.getOrCreateInstance(returnModalEl);
-    const form = document.getElementById("returnModalForm");
-    const materialEl = returnModalEl.querySelector("[data-return-material]");
-    const qtyEl = returnModalEl.querySelector("[data-return-qty]");
-    const qtyInput = document.getElementById("returnQtyInput");
-
-    let pendingFocus = false;
-
-    returnModalEl.addEventListener("shown.bs.modal", function () {
-      if (pendingFocus) {
-        qtyInput.focus();
-        pendingFocus = false;
-      }
-    });
-
-    // 이벤트 위임을 사용하여 AJAX 업데이트 후에도 반납 버튼이 작동하도록 함
-    document.body.addEventListener("click", function (event) {
-      const button = event.target.closest(".js-return-button");
-      if (!button) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-
-      const action = button.dataset.returnAction || "#";
-      const materialName = button.dataset.materialName || "";
-      const maxQty = button.dataset.maxQty || "";
-
-      form.action = action;
-      materialEl.textContent = materialName;
-      qtyEl.textContent = maxQty ? `출고수량: ${maxQty}개` : "";
-      qtyInput.max = maxQty;
-      qtyInput.value = "";
-
-      pendingFocus = true;
-      returnModal.show();
-    });
   });
 </script>
 
@@ -1367,5 +1314,47 @@
           }
       });
   });
+</script>
+
+<script>
+// 출고방법 토글 모달
+document.addEventListener("DOMContentLoaded", function () {
+  const modalEl = document.getElementById("toggleMethodModal");
+  if (!modalEl) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  const msgEl = document.getElementById("toggleMethodMsg");
+  const confirmBtn = document.getElementById("toggleMethodConfirmBtn");
+  let pendingFormId = null;
+
+  document.body.addEventListener("click", function (e) {
+    const btn = e.target.closest(".js-toggle-method-btn");
+    if (!btn) return;
+    pendingFormId = btn.dataset.formId;
+    const to = btn.dataset.to;
+    msgEl.textContent = "출고방법을 " + to + "로 변경하시겠습니까?";
+    modal.show();
+  });
+
+  confirmBtn.addEventListener("click", function () {
+    if (pendingFormId) {
+      document.getElementById(pendingFormId).submit();
+    }
+    modal.hide();
+  });
+});
+
+function confirmReleaseNotification(button, isReRequest, instName, orderMonth, userName) {
+    const form = button.closest('form');
+    const summaryData = form.querySelector('.materials-summary-data').value;
+    
+    const title = isReRequest ? "[출고 재요청 알림]" : "[출고 요청 알림]";
+    const msg = `${title}\n강사: ${userName}\n출강장소: ${instName}\n주문년월: ${orderMonth}\n------------------\n${summaryData}`;
+    
+    const finalConfirmMsg = "아래 내용으로 카카오톡 알림을 전송하시겠습니까?\n\n" + msg;
+    
+    if (confirm(finalConfirmMsg)) {
+        form.submit();
+    }
+}
 </script>
 {% endblock %}
