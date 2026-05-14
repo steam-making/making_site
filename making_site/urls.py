@@ -27,6 +27,10 @@ from django.contrib.sitemaps.views import sitemap
 from main.sitemaps import sitemaps_dict
 from django.http import HttpResponse
 from django.views.generic.base import RedirectView
+from django.shortcuts import render
+
+def privacy_view(request):
+    return render(request, 'privacy.html')
 
 def robots_txt(request):
     lines = [
@@ -45,6 +49,7 @@ urlpatterns = [
     path('tag/', RedirectView.as_view(url='/', permanent=True)),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps_dict}, name='django.contrib.sitemaps.views.sitemap'),
     path('robots.txt', robots_txt),
+    path('privacy/', privacy_view, name='privacy'),
     path('', include('main.urls')),  # main 앱의 URL 포함
     path('accounts/', include('accounts.urls')),  # accounts 앱 URL 포함
     path('accounts/', include('django.contrib.auth.urls')),  # 로그인/로그아웃 URL 추가
