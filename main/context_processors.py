@@ -39,10 +39,14 @@ def menu_items(request):
         if visible_sub_menus or menu.url != '#':
             top_menus.append(menu)
 
-    # 새 linkhub 공고 수 (영역별)
+    # 새 linkhub 공고 수 (영역별) - 오늘 수집된 것 기준
     try:
         from linkhub.models import CollectedPost
-        new_qs = CollectedPost.objects.filter(is_new=True).values_list('source__area', flat=True)
+        from django.utils import timezone
+        today = timezone.localdate()
+        new_qs = CollectedPost.objects.filter(
+            collected_at__date=today
+        ).values_list('source__area', flat=True)
         areas = list(new_qs)
         linkhub_new_gwangju = areas.count('GWANGJU')
         linkhub_new_jeonnam = areas.count('JEONNAM')
