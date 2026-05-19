@@ -21,5 +21,8 @@ urlpatterns = [
     path("api/", include("linkhub.api_urls")),
     
     path( "neulbom/cutoff/update/", views.neulbom_cutoff_update, name="neulbom_cutoff_update" ),
-    path("crontab/toggle/", views.crontab_toggle, name="crontab_toggle"),
+    path("collect-run/", views.collect_run, name="collect_run"),
+    path("posts/<int:post_id>/delete/", views.post_delete, name="post_delete"),
+    path("posts/bulk-delete/", views.posts_bulk_delete, name="posts_bulk_delete"),
+    path("settings/update/", views.linkhub_settings_update, name="settings_update"),
 ]

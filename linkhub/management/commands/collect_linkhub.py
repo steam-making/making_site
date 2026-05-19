@@ -1,18 +1,22 @@
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 from datetime import date, timedelta
 import re
 
-from linkhub.models import CollectedPost, NeulbomConfig, SourceSite
+from linkhub.models import CollectedPost, NeulbomConfig, SourceSite, LinkhubConfig
 from linkhub.services import collect_posts
 
 
 class Command(BaseCommand):
-    help = "매일 오전 8시 linkhub 수집 + 마감 3일 초과 자동삭제"
+    help = "매일 오전 8시 linkhub 수집 + 자동삭제"
 
     def handle(self, *args, **kwargs):
         today = date.today()
         yesterday = today - timedelta(days=1)
+
+        # 설정 로드
+        lconfig = LinkhubConfig.get()
+        expire_deadline_days = lconfig.expire_deadline_days
+        expire_no_deadline_days = lconfig.expire_no_deadline_days
 
         # 1. 수집 기준일을 어제로 자동 설정
         config, _ = NeulbomConfig.objects.get_or_create(
@@ -40,18 +44,25 @@ class Command(BaseCommand):
 
         self.stdout.write(f"[linkhub] 총 신규 수집: {total_new}건")
 
-        # 4. 마감일 3일 초과 게시물 삭제
-        deleted = self._delete_expired_posts(today)
-        self.stdout.write(f"[linkhub] 만료 삭제: {deleted}건 (마감 3일 초과)")
+        # 4. 마감일 초과 게시물 삭제
+        deleted = self._delete_expired_posts(today, expire_deadline_days, expire_no_deadline_days)
+        self.stdout.write(f"[linkhub] 만료 삭제: {deleted}건")
 
-    def _delete_expired_posts(self, today):
-        cutoff = today - timedelta(days=3)
+    def _delete_expired_posts(self, today, expire_deadline_days, expire_no_deadline_days):
+        deadline_cutoff = today - timedelta(days=expire_deadline_days)
+        no_deadline_cutoff = today - timedelta(days=expire_no_deadline_days)
         to_delete = []
 
-        for post in CollectedPost.objects.filter(post_date__isnull=False).exclude(post_date=""):
-            end_date = self._parse_end_date(post.post_date)
-            if end_date and end_date < cutoff:
-                to_delete.append(post.pk)
+        for post in CollectedPost.objects.select_related("source").all():
+            end_date = self._parse_end_date(post.post_date) if post.post_date else None
+            if end_date:
+                # 마감일 있는 공고: 마감일 + N일 초과 시 삭제
+                if end_date < deadline_cutoff:
+                    to_delete.append(post.pk)
+            else:
+                # 마감일 없는 공고(등록일만 있는 경우): 수집일 + N일 초과 시 삭제
+                if post.collected_at.date() < no_deadline_cutoff:
+                    to_delete.append(post.pk)
 
         if to_delete:
             deleted_count, _ = CollectedPost.objects.filter(pk__in=to_delete).delete()

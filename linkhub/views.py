@@ -287,6 +287,7 @@ def post_hub(request):
         "cutoff_date": cutoff_date,
         "latest_collected_date": latest_collected_date,
         "crontab_active": _crontab_is_active() if request.user.is_staff else False,
+        "linkhub_config": LinkhubConfig.get() if request.user.is_staff else None,
     })
 
 
@@ -565,9 +566,10 @@ def neulbom_cutoff_update(request):
 import subprocess
 import sys
 from django.conf import settings
+from .models import LinkhubConfig
+
 
 def _crontab_is_active():
-    """현재 crontab에 collect_linkhub 등록 여부 확인"""
     try:
         result = subprocess.run(
             [sys.executable, "manage.py", "crontab", "show"],
@@ -580,16 +582,70 @@ def _crontab_is_active():
 
 @staff_member_required
 @require_POST
-def crontab_toggle(request):
-    currently_active = _crontab_is_active()
-    action = "remove" if currently_active else "add"
+def collect_run(request):
+    """공고수집 버튼 → collect_linkhub 커맨드 실행"""
     try:
-        subprocess.run(
-            [sys.executable, "manage.py", "crontab", action],
-            capture_output=True, text=True, cwd=settings.BASE_DIR, timeout=15
+        result = subprocess.run(
+            [sys.executable, "manage.py", "collect_linkhub"],
+            capture_output=True, text=True, cwd=settings.BASE_DIR, timeout=120
         )
-        new_state = not currently_active
+        output = result.stdout + result.stderr
+        return JsonResponse({"ok": True, "output": output})
+    except subprocess.TimeoutExpired:
+        return JsonResponse({"ok": False, "error": "수집 시간 초과"}, status=500)
     except Exception as e:
         return JsonResponse({"ok": False, "error": str(e)}, status=500)
 
-    return JsonResponse({"ok": True, "active": new_state})
+
+@staff_member_required
+@require_POST
+def post_delete(request, post_id):
+    """공고 단건 삭제"""
+    post = get_object_or_404(CollectedPost, id=post_id)
+    post.delete()
+    return JsonResponse({"ok": True})
+
+
+@staff_member_required
+@require_POST
+def posts_bulk_delete(request):
+    """공고 다중 삭제"""
+    ids = request.POST.getlist("ids[]") or request.POST.getlist("ids")
+    if not ids:
+        import json
+        try:
+            body = json.loads(request.body)
+            ids = body.get("ids", [])
+        except Exception:
+            pass
+    count, _ = CollectedPost.objects.filter(id__in=ids).delete()
+    return JsonResponse({"ok": True, "deleted": count})
+
+
+@staff_member_required
+@require_POST
+def linkhub_settings_update(request):
+    """자동수집/자동삭제 설정 저장"""
+    config = LinkhubConfig.get()
+    auto_collect = request.POST.get("auto_collect") == "1"
+    try:
+        expire_deadline_days = int(request.POST.get("expire_deadline_days", config.expire_deadline_days))
+        expire_no_deadline_days = int(request.POST.get("expire_no_deadline_days", config.expire_no_deadline_days))
+    except (ValueError, TypeError):
+        return JsonResponse({"ok": False, "error": "숫자를 입력해주세요."}, status=400)
+
+    config.expire_deadline_days = expire_deadline_days
+    config.expire_no_deadline_days = expire_no_deadline_days
+    config.auto_collect = auto_collect
+    config.save()
+
+    # crontab 상태 동기화
+    currently_active = _crontab_is_active()
+    if auto_collect and not currently_active:
+        subprocess.run([sys.executable, "manage.py", "crontab", "add"],
+                       capture_output=True, cwd=settings.BASE_DIR, timeout=15)
+    elif not auto_collect and currently_active:
+        subprocess.run([sys.executable, "manage.py", "crontab", "remove"],
+                       capture_output=True, cwd=settings.BASE_DIR, timeout=15)
+
+    return JsonResponse({"ok": True, "auto_collect": auto_collect})

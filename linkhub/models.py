@@ -191,3 +191,22 @@ class NeulbomConfig(models.Model):
 
     def __str__(self):
         return f"늘봄 기준일: {self.cutoff_date}"
+
+
+class LinkhubConfig(models.Model):
+    """linkhub 자동수집/자동삭제 설정"""
+    auto_collect = models.BooleanField("자동수집 ON/OFF", default=False)
+    expire_deadline_days = models.PositiveIntegerField("마감 후 삭제 기준(일)", default=3)
+    expire_no_deadline_days = models.PositiveIntegerField("등록일 기준 삭제(일, 마감일 없는 공고)", default=30)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "linkhub 설정"
+
+    def __str__(self):
+        return f"LinkhubConfig (자동수집={self.auto_collect})"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

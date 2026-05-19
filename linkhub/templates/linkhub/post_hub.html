@@ -53,46 +53,36 @@
                 style="width: 150px;"
                 onchange="saveCutoffDate(this.value)">
 
-            <!-- 늘봄 수집 -->
-            <form method="post"
-                action="{% url 'linkhub:collect' %}"
-                class="m-0">
-                {% csrf_token %}
-                <input type="hidden" name="area" value="{{ area }}">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-arrow-repeat"></i>
-                    늘봄수집
-                </button>
-            </form>
+            <!-- 공고수집 -->
+            <button type="button" id="collectRunBtn" class="btn btn-primary btn-sm"
+                data-url="{% url 'linkhub:collect_run' %}" data-csrf="{{ csrf_token }}">
+                <i class="bi bi-arrow-repeat"></i> 공고수집
+            </button>
+
+            <!-- 선택삭제 -->
+            <button type="button" id="bulkDeleteBtn" class="btn btn-outline-danger btn-sm d-none"
+                data-url="{% url 'linkhub:posts_bulk_delete' %}" data-csrf="{{ csrf_token }}">
+                <i class="bi bi-trash"></i> 선택삭제 (<span id="checkedCount">0</span>)
+            </button>
 
             <!-- SourceSite 관리 -->
-            <a href="{% url 'linkhub:source_list' %}"
-            class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-gear"></i>
-                SourceSite
+            <a href="{% url 'linkhub:source_list' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-gear"></i> SourceSite
             </a>
 
-            <!-- 자동수집 크론탭 토글 -->
-            <button type="button" id="crontabToggleBtn"
-                class="btn btn-sm {% if crontab_active %}btn-success{% else %}btn-outline-secondary{% endif %}"
-                onclick="toggleCrontab(this)"
-                data-toggle-url="{% url 'linkhub:crontab_toggle' %}"
-                data-csrf="{{ csrf_token }}"
-                title="매일 오전 8시 자동수집">
-                <i class="bi {% if crontab_active %}bi-alarm-fill{% else %}bi-alarm{% endif %}"></i>
-                자동수집 {% if crontab_active %}ON{% else %}OFF{% endif %}
+            <!-- 설정 버튼 -->
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                data-bs-toggle="modal" data-bs-target="#linkhubSettingsModal">
+                <i class="bi bi-sliders"></i> 설정
             </button>
 
             <!-- 모두 삭제 -->
-            <form method="post"
-                action="{% url 'linkhub:delete_all' %}"
-                class="m-0"
+            <form method="post" action="{% url 'linkhub:delete_all' %}" class="m-0"
                 onsubmit="return confirm('정말 모두 삭제할까요? (복구 불가)');">
                 {% csrf_token %}
                 <input type="hidden" name="area" value="{{ area }}">
                 <button type="submit" class="btn btn-outline-danger btn-sm">
-                    <i class="bi bi-trash"></i>
-                    전체삭제
+                    <i class="bi bi-trash"></i> 전체삭제
                 </button>
             </form>
             
@@ -162,6 +152,7 @@
                 </colgroup>
                 <thead class="table-light">
                     <tr>
+                        {% if request.user.is_staff %}<th style="width:2rem;"></th>{% endif %}
                         <th class="text-start">제목</th>
                         <th class="text-center">파일</th>
                         <th class="text-center">링크</th>
@@ -171,66 +162,45 @@
                     {% for group in groups %}
                         {% for post in group.posts %}
                         <tr>
+                            {% if request.user.is_staff %}
+                            <td class="text-center">
+                                <input type="checkbox" class="post-checkbox form-check-input" value="{{ post.id }}">
+                            </td>
+                            {% endif %}
                             <td data-label="제목" class="text-start">
-
-                                <!-- 🔹 제목 앞 메타 정보 -->
                                 <div class="mb-1 d-flex flex-wrap gap-1 align-items-center">
-
-                                    <!-- 🔥 공고 출처 사이트 -->
-                                    <span class="badge {{ post.source_badge_class }}">
-                                        {{ post.source.name }}
-                                    </span>
-
-
-
+                                    <span class="badge {{ post.source_badge_class }}">{{ post.source.name }}</span>
                                     {% if post.post_date %}
-                                        <span class="badge bg-light text-dark border">
-                                            {{ post.post_date|cut:"등록일"|cut:"모집기간" }}
-                                        </span>
+                                        <span class="badge bg-light text-dark border">{{ post.post_date|cut:"등록일"|cut:"모집기간" }}</span>
                                     {% endif %}
-
                                     {% if post.school_name %}
-                                        <span class="ms-1">
-                                            <i class="bi bi-building"></i>
-                                            {{ post.school_name }}
-                                        </span>
+                                        <span class="ms-1"><i class="bi bi-building"></i> {{ post.school_name }}</span>
                                     {% endif %}
-
                                     {% if post.is_new_today %}
                                         <span class="badge bg-danger ms-1">NEW</span>
                                     {% endif %}
                                 </div>
-
-                                <!-- 🔹 실제 제목 -->
-                                <div class="fw-bold ps-1" style="font-size: 0.95rem;">
-                                    {{ post.highlighted_title|safe }}
-                                </div>
-
-
-
-
+                                <div class="fw-bold ps-1" style="font-size: 0.95rem;">{{ post.highlighted_title|safe }}</div>
                             </td>
-
                             <td data-label="파일" class="text-center">
                                 {% if post.attachment_urls %}
                                     {% for f in post.attachment_urls %}
-                                        <a href="{{ f.url }}"
-                                        target="_blank"
-                                        class="btn btn-sm btn-outline-success">
-                                            다운
-                                        </a>
+                                        <a href="{{ f.url }}" target="_blank" class="btn btn-sm btn-outline-success">다운</a>
                                     {% endfor %}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
-
                             <td data-label="링크" class="text-center">
-                                <a href="{{ post.link }}"
-                                target="_blank"
-                                class="btn btn-sm btn-primary">
-                                    바로가기
-                                </a>
+                                <a href="{{ post.link }}" target="_blank" class="btn btn-sm btn-primary">바로가기</a>
+                                {% if request.user.is_staff %}
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-1 post-delete-btn"
+                                    data-post-id="{{ post.id }}"
+                                    data-url="{% url 'linkhub:post_delete' post.id %}"
+                                    data-csrf="{{ csrf_token }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
@@ -424,11 +394,18 @@
 
 
                         <td data-label="링크" class="text-center">
-                            <a href="{{ post.link }}"
-                            target="_blank"
-                            class="btn btn-sm btn-primary link-btn">
-                                바로가기
-                            </a>
+                            {% if request.user.is_staff %}
+                            <input type="checkbox" class="post-checkbox form-check-input me-1" value="{{ post.id }}">
+                            {% endif %}
+                            <a href="{{ post.link }}" target="_blank" class="btn btn-sm btn-primary link-btn">바로가기</a>
+                            {% if request.user.is_staff %}
+                            <button type="button" class="btn btn-sm btn-outline-danger ms-1 post-delete-btn"
+                                data-post-id="{{ post.id }}"
+                                data-url="{% url 'linkhub:post_delete' post.id %}"
+                                data-csrf="{{ csrf_token }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% endif %}
                         </td>
 
                     </tr>
@@ -585,8 +562,150 @@ async function toggleCrontab(btn) {
         btn.disabled = false;
     }
 }
+
+// ── 공고수집 버튼 ──────────────────────────────
+document.getElementById('collectRunBtn')?.addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>수집 중...';
+    try {
+        const res = await fetch(btn.dataset.url, {
+            method: 'POST', headers: {'X-CSRFToken': btn.dataset.csrf}
+        });
+        const data = await res.json();
+        if (data.ok) {
+            alert('수집 완료!\n' + (data.output || ''));
+            location.reload();
+        } else {
+            alert('오류: ' + (data.error || ''));
+        }
+    } catch(e) { alert('요청 실패'); }
+    finally { btn.innerHTML = orig; btn.disabled = false; }
+});
+
+// ── 개별 삭제 버튼 ────────────────────────────
+document.querySelectorAll('.post-delete-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        if (!confirm('이 공고를 삭제할까요?')) return;
+        try {
+            const res = await fetch(btn.dataset.url, {
+                method: 'POST', headers: {'X-CSRFToken': btn.dataset.csrf}
+            });
+            const data = await res.json();
+            if (data.ok) btn.closest('tr').remove();
+            else alert('삭제 실패');
+        } catch(e) { alert('요청 실패'); }
+    });
+});
+
+// ── 체크박스 + 선택삭제 ───────────────────────
+const bulkBtn = document.getElementById('bulkDeleteBtn');
+const countSpan = document.getElementById('checkedCount');
+
+function updateBulkBtn() {
+    const checked = document.querySelectorAll('.post-checkbox:checked');
+    if (bulkBtn) {
+        bulkBtn.classList.toggle('d-none', checked.length === 0);
+        if (countSpan) countSpan.textContent = checked.length;
+    }
+}
+
+document.querySelectorAll('.post-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateBulkBtn);
+});
+
+bulkBtn?.addEventListener('click', async function() {
+    const ids = [...document.querySelectorAll('.post-checkbox:checked')].map(c => c.value);
+    if (!ids.length) return;
+    if (!confirm(`선택한 ${ids.length}개 공고를 삭제할까요?`)) return;
+    const formData = new FormData();
+    ids.forEach(id => formData.append('ids[]', id));
+    formData.append('csrfmiddlewaretoken', bulkBtn.dataset.csrf);
+    try {
+        const res = await fetch(bulkBtn.dataset.url, {method: 'POST', body: formData});
+        const data = await res.json();
+        if (data.ok) {
+            document.querySelectorAll('.post-checkbox:checked').forEach(cb => cb.closest('tr').remove());
+            updateBulkBtn();
+        } else alert('삭제 실패');
+    } catch(e) { alert('요청 실패'); }
+});
+
+// ── 설정 저장 ─────────────────────────────────
+document.getElementById('saveSettingsBtn')?.addEventListener('click', async function() {
+    const form = document.getElementById('linkhubSettingsForm');
+    const btn = this;
+    btn.disabled = true;
+    const formData = new FormData(form);
+    try {
+        const res = await fetch(form.dataset.url, {method: 'POST', body: formData});
+        const data = await res.json();
+        if (data.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('linkhubSettingsModal'));
+            modal?.hide();
+            location.reload();
+        } else alert('저장 실패: ' + (data.error || ''));
+    } catch(e) { alert('요청 실패'); }
+    finally { btn.disabled = false; }
+});
 </script>
 
+<!-- 설정 모달 -->
+{% if request.user.is_staff and linkhub_config %}
+<div class="modal fade" id="linkhubSettingsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-sliders me-2"></i>자동수집/삭제 설정</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="linkhubSettingsForm" data-url="{% url 'linkhub:settings_update' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">자동수집 (매일 오전 8시)</label>
+            <div class="d-flex gap-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="auto_collect" id="autoOn" value="1"
+                  {% if linkhub_config.auto_collect %}checked{% endif %}>
+                <label class="form-check-label" for="autoOn">ON</label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="auto_collect" id="autoOff" value="0"
+                  {% if not linkhub_config.auto_collect %}checked{% endif %}>
+                <label class="form-check-label" for="autoOff">OFF</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">마감일 기준 자동삭제 (마감 후 N일)</label>
+            <div class="input-group" style="max-width:180px;">
+              <input type="number" class="form-control" name="expire_deadline_days"
+                value="{{ linkhub_config.expire_deadline_days }}" min="1" max="365">
+              <span class="input-group-text">일</span>
+            </div>
+            <small class="text-muted">마감일이 지난 공고는 N일 후 자동삭제</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">등록일 기준 자동삭제 (수집 후 N일)</label>
+            <div class="input-group" style="max-width:180px;">
+              <input type="number" class="form-control" name="expire_no_deadline_days"
+                value="{{ linkhub_config.expire_no_deadline_days }}" min="1" max="365">
+              <span class="input-group-text">일</span>
+            </div>
+            <small class="text-muted">마감일 없는 공고(등록일만 있는 전남 공고 등)는 수집일로부터 N일 후 자동삭제</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+        <button type="button" id="saveSettingsBtn" class="btn btn-primary">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}
 
