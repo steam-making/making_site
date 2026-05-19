@@ -21,5 +21,5 @@ urlpatterns = [
     path("api/", include("linkhub.api_urls")),
     
     path( "neulbom/cutoff/update/", views.neulbom_cutoff_update, name="neulbom_cutoff_update" ),
-
+    path("crontab/toggle/", views.crontab_toggle, name="crontab_toggle"),
 ]

@@ -286,6 +286,7 @@ def post_hub(request):
         },
         "cutoff_date": cutoff_date,
         "latest_collected_date": latest_collected_date,
+        "crontab_active": _crontab_is_active() if request.user.is_staff else False,
     })
 
 
@@ -559,3 +560,36 @@ def neulbom_cutoff_update(request):
         "ok": True,
         "cutoff_date": cutoff_date
     })
+
+
+import subprocess
+import sys
+from django.conf import settings
+
+def _crontab_is_active():
+    """현재 crontab에 collect_linkhub 등록 여부 확인"""
+    try:
+        result = subprocess.run(
+            [sys.executable, "manage.py", "crontab", "show"],
+            capture_output=True, text=True, cwd=settings.BASE_DIR
+        )
+        return "collect_linkhub" in result.stdout
+    except Exception:
+        return False
+
+
+@staff_member_required
+@require_POST
+def crontab_toggle(request):
+    currently_active = _crontab_is_active()
+    action = "remove" if currently_active else "add"
+    try:
+        subprocess.run(
+            [sys.executable, "manage.py", "crontab", action],
+            capture_output=True, text=True, cwd=settings.BASE_DIR, timeout=15
+        )
+        new_state = not currently_active
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)}, status=500)
+
+    return JsonResponse({"ok": True, "active": new_state})
