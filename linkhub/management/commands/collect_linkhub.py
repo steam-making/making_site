@@ -27,16 +27,16 @@ class Command(BaseCommand):
         # 2. 기존 NEW 플래그 초기화
         CollectedPost.objects.filter(is_new=True).update(is_new=False)
 
-        # 3. 광주 활성 사이트 수집
-        sites = SourceSite.objects.filter(active=True, area="GWANGJU")
+        # 3. 광주 + 전남 활성 사이트 수집
+        sites = SourceSite.objects.filter(active=True, area__in=["GWANGJU", "JEONNAM"])
         total_new = 0
         for site in sites:
             try:
                 count = collect_posts(site)
                 total_new += count or 0
-                self.stdout.write(f"[linkhub] {site.name}: {count}건 수집")
+                self.stdout.write(f"[linkhub] [{site.area}] {site.name}: {count}건 수집")
             except Exception as e:
-                self.stderr.write(f"[linkhub] {site.name} 수집 오류: {e}")
+                self.stderr.write(f"[linkhub] [{site.area}] {site.name} 수집 오류: {e}")
 
         self.stdout.write(f"[linkhub] 총 신규 수집: {total_new}건")
 
