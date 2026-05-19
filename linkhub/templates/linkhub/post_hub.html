@@ -146,13 +146,14 @@
 
             <table class="table table-hover table-stack align-middle mb-0">
                 <colgroup>
-                    <col style="width:60%">
+                    {% if request.user.is_staff %}<col style="width:2rem;">{% endif %}
+                    <col>
                     <col style="width:10%">
-                    <col style="width:15%">
+                    <col style="width:{% if request.user.is_staff %}18%{% else %}15%{% endif %}">
                 </colgroup>
                 <thead class="table-light">
                     <tr>
-                        {% if request.user.is_staff %}<th style="width:2rem;"></th>{% endif %}
+                        {% if request.user.is_staff %}<th></th>{% endif %}
                         <th class="text-start">제목</th>
                         <th class="text-center">파일</th>
                         <th class="text-center">링크</th>
@@ -632,24 +633,7 @@ bulkBtn?.addEventListener('click', async function() {
     } catch(e) { alert('요청 실패'); }
 });
 
-// ── 설정 저장 ─────────────────────────────────
-document.getElementById('saveSettingsBtn')?.addEventListener('click', async function() {
-    const form = document.getElementById('linkhubSettingsForm');
-    const btn = this;
-    btn.disabled = true;
-    const formData = new FormData(form);
-    try {
-        const res = await fetch(form.dataset.url, {method: 'POST', body: formData});
-        const data = await res.json();
-        if (data.ok) {
-            const modalEl = document.getElementById('linkhubSettingsModal');
-            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-            modal.hide();
-            modalEl.addEventListener('hidden.bs.modal', () => location.reload(), {once: true});
-        } else alert('저장 실패: ' + (data.error || ''));
-    } catch(e) { alert('요청 실패'); }
-    finally { btn.disabled = false; }
-});
+
 </script>
 
 <!-- 설정 모달 -->
@@ -707,6 +691,31 @@ document.getElementById('saveSettingsBtn')?.addEventListener('click', async func
   </div>
 </div>
 {% endif %}
+
+<script>
+document.getElementById('saveSettingsBtn')?.addEventListener('click', async function() {
+    const form = document.getElementById('linkhubSettingsForm');
+    const btn = this;
+    btn.disabled = true;
+    const formData = new FormData(form);
+    try {
+        const res = await fetch(form.dataset.url, {method: 'POST', body: formData});
+        const data = await res.json();
+        if (data.ok) {
+            const modalEl = document.getElementById('linkhubSettingsModal');
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
+            modalEl.addEventListener('hidden.bs.modal', () => location.reload(), {once: true});
+        } else {
+            alert('저장 실패: ' + (data.error || ''));
+            btn.disabled = false;
+        }
+    } catch(e) {
+        alert('요청 실패');
+        btn.disabled = false;
+    }
+});
+</script>
 
 {% endblock %}
 
