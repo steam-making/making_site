@@ -39,6 +39,14 @@ def menu_items(request):
         if visible_sub_menus or menu.url != '#':
             top_menus.append(menu)
 
+    # 새 linkhub 공고 수
+    try:
+        from linkhub.models import CollectedPost
+        linkhub_new_count = CollectedPost.objects.filter(is_new=True).count()
+    except Exception:
+        linkhub_new_count = 0
+
     return {
-        'global_menu': top_menus
+        'global_menu': top_menus,
+        'linkhub_new_count': linkhub_new_count,
     }
