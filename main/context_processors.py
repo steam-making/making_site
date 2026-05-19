@@ -39,14 +39,19 @@ def menu_items(request):
         if visible_sub_menus or menu.url != '#':
             top_menus.append(menu)
 
-    # 새 linkhub 공고 수
+    # 새 linkhub 공고 수 (영역별)
     try:
         from linkhub.models import CollectedPost
-        linkhub_new_count = CollectedPost.objects.filter(is_new=True).count()
+        new_qs = CollectedPost.objects.filter(is_new=True).values_list('source__area', flat=True)
+        areas = list(new_qs)
+        linkhub_new_gwangju = areas.count('GWANGJU')
+        linkhub_new_jeonnam = areas.count('JEONNAM')
     except Exception:
-        linkhub_new_count = 0
+        linkhub_new_gwangju = 0
+        linkhub_new_jeonnam = 0
 
     return {
         'global_menu': top_menus,
-        'linkhub_new_count': linkhub_new_count,
+        'linkhub_new_gwangju': linkhub_new_gwangju,
+        'linkhub_new_jeonnam': linkhub_new_jeonnam,
     }

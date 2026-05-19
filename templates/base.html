@@ -68,13 +68,13 @@
               {% if menu.visible_sub_menus %}
                 <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle" href="#" id="menu_{{ menu.id }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    {% if menu.icon_class %}<i class="bi {{ menu.icon_class }} me-1"></i>{% endif %}{{ menu.title }}{% if linkhub_new_count %}{% for sub in menu.visible_sub_menus %}{% if "linkhub" in sub.url %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% endif %}{% endfor %}{% endif %}
+                    {% if menu.icon_class %}<i class="bi {{ menu.icon_class }} me-1"></i>{% endif %}{{ menu.title }}{% if linkhub_new_gwangju or linkhub_new_jeonnam %}{% for sub in menu.visible_sub_menus %}{% if "linkhub" in sub.url and "area=gwangju" in sub.url and linkhub_new_gwangju %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% elif "linkhub" in sub.url and "area=jeonnam" in sub.url and linkhub_new_jeonnam %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% endif %}{% endfor %}{% endif %}
                   </a>
                   <ul class="dropdown-menu" aria-labelledby="menu_{{ menu.id }}">
                     {% for sub in menu.visible_sub_menus %}
                       <li>
                         <a class="dropdown-item" href="{{ sub.url }}">
-                          {% if sub.icon_class %}<i class="bi {{ sub.icon_class }} me-1"></i>{% endif %}{{ sub.title }}{% if "linkhub" in sub.url and linkhub_new_count %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% endif %}
+                          {% if sub.icon_class %}<i class="bi {{ sub.icon_class }} me-1"></i>{% endif %}{{ sub.title }}{% if "linkhub" in sub.url and "area=gwangju" in sub.url and linkhub_new_gwangju %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% elif "linkhub" in sub.url and "area=jeonnam" in sub.url and linkhub_new_jeonnam %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% endif %}
                         </a>
                       </li>
                     {% endfor %}
@@ -83,7 +83,7 @@
               {% else %}
                 <li class="nav-item">
                   <a class="nav-link" href="{{ menu.url }}">
-                    {% if menu.icon_class %}<i class="bi {{ menu.icon_class }} me-1"></i>{% endif %}{{ menu.title }}{% if "linkhub" in menu.url and linkhub_new_count %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% endif %}
+                    {% if menu.icon_class %}<i class="bi {{ menu.icon_class }} me-1"></i>{% endif %}{{ menu.title }}{% if "linkhub" in menu.url and "area=gwangju" in menu.url and linkhub_new_gwangju %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% elif "linkhub" in menu.url and "area=jeonnam" in menu.url and linkhub_new_jeonnam %}&nbsp;<span class="badge bg-danger" style="font-size:0.6rem;vertical-align:middle;">N</span>{% endif %}
                   </a>
                 </li>
               {% endif %}
