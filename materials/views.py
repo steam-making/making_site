@@ -2325,6 +2325,12 @@ def estimate_preview(request, institution_id, order_month):
     inst = totals["institution"]
     recipients = [e for e in [getattr(inst, "contact_email", None), getattr(inst, "admin_email", None)] if e]
 
+    estimate_sent = MaterialRelease.objects.filter(
+        institution_id=institution_id,
+        order_month=order_month,
+        estimate_sent=True,
+    ).exists()
+
     return render(request, "release/estimate_preview.html", {
         "release": release,
         "form": form,
@@ -2335,7 +2341,7 @@ def estimate_preview(request, institution_id, order_month):
         "supply_sum": supply_sum, "vat_sum": vat_sum, "total_sum": total_sum,
         "totals": totals, "recipients": recipients,
         "grouped_rows": grouped_rows,
-        # ✅ 필터값도 넘김
+        "estimate_sent": estimate_sent,
         "selected_teacher_id": request.GET.get("teacher"),
         "selected_institution_id": request.GET.get("institution"),
         "selected_order_month": request.GET.get("order_month"),
@@ -2353,11 +2359,15 @@ def estimate_pdf(request, institution_id, order_month):
 
 @login_required
 def estimate_send(request, institution_id, order_month):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
     if request.method != 'POST':
         return redirect('estimate_preview', institution_id=institution_id, order_month=order_month)
 
     pdf_bytes, filename, totals = _build_estimate_pdf_bytes(institution_id, order_month)
     if not pdf_bytes:
+        if is_ajax:
+            return JsonResponse({"success": False, "message": "PDF 생성 실패로 메일을 보낼 수 없습니다."}, status=400)
         messages.error(request, "PDF 생성 실패로 메일을 보낼 수 없습니다.")
         return redirect('release_list')
 
@@ -2371,6 +2381,8 @@ def estimate_send(request, institution_id, order_month):
         recipients.append(inst.admin_email)
 
     if not recipients:
+        if is_ajax:
+            return JsonResponse({"success": False, "message": "수신자 이메일(담당자/행정실)이 없어 메일을 보내지 않았습니다."}, status=400)
         messages.warning(request, "수신자 이메일(담당자/행정실)이 없어 메일을 보내지 않았습니다.")
         return redirect('release_list')
 
@@ -2396,17 +2408,57 @@ def estimate_send(request, institution_id, order_month):
 
     try:
         email.send(fail_silently=False)
-        
+
         print("이메일 발송 완료!")
-        
-        # ✅ 발송 성공 시 상태 업데이트
+
         MaterialRelease.objects.filter(
             institution_id=institution_id,
             order_month=order_month
         ).update(estimate_sent=True)
 
+        # 카카오톡 알림: 관리자→강사
+        try:
+            admin_user = User.objects.filter(username="robotmaking@naver.com").first() \
+                         or User.objects.filter(is_staff=True).first()
+            teacher_profile = getattr(teacher, "profile", None)
+            if admin_user and teacher_profile and teacher_profile.kakao_id:
+                from accounts.utils import find_friend_uuid, send_kakao_friend_message
+                receiver_uuid = find_friend_uuid(admin_user, teacher_profile.kakao_id)
+                if receiver_uuid:
+                    mat_counts = {}
+                    releases_qs = MaterialRelease.objects.filter(
+                        institution_id=institution_id,
+                        order_month=order_month,
+                    )
+                    for r in releases_qs:
+                        for item in r.items.filter(included=True):
+                            mat_name = item.material.name
+                            mat_counts[mat_name] = mat_counts.get(mat_name, 0) + item.quantity
+                    items_text = "\n".join(f"- {name} {qty}개" for name, qty in sorted(mat_counts.items()))
+                    kakao_msg = (
+                        f"[견적서 발송 안내]\n"
+                        f"강사: {teacher.first_name or teacher.username}\n"
+                        f"출강장소: {inst.name}\n"
+                        f"주문년월: {order_month}\n"
+                        f"------------------\n"
+                        f"{items_text}\n"
+                        f"------------------\n"
+                        f"공급가액: {totals['supply_sum']:,}원\n"
+                        f"세    액: {totals['vat_sum']:,}원\n"
+                        f"합   계: {totals['grand_total']:,}원\n\n"
+                        f"견적서가 이메일로 발송되었습니다."
+                    )
+                    send_kakao_friend_message(admin_user, receiver_uuid, kakao_msg, local_test=bool(settings.DEBUG))
+        except Exception as kakao_err:
+            print(f"[카카오 견적서 알림 오류] {kakao_err}")
+
+        if is_ajax:
+            return JsonResponse({"success": True, "message": f"견적서를 {', '.join(recipients)} 로 발송했습니다."})
         messages.success(request, f"견적서를 {', '.join(recipients)} 로 발송했습니다.")
+
     except Exception as e:
+        if is_ajax:
+            return JsonResponse({"success": False, "message": f"메일 발송 실패: {e}"}, status=500)
         messages.error(request, f"메일 발송 실패: {e}")
 
     return redirect('release_list')

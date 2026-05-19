@@ -306,12 +306,10 @@
         </a>
 
         <!-- 이메일 발송 -->
-        <form method="post" action="{{ send_url }}" class="d-inline">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-success">
-            <i class="bi bi-send"></i> 이메일 발송
-          </button>
-        </form>
+        <button type="button" id="sendEmailBtn" class="btn {% if estimate_sent %}btn-warning{% else %}btn-success{% endif %}"
+                data-send-url="{{ send_url }}">
+          <i class="bi bi-send"></i> {% if estimate_sent %}이메일 재발송{% else %}이메일 발송{% endif %}
+        </button>
 
         <!-- 목록으로 -->
         <a href="{% url 'release_list' %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" class="btn btn-secondary">
@@ -414,6 +412,43 @@
       submitEstimateForm();
     });
     recalc();
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const sendBtn = document.getElementById('sendEmailBtn');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', async () => {
+        if (sendBtn.disabled) return;
+        sendBtn.disabled = true;
+        const origHtml = sendBtn.innerHTML;
+        sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> 발송 중...';
+
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const sendUrl = sendBtn.dataset.sendUrl;
+
+        try {
+          const res = await fetch(sendUrl, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken },
+          });
+          const data = await res.json();
+          setEstimateStatus(data.message || (data.success ? '발송 완료' : '발송 실패'), data.success ? 'success' : 'danger');
+          if (data.success) {
+            sendBtn.innerHTML = '<i class="bi bi-send"></i> 이메일 재발송';
+            sendBtn.classList.remove('btn-success');
+            sendBtn.classList.add('btn-warning');
+          } else {
+            sendBtn.innerHTML = origHtml;
+          }
+        } catch (err) {
+          setEstimateStatus('발송 중 오류가 발생했습니다.', 'danger');
+          sendBtn.innerHTML = origHtml;
+        } finally {
+          sendBtn.disabled = false;
+          document.getElementById('estimateStatus').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      });
+    }
   });
 
   document.addEventListener("DOMContentLoaded", () => {
