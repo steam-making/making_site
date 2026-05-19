@@ -335,52 +335,45 @@
 
             <table class="table table-hover table-stack mb-0 align-middle">
                 <colgroup>
-                    <col style="width:55%">
+                    {% if request.user.is_staff %}<col style="width:2rem;">{% endif %}
+                    <col>
                     <col style="width:15%">
                     <col style="width:15%">
-                    <col style="width:15%">
+                    <col style="width:{% if request.user.is_staff %}18%{% else %}15%{% endif %}">
                 </colgroup>
                 <thead>
                     <tr>
+                        {% if request.user.is_staff %}<th></th>{% endif %}
                         <th class="text-start">제목</th>
-                        <th class="text-center" style="width:140px;">요일</th>
-                        <th class="text-center" style="width:120px;">파일</th>
-                        <th class="text-center" style="width:100px;">링크</th>
+                        <th class="text-center">요일</th>
+                        <th class="text-center">파일</th>
+                        <th class="text-center">링크</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for post in group.posts %}
                     <tr>
+                        {% if request.user.is_staff %}
+                        <td class="text-center">
+                            <input type="checkbox" class="post-checkbox form-check-input" value="{{ post.id }}">
+                        </td>
+                        {% endif %}
                         <td data-label="제목">
-                            {% if post.is_new_today %}
-                                <span class="badge bg-danger me-1">NEW</span>
-                            {% endif %}
+                            {% if post.is_new_today %}<span class="badge bg-danger me-1">NEW</span>{% endif %}
                             {{ post.highlighted_title|safe }}
                             {% if post.is_our_program %}
-                                <span class="badge bg-success me-1">
-                                    <i class="bi bi-person-check-fill"></i> 메이킹
-                                </span>
+                                <span class="badge bg-success me-1"><i class="bi bi-person-check-fill"></i> 메이킹</span>
                             {% endif %}
-
-                            
                         </td>
-
-
                         <td data-label="요일" class="text-center weekday-cell">
-                            <div class="weekday-badges">
-                                {{ post.weekday_badges|safe }}
-                            </div>
+                            <div class="weekday-badges">{{ post.weekday_badges|safe }}</div>
                         </td>
-
-
                         <td data-label="공고파일" class="text-center">
                             {% if "늘봄" in post.source.name %}
                                 {% if post.attachment_urls %}
                                     <div class="d-flex justify-content-center gap-2">
                                         {% for f in post.attachment_urls %}
-                                        <a href="{{ f.url }}"
-                                        target="_blank"
-                                        class="btn btn-sm btn-outline-success file-btn">
+                                        <a href="{{ f.url }}" target="_blank" class="btn btn-sm btn-outline-success file-btn">
                                             <i class="bi bi-file-earmark-arrow-down"></i> 다운
                                         </a>
                                         {% endfor %}
@@ -392,12 +385,7 @@
                                 <span class="text-muted small">-</span>
                             {% endif %}
                         </td>
-
-
                         <td data-label="링크" class="text-center">
-                            {% if request.user.is_staff %}
-                            <input type="checkbox" class="post-checkbox form-check-input me-1" value="{{ post.id }}">
-                            {% endif %}
                             <a href="{{ post.link }}" target="_blank" class="btn btn-sm btn-primary link-btn">바로가기</a>
                             {% if request.user.is_staff %}
                             <button type="button" class="btn btn-sm btn-outline-danger ms-1 post-delete-btn"
@@ -408,7 +396,6 @@
                             </button>
                             {% endif %}
                         </td>
-
                     </tr>
                     {% endfor %}
                 </tbody>
