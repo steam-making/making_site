@@ -54,6 +54,24 @@ def menu_items(request):
         linkhub_new_gwangju = 0
         linkhub_new_jeonnam = 0
 
+    # 메뉴/서브메뉴에 linkhub new 플래그 직접 설정
+    for menu in top_menus:
+        parent_has_new = False
+        for sub in menu.visible_sub_menus:
+            sub_new = (
+                ('area=gwangju' in sub.url and linkhub_new_gwangju) or
+                ('area=jeonnam' in sub.url and linkhub_new_jeonnam)
+            )
+            sub.linkhub_new = bool(sub_new)
+            if sub.linkhub_new:
+                parent_has_new = True
+        menu.linkhub_new = parent_has_new
+        if not menu.visible_sub_menus:
+            menu.linkhub_new = bool(
+                ('area=gwangju' in menu.url and linkhub_new_gwangju) or
+                ('area=jeonnam' in menu.url and linkhub_new_jeonnam)
+            )
+
     return {
         'global_menu': top_menus,
         'linkhub_new_gwangju': linkhub_new_gwangju,
