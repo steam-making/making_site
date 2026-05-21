@@ -81,9 +81,16 @@ def sync_levelup_shipment_status(release):
 
     records.update(shipped_done=False, shipped_date=None)
 
-    for item in release.items.filter(status="released"):
+    for item in release.items.all():
+        if not item.released_quantity:
+            continue
         shipped_date = item.released_at.date() if item.released_at else None
-        records.filter(material_id=item.material_id).update(
+        ids_to_ship = list(
+            records.filter(material_id=item.material_id)
+                   .order_by('created_at')
+                   .values_list('id', flat=True)[:item.released_quantity]
+        )
+        records.filter(id__in=ids_to_ship).update(
             shipped_done=True,
             shipped_date=shipped_date,
         )
@@ -156,9 +163,16 @@ def sync_institution_shipment_status(institution):
             institution=institution,
             year_month=year_month,
         )
-        for item in release.items.filter(status="released"):
+        for item in release.items.all():
+            if not item.released_quantity:
+                continue
             shipped_date = item.released_at.date() if item.released_at else None
-            month_records.filter(material_id=item.material_id).update(
+            ids_to_ship = list(
+                month_records.filter(material_id=item.material_id)
+                             .order_by('created_at')
+                             .values_list('id', flat=True)[:item.released_quantity]
+            )
+            month_records.filter(id__in=ids_to_ship).update(
                 shipped_done=True,
                 shipped_date=shipped_date,
             )
@@ -225,18 +239,23 @@ def _sync_levelup_release(institution, year_month, user=None):
         for material_id, data in summary.items():
             material = data["material"]
             existing_item = existing_items.get(material_id)
+            new_qty = data["quantity"]
+            # 기존 실출고수량 보존 (단, 새 수량을 초과할 수 없음)
+            old_released_qty = min(existing_item.released_quantity, new_qty) if existing_item else 0
+            all_released = old_released_qty > 0 and old_released_qty >= new_qty
 
             MaterialReleaseItem.objects.create(
                 release=release,
                 vendor=data["vendor"],
                 material=material,
-                quantity=data["quantity"],
+                quantity=new_qty,
                 unit_price=existing_item.unit_price if existing_item else material.school_price,
-                status=existing_item.status if existing_item else "pending",
+                status="released" if all_released else "pending",
                 release_method=existing_item.release_method if existing_item else "택배",
-                released_at=existing_item.released_at if existing_item else None,
+                released_at=existing_item.released_at if (existing_item and all_released) else None,
                 included=existing_item.included if existing_item else True,
                 group_name=existing_item.group_name if existing_item else material.name,
+                released_quantity=old_released_qty,
             )
 
         RobotLevelUp.objects.filter(institution=institution, year_month=year_month).update(
@@ -397,7 +416,7 @@ def levelup_by_institution(request, institution_id):
     records = (
         RobotLevelUp.objects
         .filter(institution=institution)
-        .select_related("material")
+        .select_related("material", "student__division")
         .order_by(
             "-year_month",           # 년월 최신순
             "delivery_done",        # 전달 안된 게 먼저
@@ -547,6 +566,8 @@ def levelup_create(request, institution_id):
             note = request.POST.get(f"note_{i}", "")
             year_month = request.POST.get("year_month")
 
+            student_id = request.POST.get(f"student_id_{i}") or None
+
             # ✅ 필수값 확인
             if not (student_name and material_id):
                 continue
@@ -556,6 +577,7 @@ def levelup_create(request, institution_id):
                 institution=institution,
                 year_month=year_month,
                 material_id=material_id,
+                student_id=student_id,
                 section=section,
                 grade=grade or None,
                 class_no=class_no or None,
@@ -681,6 +703,45 @@ def toggle_status(request, pk, field):
         "done": getattr(record, done_field),
         "date": date_str
     })
+
+
+@login_required
+def toggle_shipped_student(request, pk):
+    """모달에서 개별 학생 출고 토글 → MaterialReleaseItem released_quantity 자동 동기화"""
+    from materials.models import MaterialReleaseItem
+    record = get_object_or_404(RobotLevelUp, pk=pk)
+
+    record.shipped_done = not record.shipped_done
+    record.shipped_date = timezone.now().date() if record.shipped_done else None
+    record.save(update_fields=["shipped_done", "shipped_date"])
+
+    # 매칭된 출고 아이템의 released_quantity 재계산
+    release = find_levelup_release(record.institution, record.year_month)
+    if release:
+        item = release.items.filter(material=record.material).first()
+        if item:
+            shipped_count = RobotLevelUp.objects.filter(
+                institution=record.institution,
+                year_month=record.year_month,
+                material=record.material,
+                shipped_done=True,
+            ).count()
+            item.released_quantity = shipped_count
+            if shipped_count >= item.quantity:
+                item.status = "released"
+                if not item.released_at:
+                    item.released_at = timezone.now()
+            else:
+                item.status = "pending"
+                item.released_at = None
+            item.save(update_fields=["released_quantity", "status", "released_at"])
+
+    return JsonResponse({
+        "success": True,
+        "shipped": record.shipped_done,
+        "date": record.shipped_date.strftime("%y.%m.%d") if record.shipped_date else "",
+    })
+
 
 # ✅ 대시보드
 @login_required

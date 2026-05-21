@@ -12,5 +12,5 @@ urlpatterns = [
     path('<int:institution_id>/release_auto/<str:year_month>/',views.auto_release_from_levelup,name='auto_release_from_levelup'),
     path('<int:institution_id>/release_preview/<str:year_month>/',views.release_preview,name='release_preview'),
     path('<int:institution_id>/release_confirm/<str:year_month>/',views.release_confirm,name='release_confirm'),
-
+    path('toggle_shipped/<int:pk>/', views.toggle_shipped_student, name='toggle_shipped_student'),
 ]

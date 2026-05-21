@@ -263,6 +263,7 @@ class MaterialReleaseItem(models.Model):
         default='택배'
     )
     released_at = models.DateTimeField(null=True, blank=True)
+    released_quantity = models.PositiveIntegerField("실출고수량", default=0)
     included = models.BooleanField("견적 포함 여부", default=True)
     group_name = models.CharField("품명(묶음표시)", max_length=200, blank=True, null=True)
 

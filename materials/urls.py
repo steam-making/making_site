@@ -78,5 +78,6 @@ urlpatterns = [
     path("returns/", views.return_list, name="return_list"),
     path("release/payment/<int:institution_id>/<str:order_month>/",views.set_payment_date,name="set_payment_date",),
     path("release/request-notification/<int:institution_id>/<str:order_month>/", views.request_release_notification, name="request_release_notification"),
+    path("item/<int:item_id>/students/", views.release_item_students, name="release_item_students"),
 ]
 

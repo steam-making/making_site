@@ -725,13 +725,13 @@
               <span class="levelup-desktop-only">{{ r.material.name }}</span>
               <span class="levelup-mobile-stack js-mobile-material" data-material-name="{{ r.material.name }}"><span class="levelup-mobile-price">{{ r.price|intcomma }}</span></span>
             </td>
-            <td class="levelup-col-section">{{ r.section }}</td>
+            <td class="levelup-col-section">{% if r.student %}{{ r.student.division.division }}{% else %}{{ r.section }}{% endif %}</td>
             <td class="levelup-col-grade">{{ r.grade }}</td>
             <td class="levelup-col-class">{{ r.class_no }}</td>
             <td class="levelup-col-number">{{ r.student_no }}</td>
             <td class="levelup-mobile-only levelup-col-mobile-code">
               <span class="levelup-mobile-stack">
-                <strong>{{ r.section|default:'' }}</strong>
+                <strong>{% if r.student %}{{ r.student.division.division }}{% else %}{{ r.section|default:'' }}{% endif %}</strong>
                 <span>{{ r.grade|default:'' }}{{ r.class_no|default:'' }}{% if r.student_no and r.student_no < 10 %}0{% endif %}{{ r.student_no|default:'' }}</span>
               </span>
             </td>

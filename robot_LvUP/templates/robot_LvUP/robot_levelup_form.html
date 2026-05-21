@@ -75,6 +75,7 @@
           <td><input type="text" name="number_1" class="form-control form-control-sm text-center readonly-field" readonly></td>
 
           <td class="position-relative">
+            <input type="hidden" name="student_id_1">
             <input type="text" name="student_name_1" class="form-control form-control-sm text-center student-input"
                    placeholder="학생 이름 입력" autocomplete="off">
             <div class="autocomplete-list border bg-white rounded shadow-sm position-absolute w-100 d-none"
@@ -172,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {% for s in students %}
       {% if s.division and "미수강" not in s.division.division %}
       {
+        id: "{{ s.id }}",
         name: "{{ s.name }}",
         grade: "{{ s.grade }}",
         class_name: "{{ s.class_name }}",
@@ -227,6 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     input.value = s.name;
     list.classList.add('d-none');
     const row = input.closest('tr');
+    row.querySelector('input[name^="student_id_"]').value = s.id;
     row.querySelector('input[name^="part_"]').value = s.division;
     row.querySelector('input[name^="grade_"]').value = s.grade;
     row.querySelector('input[name^="class_name_"]').value = s.class_name;

@@ -2,6 +2,16 @@ from django.db import models
 from django.utils import timezone
 
 class RobotLevelUp(models.Model):
+    # 학생 FK (그룹 이동 시 현재 부서 반영)
+    student = models.ForeignKey(
+        "students.Student",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="학생",
+        related_name="levelups",
+    )
+
     # ✅ 출강장소 연결
     institution = models.ForeignKey(
         "teachers.TeachingInstitution",

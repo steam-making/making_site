@@ -2508,7 +2508,8 @@ def release_material_item(request, item_id):
 
         item.status = 'pending'
         item.released_at = None
-        item.save(update_fields=['status', 'released_at'])
+        item.released_quantity = 0
+        item.save(update_fields=['status', 'released_at', 'released_quantity'])
         matched_release = find_levelup_release(item.release.institution, item.release.order_month)
         if matched_release and matched_release.id == item.release.id:
             sync_levelup_shipment_status(item.release)
@@ -2539,7 +2540,8 @@ def release_material_item(request, item_id):
 
         item.status = 'released'
         item.released_at = timezone.now()
-        item.save(update_fields=['status', 'released_at'])
+        item.released_quantity = item.quantity
+        item.save(update_fields=['status', 'released_at', 'released_quantity'])
         matched_release = find_levelup_release(item.release.institution, item.release.order_month)
         if matched_release and matched_release.id == item.release.id:
             sync_levelup_shipment_status(item.release)
@@ -2568,6 +2570,7 @@ def unrelease_material_item(request, item_id):
     # ✅ 되돌리기
     item.status = 'pending'
     item.released_at = None
+    item.released_quantity = 0
     item.save()
     matched_release = find_levelup_release(item.release.institution, item.release.order_month)
     if matched_release and matched_release.id == item.release.id:
@@ -3141,4 +3144,45 @@ def return_list(request):
 
     return render(request, "release/return_list.html", {
         "date_blocks": date_blocks
+    })
+
+
+@login_required
+def release_item_students(request, item_id):
+    """교구출고 품목의 연결된 단계업 학생 목록 반환 (JSON)"""
+    from robot_LvUP.models import RobotLevelUp
+    item = get_object_or_404(MaterialReleaseItem, id=item_id)
+    release = item.release
+
+    students = list(
+        RobotLevelUp.objects.filter(
+            institution=release.institution,
+            year_month=release.order_month,
+            material=item.material,
+        ).select_related("student__division").order_by("section", "grade", "class_no", "student_no").values(
+            "id", "student_name", "section", "grade", "class_no", "student_no",
+            "shipped_done", "delivery_done",
+            "student__division__division",
+        )
+    )
+
+    result = []
+    for s in students:
+        section = s["student__division__division"] or s["section"] or ""
+        result.append({
+            "id": s["id"],
+            "name": s["student_name"],
+            "section": section,
+            "grade": s["grade"] or "",
+            "class_no": s["class_no"] or "",
+            "student_no": s["student_no"] or "",
+            "shipped": s["shipped_done"],
+            "delivered": s["delivery_done"],
+        })
+
+    return JsonResponse({
+        "material": item.material.name,
+        "total": item.quantity,
+        "released_quantity": item.released_quantity,
+        "students": result,
     })
