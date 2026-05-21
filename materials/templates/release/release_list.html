@@ -610,7 +610,7 @@
             {% regroup institutions|dictsort:"program" by program as program_groups %}
             {% for group in program_groups %}
                 {% for inst in group.list|dictsort:"name" %}
-                  <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem; white-space: nowrap;" data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.program %} · {{ inst.program }}{% endif %}</button></li>
+                  <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem; white-space: nowrap;" data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.program %} · {{ inst.program }}{% endif %}{% if inst.id in institution_new_ids %} <span class="release-new-badge">N</span>{% endif %}</button></li>
                 {% endfor %}
             {% endfor %}
             <li class="dropdown-item text-muted empty-msg py-2" style="display: none; pointer-events: none; font-size: 0.85rem;">검색 결과 없음</li>
@@ -648,7 +648,7 @@
             {% for inst in selected_teacher_institutions %}
             <a href="?teacher={{ selected_teacher_id }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
                class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-               {% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}
+               {% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.id in institution_new_ids %}<span class="release-new-badge">N</span>{% endif %}
             </a>
             {% endfor %}
           </div>
@@ -664,7 +664,7 @@
           {% for inst in institutions %}
           {% if inst.place_type == 'school' or inst.place_type == 'kindergarten' %}
           <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}</a>
+             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.id in institution_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
           {% endif %}
           {% endfor %}
         </div>
@@ -678,7 +678,7 @@
           {% for inst in institutions %}
           {% if inst.place_type == 'child_center' or inst.place_type == 'culture_center' or inst.place_type == 'other' %}
           <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}</a>
+             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.id in institution_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
           {% endif %}
           {% endfor %}
         </div>

@@ -595,13 +595,18 @@ def release_list(request):
 
     grouped_list = []
     teacher_new_flags = {}
-    all_releases_for_n_flag = MaterialRelease.objects.filter(payment_status="unpaid").values_list('teacher_id', flat=True).distinct()
-    for teacher_id in all_releases_for_n_flag:
+    unpaid_releases = MaterialRelease.objects.filter(payment_status="unpaid").values_list('teacher_id', 'institution_id').distinct()
+    institution_new_ids = set()
+    for teacher_id, institution_id in unpaid_releases:
         teacher_new_flags[teacher_id] = True
+        if institution_id:
+            institution_new_ids.add(institution_id)
 
     for order in all_releases:
         if getattr(order, 'payment_status', '') == 'unpaid':
             teacher_new_flags[order.teacher_id] = True
+            if order.institution_id:
+                institution_new_ids.add(order.institution_id)
 
     for data in grouped_data.values():
         data["materials_summary"] = dict(sorted(data["materials_summary"].items()))
@@ -644,6 +649,7 @@ def release_list(request):
         'selected_institution': selected_institution,
         'unpaid_filter': unpaid_filter,
         'teacher_new_ids': [teacher_id for teacher_id, has_new in teacher_new_flags.items() if has_new],
+        'institution_new_ids': list(institution_new_ids),
         'unpaid_group_count': unpaid_group_count,
         'show_teacher_panel': show_teacher_panel,
         'show_school_panel': show_school_panel,
