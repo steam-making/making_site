@@ -292,6 +292,14 @@
     margin-bottom: 0.55rem;
   }
 
+  .tax-cell {
+    cursor: pointer;
+    user-select: none;
+  }
+  .tax-cell:hover {
+    background: #f0f9ff !important;
+  }
+
   .release-new-badge {
     display: inline-flex;
     align-items: center;
@@ -1027,30 +1035,107 @@
           </table>
           </div>
         </div>
-      {# ✅ 세금계산서 발행 안내 모달 (group-actions 바깥으로 분리) #}
+      {# ✅ 세금계산서 발행 안내 모달 #}
       <div class="modal fade" id="taxInvoiceModal-{{ group.institution.id }}-{{ group.order_month }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <form method="post" action="{% url 'tax_invoice_issue' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" class="modal-content">
-            {% csrf_token %}
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">세금계산서 발행 안내</h5>
+              <h5 class="modal-title">전자세금계산서 발행 안내</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
             </div>
             <div class="modal-body text-start">
-              <p>
-                홈택스에서 <strong>{{ group.institution.name }}</strong> 기관의
-                <strong>{{ group.order_month }}</strong>분 출고분에 대해 세금계산서를 발행해 주세요.
-              </p>
-              <p class="small text-muted">
-                이 버튼은 실제 홈택스 연동이 아닌, <b>내부 발행 여부 기록</b>을 위한 처리입니다.<br>
-                발행 완료 후 상태가 "세금계산서 발행완료"로 표시됩니다.
-              </p>
+              {# 공급받는자 정보 + 복사 #}
+              <div class="mb-3 p-3 bg-light rounded border position-relative">
+                <button type="button" class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2 tax-copy-btn"
+                        data-copy-target="taxinfo-{{ group.institution.id }}-{{ group.order_month }}"
+                        title="복사">
+                  <i class="bi bi-clipboard"></i>
+                </button>
+                <div id="taxinfo-{{ group.institution.id }}-{{ group.order_month }}">
+                  <div class="row mb-1">
+                    <div class="col-4 text-muted small fw-bold">공급받는자</div>
+                    <div class="col-8 fw-bold">{{ group.institution.name }}</div>
+                  </div>
+                  <div class="row mb-1">
+                    <div class="col-4 text-muted small fw-bold">작성월</div>
+                    <div class="col-8">{{ group.order_month }}</div>
+                  </div>
+                  {% if group.institution.school %}
+                  <div class="row mb-1">
+                    <div class="col-4 text-muted small fw-bold">학교명</div>
+                    <div class="col-8">{{ group.institution.school.name }}</div>
+                  </div>
+                  {% endif %}
+                  <div class="row mb-1">
+                    <div class="col-4 text-muted small fw-bold">공급가액</div>
+                    <div class="col-8">{{ group.tax_supply_total|intcomma }}원</div>
+                  </div>
+                  <div class="row mb-1">
+                    <div class="col-4 text-muted small fw-bold">세액</div>
+                    <div class="col-8">{{ group.tax_vat|intcomma }}원</div>
+                  </div>
+                  <div class="row">
+                    <div class="col-4 text-muted small fw-bold">합계금액</div>
+                    <div class="col-8 fw-bold text-primary">{{ group.tax_total|intcomma }}원</div>
+                  </div>
+                </div>
+              </div>
+              {# 품목 테이블 - 셀 클릭 시 값 복사 #}
+              <p class="text-muted small mb-1"><i class="bi bi-info-circle"></i> 셀을 클릭하면 값이 복사됩니다.</p>
+              <table class="table table-sm table-bordered mb-2 tax-copy-table">
+                <thead class="table-light">
+                  <tr>
+                    <th>품목명</th>
+                    <th class="text-center">수량</th>
+                    <th class="text-end">단가(VAT포함)</th>
+                    <th class="text-end">공급가액</th>
+                    <th class="text-end">세액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for detail in group.items_detail %}
+                  <tr>
+                    <td class="tax-cell" data-val="{{ detail.name }}" title="클릭하여 복사">{{ detail.name }}</td>
+                    <td class="tax-cell text-center" data-val="{{ detail.qty }}" title="클릭하여 복사">{{ detail.qty }}</td>
+                    <td class="tax-cell text-end" data-val="{{ detail.unit_price|floatformat:0 }}" title="클릭하여 복사">{{ detail.unit_price|intcomma }}원</td>
+                    <td class="tax-cell text-end" data-val="{{ detail.supply_subtotal|floatformat:0 }}" title="클릭하여 복사">{{ detail.supply_subtotal|intcomma }}원</td>
+                    <td class="tax-cell text-end" data-val="{{ detail.vat_subtotal|floatformat:0 }}" title="클릭하여 복사">{{ detail.vat_subtotal|intcomma }}원</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                  <tr>
+                    <td colspan="4" class="text-end">공급가액 합계</td>
+                    <td class="tax-cell text-end" data-val="{{ group.tax_supply_total|floatformat:0 }}" title="클릭하여 복사">{{ group.tax_supply_total|intcomma }}원</td>
+                  </tr>
+                  <tr>
+                    <td colspan="4" class="text-end">세액 합계</td>
+                    <td class="tax-cell text-end" data-val="{{ group.tax_vat|floatformat:0 }}" title="클릭하여 복사">{{ group.tax_vat|intcomma }}원</td>
+                  </tr>
+                  <tr class="table-warning">
+                    <td colspan="4" class="text-end">합계금액 (VAT포함)</td>
+                    <td class="tax-cell text-end" data-val="{{ group.tax_total|floatformat:0 }}" title="클릭하여 복사">{{ group.tax_total|intcomma }}원</td>
+                  </tr>
+                </tfoot>
+              </table>
+              <div class="alert alert-info small mb-2">
+                <strong>발행 방법:</strong> 위 정보를 참고해 홈택스에서 전자세금계산서를 발행한 후, 아래 "발행 완료로 표시" 버튼을 클릭하세요.<br>
+                <span class="text-muted">홈택스 자동 연동은 지원되지 않습니다. 수동 발행 후 기록용으로 사용하세요.</span>
+              </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-              <button type="submit" class="btn btn-primary">발행 완료로 표시</button>
+            <div class="modal-footer justify-content-between">
+              <a href="https://www.hometax.go.kr" target="_blank" rel="noopener" class="btn btn-outline-success">
+                <i class="bi bi-box-arrow-up-right"></i> 홈택스 열기
+              </a>
+              <div>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                <form method="post" action="{% url 'tax_invoice_issue' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary">발행 완료로 표시</button>
+                </form>
+              </div>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
@@ -1526,6 +1611,42 @@ document.addEventListener('DOMContentLoaded', function () {
           });
       })
       .catch(function () { shipBtn.disabled = false; });
+  });
+});
+
+// 세금계산서 모달 — 전체 복사 버튼
+document.body.addEventListener('click', function (e) {
+  var btn = e.target.closest('.tax-copy-btn');
+  if (!btn) return;
+  var targetId = btn.dataset.copyTarget;
+  var el = document.getElementById(targetId);
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText.trim()).then(function () {
+    var orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+    btn.classList.add('btn-success');
+    btn.classList.remove('btn-outline-secondary');
+    setTimeout(function () {
+      btn.innerHTML = orig;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-outline-secondary');
+    }, 1500);
+  });
+});
+
+// 세금계산서 테이블 — 셀 클릭 복사
+document.body.addEventListener('click', function (e) {
+  var cell = e.target.closest('.tax-cell');
+  if (!cell) return;
+  var val = cell.dataset.val || cell.innerText.replace(/원$/, '').trim();
+  navigator.clipboard.writeText(val).then(function () {
+    var prev = cell.style.cssText;
+    cell.style.background = '#d1e7dd';
+    cell.style.transition = 'background 0.3s';
+    setTimeout(function () {
+      cell.style.background = '';
+      cell.style.transition = '';
+    }, 800);
   });
 });
 </script>

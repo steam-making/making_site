@@ -569,6 +569,7 @@ def release_list(request):
                 "tax_invoice_sent": False,
                 "program_display": program_display,
                 "materials_summary": {},
+                "items_detail": {},
                 "source_type": getattr(order, 'source_type', ''),
                 "request_sent": order.request_sent,
             }
@@ -587,11 +588,38 @@ def release_list(request):
             grouped_data[key]["total_qty"] += item.quantity
             grouped_data[key]["total_price"] += (item.unit_price or 0) * item.quantity
             grouped_data[key]["total_supply"] += (getattr(item.material, 'supply_price', 0) or 0) * item.quantity
-            
+
             mat_name = item.material.name
             grouped_data[key]["materials_summary"][mat_name] = grouped_data[key]["materials_summary"].get(mat_name, 0) + item.quantity
+            # 세금계산서용: 견적서와 동일하게 group_name 기준, included=True만
+            if not getattr(item, 'included', True):
+                continue
+            unit_price = item.unit_price or 0
+            row_name = (getattr(item, 'group_name', None) or '').strip() or mat_name
+            row_key = (unit_price, row_name)
+            if row_key not in grouped_data[key]["items_detail"]:
+                grouped_data[key]["items_detail"][row_key] = {"name": row_name, "qty": 0, "unit_price": unit_price, "subtotal": 0}
+            grouped_data[key]["items_detail"][row_key]["qty"] += item.quantity
+            grouped_data[key]["items_detail"][row_key]["subtotal"] += unit_price * item.quantity
 
         grouped_data[key]["orders"].append(order)
+
+    for g in grouped_data.values():
+        # items_detail을 견적서와 동일하게 정렬된 리스트로 변환
+        sorted_rows = sorted(g["items_detail"].values(), key=lambda r: (r["unit_price"], r["name"]))
+        tax_total = sum(r["subtotal"] for r in sorted_rows)
+        for r in sorted_rows:
+            r["supply_subtotal"] = round(r["subtotal"] / 1.1)
+            r["vat_subtotal"] = r["subtotal"] - r["supply_subtotal"]
+        g["items_detail"] = sorted_rows  # 리스트로 교체
+        # 세금계산서 합계는 견적서 포함 항목 기준
+        g["tax_supply_total"] = round(tax_total / 1.1)
+        g["tax_vat"] = tax_total - g["tax_supply_total"]
+        g["tax_total"] = tax_total
+        # 기존 total_price 기준 합계도 유지 (하위 호환)
+        g["supply_price_total"] = g["tax_supply_total"]
+        g["vat"] = g["tax_vat"]
+        g["total_with_vat"] = tax_total
 
     grouped_list = []
     teacher_new_flags = {}
