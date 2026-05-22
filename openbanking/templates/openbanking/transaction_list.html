@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}거래내역{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">입금 거래내역</h4>
+    <a href="{% url 'openbanking_dashboard' %}" class="btn btn-sm btn-outline-secondary">← 대시보드</a>
+  </div>
+
+  <div class="d-flex gap-2 mb-3 flex-wrap">
+    {% for acc in accounts %}
+      <a href="?account={{ acc.id }}{% if only_unmatched %}&unmatched=1{% endif %}"
+         class="btn btn-sm {% if selected_account_id == acc.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        {{ acc.bank_name }} {{ acc.account_num_masked }}
+      </a>
+    {% endfor %}
+    <a href="?{% if selected_account_id %}account={{ selected_account_id }}&{% endif %}unmatched={% if only_unmatched %}0{% else %}1{% endif %}"
+       class="btn btn-sm {% if only_unmatched %}btn-warning{% else %}btn-outline-warning{% endif %}">
+      미매칭만 보기
+    </a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>거래일</th>
+          <th>입금내용</th>
+          <th class="text-end">금액</th>
+          <th>매칭 상태</th>
+          <th>작업</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr id="tran-row-{{ t.id }}">
+          <td class="text-nowrap">{{ t.tran_date }}</td>
+          <td>{{ t.print_content }}</td>
+          <td class="text-end text-nowrap">{{ t.tran_amt|intcomma }}원</td>
+          <td>
+            {% if t.matched_release %}
+              <span class="badge bg-success">수금완료</span>
+              <small class="d-block text-muted">{{ t.matched_release.institution.name }} {{ t.matched_release.order_month }}</small>
+              {% if t.is_auto_matched %}<span class="badge bg-info">자동</span>{% endif %}
+            {% else %}
+              <span class="badge bg-secondary">미매칭</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.matched_release %}
+              <button class="btn btn-sm btn-outline-danger unmatch-btn" data-tran-id="{{ t.id }}">취소</button>
+            {% else %}
+              <button class="btn btn-sm btn-outline-primary match-btn" data-tran-id="{{ t.id }}" data-amt="{{ t.tran_amt }}" data-content="{{ t.print_content }}">매칭</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">거래내역이 없습니다.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 수동 매칭 모달 -->
+<div class="modal fade" id="matchModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">수동 매칭</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-2" id="matchTranInfo"></p>
+        <label class="form-label">출고 그룹 선택</label>
+        <select id="releaseSelect" class="form-select">
+          <option value="">-- 선택하세요 --</option>
+        </select>
+        <div id="matchError" class="text-danger small mt-1 d-none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+        <button type="button" id="confirmMatchBtn" class="btn btn-primary">매칭 완료</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var currentTranId = null;
+var matchModal = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+  matchModal = new bootstrap.Modal(document.getElementById('matchModal'));
+});
+
+document.body.addEventListener('click', function (e) {
+  // 매칭 버튼
+  var matchBtn = e.target.closest('.match-btn');
+  if (matchBtn) {
+    currentTranId = matchBtn.dataset.tranId;
+    document.getElementById('matchTranInfo').textContent =
+      matchBtn.dataset.content + ' · ' + parseInt(matchBtn.dataset.amt).toLocaleString() + '원';
+
+    // 미수금 출고 목록 로드
+    fetch('/materials/releases/?format=json&payment_status=unpaid', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(data => {
+        var sel = document.getElementById('releaseSelect');
+        sel.innerHTML = '<option value="">-- 선택하세요 --</option>';
+        (data.releases || []).forEach(function (r) {
+          var opt = document.createElement('option');
+          opt.value = r.id;
+          opt.textContent = r.institution + ' ' + r.order_month + ' (' + r.total.toLocaleString() + '원)';
+          sel.appendChild(opt);
+        });
+      })
+      .catch(() => {});
+
+    matchModal.show();
+    return;
+  }
+
+  // 매칭 취소 버튼
+  var unBtn = e.target.closest('.unmatch-btn');
+  if (unBtn) {
+    if (!confirm('매칭을 취소하시겠습니까? 수금 처리도 함께 취소됩니다.')) return;
+    var form = new FormData();
+    form.append('transaction_id', unBtn.dataset.tranId);
+    form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "openbanking_unmatch" %}', { method: 'POST', body: form })
+      .then(r => r.json())
+      .then(data => { if (data.success) location.reload(); else alert(data.message); });
+  }
+});
+
+document.getElementById('confirmMatchBtn')?.addEventListener('click', function () {
+  var releaseId = document.getElementById('releaseSelect').value;
+  if (!releaseId) { document.getElementById('matchError').textContent = '출고 그룹을 선택하세요.'; document.getElementById('matchError').classList.remove('d-none'); return; }
+  document.getElementById('matchError').classList.add('d-none');
+
+  var form = new FormData();
+  form.append('transaction_id', currentTranId);
+  form.append('release_id', releaseId);
+  form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('{% url "openbanking_manual_match" %}', { method: 'POST', body: form })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) { matchModal.hide(); location.reload(); }
+      else alert(data.message);
+    });
+});
+</script>
+{% endblock %}

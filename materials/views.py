@@ -450,6 +450,16 @@ def create_release(request):
 
 @login_required
 def release_list(request):
+    # 오픈뱅킹 수동매칭용 JSON API
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" and request.GET.get("format") == "json":
+        from django.db.models import Sum, F as Fexp
+        unpaid = MaterialRelease.objects.filter(payment_status="unpaid").select_related("institution")
+        releases = []
+        for r in unpaid:
+            total = r.items.aggregate(s=Sum(Fexp('unit_price') * Fexp('quantity')))["s"] or 0
+            releases.append({"id": r.id, "institution": r.institution.name if r.institution else "", "order_month": r.order_month, "total": int(total)})
+        return JsonResponse({"releases": releases})
+
     user = request.user
     selected_teacher_id = request.GET.get('teacher')
     selected_order_month = (

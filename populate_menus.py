@@ -67,6 +67,7 @@ def populate_menus():
     MenuItem.objects.get_or_create(title="교구입고", url="/materials/orders/", order=2, parent=m_mat, access_level="staff")
     MenuItem.objects.get_or_create(title="교구출고", url="/materials/releases/", order=3, parent=m_mat, access_level="teacher")
     MenuItem.objects.get_or_create(title="교구반납", url="/materials/returns/", order=4, parent=m_mat, access_level="teacher")
+    MenuItem.objects.get_or_create(title="수금관리", url="/openbanking/", order=5, parent=m_mat, access_level="staff")
 
     # --- [강사용] ---
     m_recruit = MenuItem.objects.get_or_create(title="모집", url="#", icon_class="bi-megaphone-fill", order=110, access_level="teacher")[0]

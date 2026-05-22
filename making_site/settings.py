@@ -101,6 +101,7 @@ INSTALLED_APPS = [
     'linkhub',
     "typing_trainer",
     'django_crontab',
+    'openbanking',
 ]
 
 CRONJOBS = [
@@ -110,6 +111,11 @@ CRONJOBS = [
 
 # 🔐 API 키는 .env로 빼는 걸 추천
 OPENAI_API_KEY = env("OPENAI_API_KEY")
+
+# 오픈뱅킹
+OPENBANKING_CLIENT_ID = env("OPENBANKING_CLIENT_ID", default="")
+OPENBANKING_CLIENT_SECRET = env("OPENBANKING_CLIENT_SECRET", default="")
+OPENBANKING_REDIRECT_URI = env("OPENBANKING_REDIRECT_URI", default="")
 
 # 네이버 블로그
 NAVER_BLOG_ACCESS_TOKEN = env("NAVER_BLOG_ACCESS_TOKEN")

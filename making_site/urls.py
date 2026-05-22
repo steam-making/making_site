@@ -76,7 +76,8 @@ urlpatterns = [
     path("schools/", include("schools.urls")),
     path("linkhub/", include("linkhub.urls")),
     path("typing/", include("typing_trainer.urls")),
-]  
+    path("openbanking/", include("openbanking.urls")),
+]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
