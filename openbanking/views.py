@@ -1,5 +1,6 @@
 import os
 import uuid
+import urllib.parse
 import requests
 from datetime import timedelta
 from django.conf import settings
@@ -14,8 +15,8 @@ from materials.models import MaterialRelease
 from .models import BankTransaction, OpenBankingToken, RegisteredAccount
 from .utils import auto_match_transactions, fetch_and_save_transactions
 
-OPENBANKING_BASE = "https://openapi.openbanking.or.kr"
-# 테스트 서버: https://testapi.openbanking.or.kr
+OPENBANKING_BASE = "https://testapi.openbanking.or.kr"  # 테스트
+# 운영: https://openapi.openbanking.or.kr
 
 
 def _get_client():
@@ -32,14 +33,14 @@ def auth_start(request):
     client = _get_client()
     state = str(uuid.uuid4())
     request.session["openbanking_state"] = state
-    params = (
-        f"response_type=code"
-        f"&client_id={client['client_id']}"
-        f"&redirect_uri={client['redirect_uri']}"
-        f"&scope=login inquiry"
-        f"&state={state}"
-        f"&auth_type=0"  # 0=최초인증
-    )
+    params = urllib.parse.urlencode({
+        "response_type": "code",
+        "client_id": client["client_id"],
+        "redirect_uri": client["redirect_uri"],
+        "scope": "login inquiry",
+        "state": state,
+        "auth_type": "0",
+    }, quote_via=urllib.parse.quote)  # 공백을 +가 아닌 %20으로 인코딩
     return redirect(f"{OPENBANKING_BASE}/oauth/2.0/authorize?{params}")
 
 

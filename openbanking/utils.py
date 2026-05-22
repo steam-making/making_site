@@ -14,7 +14,7 @@ def fetch_and_save_transactions(account: RegisteredAccount, token_obj: OpenBanki
     to_date = date.today().strftime("%Y%m%d")
 
     resp = requests.get(
-        f"{OPENBANKING_BASE}/v2.0/account/transaction/list/fin_num",
+        f"{OPENBANKING_BASE}/v2.0/account/transaction_list/fin_num",
         headers={"Authorization": f"Bearer {token_obj.access_token}"},
         params={
             "bank_tran_id": _make_tran_id(token_obj),
