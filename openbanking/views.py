@@ -15,8 +15,7 @@ from materials.models import MaterialRelease
 from .models import BankTransaction, OpenBankingToken, RegisteredAccount
 from .utils import auto_match_transactions, fetch_and_save_transactions
 
-OPENBANKING_BASE = "https://testapi.openbanking.or.kr"  # 테스트
-# 운영: https://openapi.openbanking.or.kr
+OPENBANKING_BASE = "https://openapi.openbanking.or.kr"
 
 
 def _get_client():
