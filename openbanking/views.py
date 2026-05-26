@@ -262,15 +262,36 @@ def sms_webhook(request):
     if request.method not in ("POST", "GET"):
         return JsonResponse({"error": "method not allowed"}, status=405)
 
-    # SMS Forwarder 앱은 POST body 또는 GET 파라미터로 전송
+    # 디버그: 앱이 어떤 파라미터로 전송하는지 로그 (확인 후 제거 예정)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"[SMS webhook] POST={dict(request.POST)} GET={dict(request.GET)} BODY={request.body[:500]}")
+
+    # SMS Forwarder 앱마다 파라미터 이름이 다름 — 가능한 이름 모두 시도
     sms_body = (
         request.POST.get("msg")
         or request.POST.get("message")
         or request.POST.get("sms")
+        or request.POST.get("text")
+        or request.POST.get("body")
+        or request.POST.get("content")
         or request.GET.get("msg")
         or request.GET.get("message")
+        or request.GET.get("text")
+        or request.GET.get("body")
         or ""
     )
+
+    # body가 raw text로 올 경우
+    if not sms_body and request.body:
+        try:
+            import json
+            data = json.loads(request.body)
+            sms_body = (data.get("msg") or data.get("message") or data.get("text")
+                        or data.get("body") or data.get("sms") or "")
+        except Exception:
+            sms_body = request.body.decode("utf-8", errors="ignore")
+
     sender = request.POST.get("from") or request.GET.get("from") or ""
 
     # 보안: 설정된 토큰 확인 (옵션)
@@ -279,7 +300,8 @@ def sms_webhook(request):
         return JsonResponse({"error": "unauthorized"}, status=401)
 
     if not sms_body:
-        return JsonResponse({"error": "no message"}, status=400)
+        logger.warning("[SMS webhook] sms_body 비어있음 — 파라미터 이름 확인 필요")
+        return JsonResponse({"error": "no message", "received_params": list(request.POST.keys())}, status=400)
 
     parsed = parse_kb_sms(sms_body)
     if not parsed:
