@@ -210,13 +210,21 @@ def manual_match(request):
 @login_required
 @require_POST
 def delete_transaction(request):
-    """거래내역 삭제"""
+    """거래내역 삭제 — 매칭된 출고 있으면 수금 취소 후 삭제"""
     tran_id = request.POST.get("transaction_id")
     try:
         tran = BankTransaction.objects.get(id=tran_id, account__user=request.user)
     except BankTransaction.DoesNotExist:
         return JsonResponse({"success": False, "message": "거래를 찾을 수 없습니다."})
+
+    release = tran.matched_release
     tran.delete()
+
+    if release and not release.bank_transactions.exists():
+        release.payment_status = "unpaid"
+        release.payment_date = None
+        release.save(update_fields=["payment_status", "payment_date"])
+
     return JsonResponse({"success": True})
 
 
