@@ -13,7 +13,7 @@ from django.views.decorators.http import require_POST
 
 from materials.models import MaterialRelease
 from .models import BankTransaction, OpenBankingToken, RegisteredAccount
-from .utils import auto_match_transactions, fetch_and_save_transactions
+from .utils import auto_match_transactions, fetch_and_save_transactions, parse_kb_sms, match_sms_transaction
 
 OPENBANKING_BASE = "https://openapi.openbanking.or.kr"
 
@@ -251,4 +251,44 @@ def dashboard(request):
         "accounts": accounts,
         "recent_matched": recent_matched,
         "unmatched_count": unmatched_count,
+    })
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def sms_webhook(request):
+    """SMS 포워딩 앱에서 전송한 KB 입금 문자 수신 → 파싱 → 자동 수금 처리"""
+    if request.method not in ("POST", "GET"):
+        return JsonResponse({"error": "method not allowed"}, status=405)
+
+    # SMS Forwarder 앱은 POST body 또는 GET 파라미터로 전송
+    sms_body = (
+        request.POST.get("msg")
+        or request.POST.get("message")
+        or request.POST.get("sms")
+        or request.GET.get("msg")
+        or request.GET.get("message")
+        or ""
+    )
+    sender = request.POST.get("from") or request.GET.get("from") or ""
+
+    # 보안: 설정된 토큰 확인 (옵션)
+    token = request.POST.get("token") or request.GET.get("token") or ""
+    if settings.OPENBANKING_SMS_TOKEN and token != settings.OPENBANKING_SMS_TOKEN:
+        return JsonResponse({"error": "unauthorized"}, status=401)
+
+    if not sms_body:
+        return JsonResponse({"error": "no message"}, status=400)
+
+    parsed = parse_kb_sms(sms_body)
+    if not parsed:
+        return JsonResponse({"status": "ignored", "reason": "not a KB deposit SMS"})
+
+    tran, matched_release = match_sms_transaction(parsed)
+    return JsonResponse({
+        "status": "ok",
+        "amount": parsed["amount"],
+        "depositor": parsed["depositor"],
+        "matched": matched_release.institution.name if matched_release else None,
     })

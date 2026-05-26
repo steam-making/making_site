@@ -10,4 +10,5 @@ urlpatterns = [
     path('sync/', views.sync_transactions, name='openbanking_sync'),
     path('match/', views.manual_match, name='openbanking_manual_match'),
     path('unmatch/', views.unmatch_transaction, name='openbanking_unmatch'),
+    path('sms-webhook/', views.sms_webhook, name='openbanking_sms_webhook'),
 ]

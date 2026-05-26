@@ -1,5 +1,6 @@
+import re
 import requests
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from django.utils import timezone
 
 from materials.models import MaterialRelease
@@ -134,3 +135,105 @@ def _make_tran_id(token_obj: OpenBankingToken) -> str:
 def _parse_date(date_str: str):
     from datetime import date as d
     return d(int(date_str[:4]), int(date_str[4:6]), int(date_str[6:8]))
+
+
+def parse_kb_sms(sms_body: str) -> dict | None:
+    """
+    KB 입금 문자 파싱.
+    형식:
+      [Web발신]
+      [KB]05/26 11:20
+      772601**471
+      박종석
+      입금
+      74,727
+      잔액9,600,434
+    """
+    if "[KB]" not in sms_body or "입금" not in sms_body:
+        return None
+
+    lines = [l.strip() for l in sms_body.strip().splitlines() if l.strip()]
+
+    try:
+        # 날짜/시간: [KB]05/26 11:20
+        dt_line = next(l for l in lines if l.startswith("[KB]"))
+        dt_str = dt_line.replace("[KB]", "").strip()  # "05/26 11:20"
+        month, day = dt_str[:5].split("/")
+        hour, minute = dt_str[6:].split(":")
+        year = date.today().year
+        tran_date = date(year, int(month), int(day))
+        tran_time = f"{int(hour):02d}{int(minute):02d}00"
+
+        # 입금 라인 인덱스 찾기
+        deposit_idx = next(i for i, l in enumerate(lines) if l == "입금")
+
+        # 입금자명: 입금 바로 위 줄
+        depositor = lines[deposit_idx - 1]
+
+        # 금액: 입금 바로 아래 줄 (쉼표 제거)
+        amount_str = lines[deposit_idx + 1].replace(",", "").replace("원", "").strip()
+        amount = int(amount_str)
+
+        # 잔액
+        balance_line = next((l for l in lines if l.startswith("잔액")), "")
+        balance = int(balance_line.replace("잔액", "").replace(",", "").replace("원", "")) if balance_line else 0
+
+        return {
+            "tran_date": tran_date,
+            "tran_time": tran_time,
+            "depositor": depositor,
+            "amount": amount,
+            "balance": balance,
+        }
+    except Exception:
+        return None
+
+
+def match_sms_transaction(parsed: dict):
+    """파싱된 SMS로 BankTransaction 저장 + 출고 자동 매칭"""
+    unique_no = f"SMS_{parsed['tran_date'].strftime('%Y%m%d')}_{parsed['tran_time']}_{parsed['amount']}_{parsed['depositor']}"
+
+    tran, created = BankTransaction.objects.get_or_create(
+        tran_unique_no=unique_no,
+        defaults={
+            "account": _get_sms_account(),
+            "tran_date": parsed["tran_date"],
+            "tran_time": parsed["tran_time"],
+            "tran_type": "D",
+            "tran_amt": parsed["amount"],
+            "balance_amt": parsed["balance"],
+            "print_content": parsed["depositor"],
+        },
+    )
+
+    matched_release = None
+    if created:
+        unpaid = MaterialRelease.objects.filter(payment_status="unpaid").select_related("institution")
+        matched_release = _find_best_match(tran, unpaid)
+        if matched_release:
+            tran.matched_release = matched_release
+            tran.is_auto_matched = True
+            tran.save(update_fields=["matched_release", "is_auto_matched"])
+            matched_release.payment_status = "paid"
+            matched_release.payment_date = parsed["tran_date"]
+            matched_release.save(update_fields=["payment_status", "payment_date"])
+
+    return tran, matched_release
+
+
+def _get_sms_account():
+    """SMS 수신용 가상 계좌 객체 반환 (없으면 생성)"""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.filter(is_superuser=True).first()
+    account, _ = RegisteredAccount.objects.get_or_create(
+        fintech_use_num="SMS_KB_DIRECT",
+        defaults={
+            "user": user,
+            "bank_code": "004",
+            "bank_name": "KB국민은행",
+            "account_num_masked": "SMS수신",
+            "account_holder": "SMS",
+        },
+    )
+    return account
