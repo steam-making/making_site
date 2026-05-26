@@ -22,6 +22,8 @@ urlpatterns = [
 
     path('orders/', views.order_list, name='order_list'),
     path('orders/new/', views.create_order, name='create_order'),
+    path('api/materials/', views.material_search_api, name='material_search_api'),
+    path('api/vendors/', views.vendor_search_api, name='vendor_search_api'),
     path('orders/receive/<int:order_id>/', views.receive_order, name='receive_order'),
     path('orders/item/receive/<int:item_id>/', views.receive_material_item, name='receive_material_item'),
     

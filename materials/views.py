@@ -1442,6 +1442,47 @@ from django.shortcuts import render, redirect
 from .models import Order, Material, VendorType
 
 @login_required
+def material_search_api(request):
+    """교구재 자동완성 검색 API"""
+    q = request.GET.get("q", "").strip()
+    qs = Material.objects.select_related("vendor__vendor_type").all()
+    if q:
+        qs = qs.filter(name__icontains=q)
+    results = [
+        {
+            "id": m.id,
+            "name": m.name,
+            "stock": m.stock,
+            "vendor_id": m.vendor.id if m.vendor else None,
+            "vendor_name": m.vendor.name if m.vendor else "",
+            "vendor_type_id": m.vendor.vendor_type.id if m.vendor and m.vendor.vendor_type else None,
+            "vendor_type_name": m.vendor.vendor_type.name if m.vendor and m.vendor.vendor_type else "",
+        }
+        for m in qs[:30]
+    ]
+    return JsonResponse({"results": results})
+
+
+@login_required
+def vendor_search_api(request):
+    """거래처 자동완성 검색 API"""
+    q = request.GET.get("q", "").strip()
+    qs = Vendor.objects.select_related("vendor_type").all()
+    if q:
+        qs = qs.filter(name__icontains=q)
+    results = [
+        {
+            "id": v.id,
+            "name": v.name,
+            "vendor_type_id": v.vendor_type.id if v.vendor_type else None,
+            "vendor_type_name": v.vendor_type.name if v.vendor_type else "",
+        }
+        for v in qs[:30]
+    ]
+    return JsonResponse({"results": results})
+
+
+@login_required
 def create_order(request):
     vendor_types = VendorType.objects.all()
     vendors = Vendor.objects.select_related('vendor_type').all()

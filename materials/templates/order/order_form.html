@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-4">
   <div class="card p-4 shadow-sm">
     <h3 class="text-center mb-4">
       <i class="bi bi-bag-plus me-2"></i> 교구재 주문 등록
@@ -12,267 +12,259 @@
     <div class="alert alert-danger text-center">{{ error }}</div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" id="orderForm">
       {% csrf_token %}
 
       <!-- 주문자 -->
       <div class="mb-3">
-        <label class="form-label">
-          <i class="bi bi-person-fill me-1"></i> 주문자
-        </label>
+        <label class="form-label"><i class="bi bi-person-fill me-1"></i> 주문자</label>
         <input type="text" class="form-control" value="{{ user.first_name }} ({{ user.username }})" readonly>
         <input type="hidden" name="teacher" value="{{ user.id }}">
       </div>
 
-      <!-- ✅ 입고 종류 선택 -->
+      <!-- 입고 종류 -->
       <div class="mb-3">
-        <label for="receive_type" class="form-label">
-          <i class="bi bi-box-arrow-in-down me-1"></i> 입고 종류
-        </label>
-        <select name="receive_type" id="receive_type" class="form-select" required>
-          <option value="order" {% if form.receive_type.value == "order" %}selected{% endif %}>주문입고</option>
-          <option value="return" {% if form.receive_type.value == "return" %}selected{% endif %}>반납입고</option>
-        </select>
-      </div>
-
-      <!-- 거래처 종류 선택 -->
-      <div class="mb-3">
-        <label for="vendor_type" class="form-label">
-          <i class="bi bi-building me-1"></i> 거래처 종류
-        </label>
-        <select id="vendor_type" class="form-select" required>
-          <option value="">-- 전체 종류 --</option>
-          {% for kind in vendor_kinds %}
-          <option value="{{ kind }}">{{ kind }}</option>
-          {% endfor %}
+        <label class="form-label"><i class="bi bi-box-arrow-in-down me-1"></i> 입고 종류</label>
+        <select name="receive_type" class="form-select" required>
+          <option value="order">주문입고</option>
+          <option value="return">반납입고</option>
         </select>
       </div>
 
       <!-- 주문 항목 테이블 -->
-      <table class="table table-bordered align-middle table-stack" id="orderTable">
-        <thead class="table-light text-center">
-          <tr>
-            <th style="width: 5%"><i class="bi bi-hash"></i></th>
-            <th><i class="bi bi-shop me-1"></i> 거래처</th>
-            <th><i class="bi bi-box-seam me-1"></i> 교구재</th>
-            <th style="width: 15%"><i class="bi bi-archive me-1"></i> 현재고</th>
-            <th style="width: 15%"><i class="bi bi-plus-square me-1"></i> 수량</th>
-            <th style="width: 10%"><i class="bi bi-trash me-1"></i> 삭제</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- 기본 1줄 -->
-          <tr data-row="1">
-            <td class="text-center">1</td>
-            <td>
-              <select name="vendor_1" class="form-select vendor-select" data-row="1">
-                <option value="">-- 거래처 선택 --</option>
-                {% for vendor in vendors %}
-                <option value="{{ vendor.id }}" data-kind="{{ vendor.vendor_type.name|default:'' }}">
-                  {{ vendor.name }}
-                </option>
-                {% endfor %}
-              </select>
-            </td>
-            <td>
-              <select name="material_1" class="form-select material-select" data-row="1">
-                <option value="">-- 교구재 선택 --</option>
-                {% for material in materials %}
-                <option value="{{ material.id }}"
-                        data-vendor="{{ material.vendor.id }}"
-                        data-kind="{{ material.vendor.vendor_type.name|default:'' }}"
-                        data-stock="{{ material.stock }}">
-                  {{ material.name }}
-                </option>
-                {% endfor %}
-              </select>
-            </td>
-            <td class="text-center">
-              <span class="badge text-dark stock-label" id="stock_1">-</span>
-            </td>
-            <td>
-              <input type="number" name="quantity_1" class="form-control" min="0" placeholder="예: 10" />
-            </td>
-            <td class="text-center">
-              <button type="button" class="btn btn-sm btn-outline-danger remove-row">
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle" id="orderTable">
+          <thead class="table-light text-center">
+            <tr>
+              <th style="width:4%">#</th>
+              <th style="width:22%"><i class="bi bi-building me-1"></i> 거래처 종류</th>
+              <th style="width:22%"><i class="bi bi-shop me-1"></i> 거래처</th>
+              <th><i class="bi bi-box-seam me-1"></i> 교구재</th>
+              <th style="width:10%">현재고</th>
+              <th style="width:12%">수량</th>
+              <th style="width:6%"></th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody"></tbody>
+        </table>
+      </div>
 
-      <!-- 행 추가 버튼 -->
       <div class="mb-3 text-end">
-        <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm w-100 w-md-auto">
+        <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm">
           <i class="bi bi-plus-circle me-1"></i> 행 추가
         </button>
       </div>
 
-      <!-- ✅ 비고란 -->
+      <!-- 비고 -->
       <div class="mb-3">
-        <label for="notes" class="form-label">
-          <i class="bi bi-pencil-square me-1"></i> 비고 (예: 홍길동 강사 / ○○학교 반납 사유 등)
-        </label>
-        <textarea name="notes" id="notes" rows="3" class="form-control"
-                  placeholder="예: 홍길동 강사, ○○학교 반납 건"></textarea>
+        <label class="form-label"><i class="bi bi-pencil-square me-1"></i> 비고</label>
+        <textarea name="notes" rows="2" class="form-control" placeholder="예: 홍길동 강사, ○○학교 반납 건"></textarea>
       </div>
 
-      <!-- 주문일 / 예상입고일 -->
-      <div class="mb-3">
-        <label for="ordered_date" class="form-label">
-          <i class="bi bi-calendar-date me-1"></i> 주문일
-        </label>
-        <input type="date" name="ordered_date" id="ordered_date" class="form-control" value="{{ today|date:'Y-m-d' }}" required />
+      <!-- 날짜 -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label"><i class="bi bi-calendar-date me-1"></i> 주문일</label>
+          <input type="date" name="ordered_date" id="ordered_date" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label"><i class="bi bi-calendar-check me-1"></i> 예상 입고일</label>
+          <input type="date" name="expected_date" id="expected_date" class="form-control" readonly>
+        </div>
       </div>
 
-      <div class="mb-3">
-        <label for="expected_date" class="form-label">
-          <i class="bi bi-calendar-check me-1"></i> 예상 입고일
-        </label>
-        <input type="date" name="expected_date" id="expected_date" class="form-control" readonly />
-      </div>
-
-      <div class="text-center mt-4 d-grid gap-2">
-        <button type="submit" class="btn btn-primary">
-          <i class="bi bi-check2-circle me-1"></i> 주문 등록
-        </button>
-        <a href="{% url 'order_list' %}" class="btn btn-secondary">
-          <i class="bi bi-arrow-left-circle me-1"></i> 취소
-        </a>
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> 주문 등록</button>
+        <a href="{% url 'order_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left-circle me-1"></i> 취소</a>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ✅ JS -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const now = new Date();
-
-  // 주문일 기본값
-  const orderedDateInput = document.getElementById("ordered_date");
-  if (orderedDateInput && !orderedDateInput.value) {
-    orderedDateInput.value = now.toISOString().split("T")[0];
-  }
-
-  // 예상입고일 기본값 (주문 시간에 따라 +2일 또는 +3일)
-  const expectedDateInput = document.getElementById("expected_date");
-  if (expectedDateInput) {
-    const deliveryDate = new Date(now);
-    deliveryDate.setDate(deliveryDate.getDate() + (now.getHours() < 12 ? 2 : 3));
-    expectedDateInput.value = deliveryDate.toISOString().split("T")[0];
-  }
-
-  const tableBody = document.querySelector("#orderTable tbody");
-  let rowCount = 1;
-
-  // 행 추가 버튼
-  document.getElementById("addRowBtn").addEventListener("click", function () {
-    rowCount++;
-    const newRow = document.createElement("tr");
-    newRow.setAttribute("data-row", rowCount);
-    newRow.innerHTML = `
-      <td class="text-center">${rowCount}</td>
-      <td>
-        <select name="vendor_${rowCount}" class="form-select vendor-select" data-row="${rowCount}">
-          <option value="">-- 거래처 선택 --</option>
-          {% for vendor in vendors %}
-          <option value="{{ vendor.id }}" data-kind="{{ vendor.vendor_type.name|default:'' }}">
-            {{ vendor.name }}
-          </option>
-          {% endfor %}
-        </select>
-      </td>
-      <td>
-        <select name="material_${rowCount}" class="form-select material-select" data-row="${rowCount}">
-          <option value="">-- 교구재 선택 --</option>
-          {% for material in materials %}
-          <option value="{{ material.id }}"
-                  data-vendor="{{ material.vendor.id }}"
-                  data-kind="{{ material.vendor.vendor_type.name|default:'' }}"
-                  data-stock="{{ material.stock }}">
-            {{ material.name }}
-          </option>
-          {% endfor %}
-        </select>
-      </td>
-      <td class="text-center">
-        <span class="badge bg-info text-dark stock-label" id="stock_${rowCount}">-</span>
-      </td>
-      <td>
-        <input type="number" name="quantity_${rowCount}" class="form-control" min="0" placeholder="예: 10" />
-      </td>
-      <td class="text-center">
-        <button type="button" class="btn btn-sm btn-outline-danger remove-row">–</button>
-      </td>
-    `;
-    tableBody.appendChild(newRow);
-    attachRowEvents(newRow);
-  });
-
-  // 행별 이벤트 등록
-  function attachRowEvents(row) {
-    const vendorSelect = row.querySelector(".vendor-select");
-    const materialSelect = row.querySelector(".material-select");
-    const removeBtn = row.querySelector(".remove-row");
-    const stockLabel = row.querySelector(".stock-label");
-
-    vendorSelect.addEventListener("change", function () {
-      const selectedVendorId = this.value;
-      Array.from(materialSelect.options).forEach((option) => {
-        const vendorId = option.getAttribute("data-vendor");
-        option.style.display = !vendorId || vendorId === selectedVendorId || option.value === "" ? "" : "none";
-      });
-      materialSelect.value = "";
-      if (stockLabel) stockLabel.textContent = "-";
-    });
-
-    materialSelect.addEventListener("change", function () {
-      const selectedOption = this.options[this.selectedIndex];
-      const vendorId = selectedOption.getAttribute("data-vendor");
-      const stock = selectedOption.getAttribute("data-stock") || "-";
-      if (vendorId) {
-        vendorSelect.value = vendorId;
-      }
-      if (stockLabel) {
-        stockLabel.textContent = stock;
-      }
-    });
-
-    removeBtn.addEventListener("click", function () {
-      row.remove();
-    });
-  }
-
-  // 초기 1행 이벤트 바인딩
-  attachRowEvents(document.querySelector('tr[data-row="1"]'));
-
-  // 거래처 종류 필터
-  const vendorTypeSelect = document.getElementById("vendor_type");
-  vendorTypeSelect.addEventListener("change", function () {
-    const selectedType = this.value;
-    document.querySelectorAll(".vendor-select").forEach((vendorSelect) => {
-      Array.from(vendorSelect.options).forEach((option) => {
-        const type = option.getAttribute("data-kind");
-        option.style.display = (!selectedType || type === selectedType || option.value === "") ? "" : "none";
-      });
-      vendorSelect.value = "";
-
-      const row = vendorSelect.dataset.row;
-      const materialSelect = document.querySelector(`select[name="material_${row}"]`);
-      if (materialSelect) {
-        Array.from(materialSelect.options).forEach((opt) => {
-          const kind = opt.getAttribute("data-kind");
-          opt.style.display = (!selectedType || kind === selectedType || opt.value === "") ? "" : "none";
-        });
-        materialSelect.value = "";
-        const stockLabel = document.getElementById(`stock_${row}`);
-        if (stockLabel) stockLabel.textContent = "-";
-      }
-    });
-  });
+<style>
+.autocomplete-wrap { position: relative; }
+.autocomplete-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
+  background: #fff; border: 1px solid #dee2e6; border-top: none;
+  max-height: 220px; overflow-y: auto; border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-);
+.autocomplete-item {
+  padding: 8px 12px; cursor: pointer; font-size: 0.9rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.autocomplete-item:hover, .autocomplete-item.active { background: #e9f0ff; }
+.autocomplete-item small { color: #888; }
+</style>
+
+<script>
+const MATERIAL_API = "{% url 'material_search_api' %}";
+const VENDOR_API   = "{% url 'vendor_search_api' %}";
+
+let rowCount = 0;
+
+function makeAutocomplete(inputEl, fetchFn, onSelect) {
+  let list = null;
+  let timer = null;
+
+  inputEl.addEventListener('input', function () {
+    clearTimeout(timer);
+    const q = this.value.trim();
+    timer = setTimeout(() => {
+      if (q.length === 0) { closeList(); return; }
+      fetchFn(q).then(items => renderList(items));
+    }, 200);
+  });
+
+  inputEl.addEventListener('focus', function () {
+    const q = this.value.trim();
+    if (q) fetchFn(q).then(items => renderList(items));
+  });
+
+  inputEl.addEventListener('keydown', function (e) {
+    if (!list) return;
+    const items = list.querySelectorAll('.autocomplete-item');
+    const active = list.querySelector('.active');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = active ? active.nextElementSibling : items[0];
+      if (next) { active && active.classList.remove('active'); next.classList.add('active'); }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = active ? active.previousElementSibling : items[items.length - 1];
+      if (prev) { active && active.classList.remove('active'); prev.classList.add('active'); }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (active) active.click();
+    } else if (e.key === 'Escape') {
+      closeList();
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!inputEl.contains(e.target)) closeList();
+  });
+
+  function renderList(items) {
+    closeList();
+    if (!items.length) return;
+    list = document.createElement('div');
+    list.className = 'autocomplete-list';
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.innerHTML = item._html;
+      div.addEventListener('click', () => { onSelect(item); closeList(); });
+      list.appendChild(div);
+    });
+    inputEl.parentElement.appendChild(list);
+  }
+
+  function closeList() {
+    if (list) { list.remove(); list = null; }
+  }
+}
+
+function fetchMaterials(q) {
+  return fetch(`${MATERIAL_API}?q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(d => d.results.map(m => ({
+      ...m,
+      _html: `${m.name} <small>${m.vendor_name}</small>`
+    })));
+}
+
+function fetchVendors(q) {
+  return fetch(`${VENDOR_API}?q=${encodeURIComponent(q)}`)
+    .then(r => r.json())
+    .then(d => d.results.map(v => ({
+      ...v,
+      _html: `${v.name} <small>${v.vendor_type_name}</small>`
+    })));
+}
+
+function addRow() {
+  rowCount++;
+  const n = rowCount;
+  const tr = document.createElement('tr');
+  tr.dataset.row = n;
+  tr.innerHTML = `
+    <td class="text-center">${n}</td>
+    <td>
+      <input type="text" class="form-control form-control-sm vendor-type-input" placeholder="거래처 종류 검색..." autocomplete="off" readonly>
+      <input type="hidden" name="vendor_type_${n}" class="vendor-type-id">
+    </td>
+    <td>
+      <div class="autocomplete-wrap">
+        <input type="text" class="form-control form-control-sm vendor-input" placeholder="거래처 검색..." autocomplete="off">
+        <input type="hidden" name="vendor_${n}" class="vendor-id">
+      </div>
+    </td>
+    <td>
+      <div class="autocomplete-wrap">
+        <input type="text" class="form-control form-control-sm material-input" placeholder="교구재 검색..." autocomplete="off">
+        <input type="hidden" name="material_${n}" class="material-id">
+      </div>
+    </td>
+    <td class="text-center"><span class="badge bg-light text-dark stock-label">-</span></td>
+    <td><input type="number" name="quantity_${n}" class="form-control form-control-sm" min="1" placeholder="수량"></td>
+    <td class="text-center">
+      <button type="button" class="btn btn-sm btn-outline-danger remove-row"><i class="bi bi-x-lg"></i></button>
+    </td>
+  `;
+  document.getElementById('orderTableBody').appendChild(tr);
+  attachRowEvents(tr);
+}
+
+function attachRowEvents(tr) {
+  const vendorInput   = tr.querySelector('.vendor-input');
+  const vendorId      = tr.querySelector('.vendor-id');
+  const vendorTypeInput = tr.querySelector('.vendor-type-input');
+  const vendorTypeId  = tr.querySelector('.vendor-type-id');
+  const materialInput = tr.querySelector('.material-input');
+  const materialId    = tr.querySelector('.material-id');
+  const stockLabel    = tr.querySelector('.stock-label');
+
+  // 교구재 자동완성 → 거래처/거래처종류 자동입력
+  makeAutocomplete(materialInput, fetchMaterials, function (m) {
+    materialInput.value = m.name;
+    materialId.value    = m.id;
+    stockLabel.textContent = m.stock ?? '-';
+    if (m.vendor_id) {
+      vendorInput.value = m.vendor_name;
+      vendorId.value    = m.vendor_id;
+    }
+    if (m.vendor_type_name) {
+      vendorTypeInput.value = m.vendor_type_name;
+      vendorTypeId.value    = m.vendor_type_id || '';
+    }
+  });
+
+  // 거래처 자동완성 → 거래처종류 자동입력
+  makeAutocomplete(vendorInput, fetchVendors, function (v) {
+    vendorInput.value = v.name;
+    vendorId.value    = v.id;
+    vendorTypeInput.value = v.vendor_type_name;
+    vendorTypeId.value    = v.vendor_type_id || '';
+    // 거래처 선택 시 교구재 초기화
+    materialInput.value = '';
+    materialId.value    = '';
+    stockLabel.textContent = '-';
+  });
+
+  tr.querySelector('.remove-row').addEventListener('click', () => tr.remove());
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // 날짜 기본값
+  const now = new Date();
+  document.getElementById('ordered_date').value = now.toISOString().split('T')[0];
+  const exp = new Date(now);
+  exp.setDate(exp.getDate() + (now.getHours() < 12 ? 2 : 3));
+  document.getElementById('expected_date').value = exp.toISOString().split('T')[0];
+
+  document.getElementById('addRowBtn').addEventListener('click', addRow);
+  addRow(); // 기본 1행
+});
 </script>
 {% endblock %}
