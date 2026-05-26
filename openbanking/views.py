@@ -282,13 +282,13 @@ def sms_webhook(request):
         or ""
     )
 
-    # body가 raw text로 올 경우
+    # body가 JSON으로 올 경우 (SMS Forwarder 앱 형식)
     if not sms_body and request.body:
         try:
             import json
             data = json.loads(request.body)
-            sms_body = (data.get("msg") or data.get("message") or data.get("text")
-                        or data.get("body") or data.get("sms") or "")
+            sms_body = (data.get("content") or data.get("msg") or data.get("message")
+                        or data.get("text") or data.get("body") or data.get("sms") or "")
         except Exception:
             sms_body = request.body.decode("utf-8", errors="ignore")
 
