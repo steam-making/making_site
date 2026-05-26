@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, date as date_type
+import re as _re
 import json
 from django.shortcuts import render
 from django.urls import reverse
@@ -103,12 +104,32 @@ def post_hub(request):
     # ===============================
     # 🔥 NEW / 상태 / 마감일 / 강조 계산
     # ===============================
+    def _parse_end_date(post_date_str):
+        if not post_date_str:
+            return None
+        dates = _re.findall(r"\d{2,4}[./\-]\d{1,2}[./\-]\d{1,2}", post_date_str)
+        if len(dates) < 2:
+            return None
+        try:
+            d = _re.sub(r"[./]", "-", dates[1])
+            parts = d.split("-")
+            if len(parts[0]) == 2:
+                y, m, day = date_type.today().year, int(parts[1]), int(parts[2])
+            else:
+                y, m, day = int(parts[0]), int(parts[1]), int(parts[2])
+            return date_type(y, m, day)
+        except Exception:
+            return None
+
     for p in posts:
         # NEW
         p.is_new_today = (p.collected_at.date() == today)
 
         # 상태
         p.auto_status = p.get_auto_status()
+
+        # 마감일 파싱
+        p.end_date = _parse_end_date(p.post_date)
 
         p.source_badge_class = SOURCE_COLOR_MAP.get(
             p.source.name,
@@ -195,22 +216,12 @@ def post_hub(request):
         ]
 
     # ===============================
-    # 🔥 정렬 (🔥 마감 빠른 순 핵심)
+    # 🔥 정렬: 등록일 내림차순 → 마감일 내림차순
     # ===============================
-    status_priority = {
-        "마감임박": 0,
-        "모집중": 1,
-        "예정": 2,
-        "마감": 3,
-        "": 9,
-    }
-
     posts.sort(
         key=lambda p: (
-            status_priority.get(p.auto_status, 9),  # 상태
-            p.end_date or date.max,                 # ✅ 마감일 빠른 순
-            not p.is_new_today,                     # NEW 우선
-            -p.collected_at.timestamp(),            # 최신 수집
+            -(p.collected_at.timestamp()),                              # 등록일 내림차순
+            -(p.end_date.toordinal() if p.end_date else 0),            # 마감일 내림차순
         )
     )
 
