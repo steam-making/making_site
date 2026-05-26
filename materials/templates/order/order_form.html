@@ -84,10 +84,10 @@
 <style>
 .autocomplete-wrap { position: relative; }
 .autocomplete-list {
-  position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
-  background: #fff; border: 1px solid #dee2e6; border-top: none;
-  max-height: 220px; overflow-y: auto; border-radius: 0 0 6px 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: absolute; z-index: 99999;
+  background: #fff; border: 1px solid #dee2e6;
+  max-height: 220px; overflow-y: auto; border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 .autocomplete-item {
   padding: 8px 12px; cursor: pointer; font-size: 0.9rem;
@@ -148,21 +148,29 @@ function makeAutocomplete(inputEl, fetchFn, onSelect) {
   function renderList(items) {
     closeList();
     if (!items.length) return;
+    const rect = inputEl.getBoundingClientRect();
     list = document.createElement('div');
     list.className = 'autocomplete-list';
+    list.style.top    = (rect.bottom + window.scrollY) + 'px';
+    list.style.left   = (rect.left  + window.scrollX) + 'px';
+    list.style.width  = rect.width + 'px';
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'autocomplete-item';
       div.innerHTML = item._html;
-      div.addEventListener('click', () => { onSelect(item); closeList(); });
+      div.addEventListener('mousedown', (e) => { e.preventDefault(); onSelect(item); closeList(); });
       list.appendChild(div);
     });
-    inputEl.parentElement.appendChild(list);
+    document.body.appendChild(list);
   }
 
   function closeList() {
     if (list) { list.remove(); list = null; }
   }
+
+  // 스크롤/리사이즈 시 위치 재조정
+  window.addEventListener('scroll', closeList, true);
+  window.addEventListener('resize', closeList);
 }
 
 function fetchMaterials(q) {
