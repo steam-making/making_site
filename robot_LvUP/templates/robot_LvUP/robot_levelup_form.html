@@ -119,8 +119,9 @@
     cursor: not-allowed !important;
     color: #6c757d !important;
   }
-  .autocomplete-item { padding: 4px 8px; cursor: pointer; }
+  .autocomplete-item { padding: 6px 10px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .autocomplete-item:hover { background-color: #f1f1f1; }
+  .autocomplete-list { max-height: 240px; overflow-y: auto; }
 </style>
 
 {% if not record %}
