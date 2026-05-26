@@ -1,5 +1,6 @@
 import re
 import requests
+from difflib import SequenceMatcher
 from datetime import date, timedelta, datetime
 from django.utils import timezone
 
@@ -87,30 +88,50 @@ def auto_match_transactions(account: RegisteredAccount) -> int:
     return matched_count
 
 
+def _name_match(depositor: str, name: str) -> bool:
+    """
+    입금자명과 기관/학교명 부분 매칭.
+    - 광천초 ↔ 광천초등학교: 한쪽이 다른쪽에 포함되면 매칭
+    - 유사도 0.7 이상이면 매칭 (오탈자 허용)
+    """
+    if not depositor or not name:
+        return False
+    d = depositor.replace(" ", "")
+    n = name.replace(" ", "")
+    if not d or not n:
+        return False
+    # 한쪽이 다른쪽에 포함
+    if d in n or n in d:
+        return True
+    # 글자 수 3자 이상일 때만 유사도 검사
+    if len(d) >= 3 and len(n) >= 3:
+        ratio = SequenceMatcher(None, d, n).ratio()
+        if ratio >= 0.7:
+            return True
+    return False
+
+
 def _find_best_match(tran: BankTransaction, releases):
     """
     매칭 우선순위:
-    1. 입금자명에 기관명(또는 학교명) 포함 + 금액 일치
-    2. 금액만 일치 (단독 금액인 경우)
+    1. 금액 일치 + 입금자명이 기관명 또는 학교명과 부분 매칭
+    2. 금액만 일치 (동일 금액 release가 1건뿐일 때)
     """
-    content = tran.print_content.replace(" ", "")
+    depositor = tran.print_content
     amount = tran.tran_amt
 
-    # 기관명 + 금액 매칭 (가장 신뢰도 높음)
+    # 1순위: 금액 + 이름 매칭
     for rel in releases:
         inst = rel.institution
-        inst_name = (inst.name or "").replace(" ", "")
-        school_name = (inst.school.name if inst.school else "").replace(" ", "")
         total = _release_total(rel)
-
         if total != amount:
             continue
-        if inst_name and inst_name in content:
-            return rel
-        if school_name and school_name in content:
+        inst_name = inst.name or ""
+        school_name = inst.school.name if inst.school else ""
+        if _name_match(depositor, inst_name) or _name_match(depositor, school_name):
             return rel
 
-    # 금액만 일치 (동일 금액 release가 1건뿐일 때만)
+    # 2순위: 금액만 일치 (1건뿐일 때만)
     amount_matches = [r for r in releases if _release_total(r) == amount]
     if len(amount_matches) == 1:
         return amount_matches[0]
