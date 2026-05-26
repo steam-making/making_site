@@ -70,11 +70,11 @@ class Command(BaseCommand):
         return 0
 
     def _parse_end_date(self, post_date_str):
-        dates = re.findall(r"\d{2,4}[.\-]\d{1,2}[.\-]\d{1,2}", post_date_str)
+        dates = re.findall(r"\d{2,4}[./\-]\d{1,2}[./\-]\d{1,2}", post_date_str)
         if len(dates) < 2:
             return None
         try:
-            d = dates[1].replace(".", "-")
+            d = re.sub(r"[./]", "-", dates[1])
             parts = d.split("-")
             if len(parts[0]) == 2:
                 year = date.today().year

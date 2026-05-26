@@ -149,12 +149,12 @@ class CollectedPost(models.Model):
             return ""
 
         # 날짜 형태 추출
-        dates = re.findall(r"\d{2,4}[.\-]\d{1,2}[.\-]\d{1,2}", self.post_date)
+        dates = re.findall(r"\d{2,4}[./\-]\d{1,2}[./\-]\d{1,2}", self.post_date)
         if len(dates) < 2:
             return ""
 
         def parse_date(d):
-            d = d.replace(".", "-")
+            d = re.sub(r"[./]", "-", d)
             parts = d.split("-")
 
             # 연도 없는 경우 → 올해 기준
