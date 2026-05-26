@@ -266,12 +266,13 @@ def dashboard(request):
         tran_type="D",
         matched_release__isnull=True,
     ).count()
+    total_count = BankTransaction.objects.filter(account__user=request.user).count()
 
     return render(request, "openbanking/dashboard.html", {
-        "has_token": has_token,
         "accounts": accounts,
         "recent_matched": recent_matched,
         "unmatched_count": unmatched_count,
+        "total_count": total_count,
     })
 
 
