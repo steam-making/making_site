@@ -47,12 +47,13 @@
               <span class="badge bg-secondary">미매칭</span>
             {% endif %}
           </td>
-          <td>
+          <td class="text-nowrap">
             {% if t.matched_release %}
               <button class="btn btn-sm btn-outline-danger unmatch-btn" data-tran-id="{{ t.id }}">취소</button>
             {% else %}
               <button class="btn btn-sm btn-outline-primary match-btn" data-tran-id="{{ t.id }}" data-amt="{{ t.tran_amt }}" data-content="{{ t.print_content }}">매칭</button>
             {% endif %}
+            <button class="btn btn-sm btn-outline-danger delete-tran-btn ms-1" data-tran-id="{{ t.id }}">삭제</button>
           </td>
         </tr>
         {% empty %}
@@ -132,6 +133,24 @@ document.body.addEventListener('click', function (e) {
     fetch('{% url "openbanking_unmatch" %}', { method: 'POST', body: form })
       .then(r => r.json())
       .then(data => { if (data.success) location.reload(); else alert(data.message); });
+  }
+
+  // 삭제 버튼
+  var delBtn = e.target.closest('.delete-tran-btn');
+  if (delBtn) {
+    if (!confirm('이 거래내역을 삭제하시겠습니까?')) return;
+    var form = new FormData();
+    form.append('transaction_id', delBtn.dataset.tranId);
+    form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "openbanking_delete_transaction" %}', { method: 'POST', body: form })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          delBtn.closest('tr').remove();
+        } else {
+          alert(data.message);
+        }
+      });
   }
 });
 

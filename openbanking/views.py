@@ -209,6 +209,19 @@ def manual_match(request):
 
 @login_required
 @require_POST
+def delete_transaction(request):
+    """거래내역 삭제"""
+    tran_id = request.POST.get("transaction_id")
+    try:
+        tran = BankTransaction.objects.get(id=tran_id, account__user=request.user)
+    except BankTransaction.DoesNotExist:
+        return JsonResponse({"success": False, "message": "거래를 찾을 수 없습니다."})
+    tran.delete()
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
 def unmatch_transaction(request):
     """매칭 취소"""
     tran_id = request.POST.get("transaction_id")
