@@ -22,16 +22,16 @@
     <table class="table table-bordered table-sm align-middle text-center">
       <thead class="table-light">
         <tr>
-          <th style="width:50px;">#</th>
-          <th>교구명</th>
-          <th>부</th>
-          <th>학년</th>
-          <th>반</th>
-          <th>번호</th>
-          <th>학생명</th>
-          <th>가격</th>
+          <th style="width:36px;">#</th>
+          <th style="width:22%;">교구명</th>
+          <th style="width:48px;">부</th>
+          <th style="width:48px;">학년</th>
+          <th style="width:48px;">반</th>
+          <th style="width:48px;">번호</th>
+          <th style="width:18%;">학생명</th>
+          <th style="width:90px;">가격</th>
           <th>비고</th>
-          {% if not record %}<th>삭제</th>{% endif %}
+          {% if not record %}<th style="width:44px;">삭제</th>{% endif %}
         </tr>
       </thead>
       <tbody id="rowContainer">
@@ -119,9 +119,9 @@
     cursor: not-allowed !important;
     color: #6c757d !important;
   }
-  .autocomplete-item { padding: 6px 10px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .autocomplete-item { padding: 6px 10px; cursor: pointer; white-space: nowrap; }
   .autocomplete-item:hover { background-color: #f1f1f1; }
-  .autocomplete-list { max-height: 240px; overflow-y: auto; }
+  .autocomplete-list { max-height: 240px; overflow-y: auto; min-width: 180px; }
 </style>
 
 {% if not record %}
