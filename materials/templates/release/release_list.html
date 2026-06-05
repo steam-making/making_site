@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% load custom_filters %}
+{% load custom_tags %}
 {% load static %}
 
 {% block extra_css %}
@@ -618,7 +619,7 @@
             {% regroup institutions|dictsort:"program" by program as program_groups %}
             {% for group in program_groups %}
                 {% for inst in group.list|dictsort:"name" %}
-                  <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem; white-space: nowrap;" data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.program %} · {{ inst.program }}{% endif %}{% if inst.id in institution_new_ids %} <span class="release-new-badge">N</span>{% endif %}</button></li>
+                  <li><button type="button" class="dropdown-item py-2 border-bottom" style="font-size: 0.85rem; white-space: nowrap;" data-id="{{ inst.id }}" data-teacher="{{ inst.teacher.id }}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.program %} · {{ inst.program }}{% endif %}{% with cnt=institution_unpaid_counts|get_item:inst.id %}{% if cnt %} <span class="release-new-badge">{{ cnt }}</span>{% endif %}{% endwith %}</button></li>
                 {% endfor %}
             {% endfor %}
             <li class="dropdown-item text-muted empty-msg py-2" style="display: none; pointer-events: none; font-size: 0.85rem;">검색 결과 없음</li>
@@ -645,7 +646,7 @@
              class="btn btn-sm {% if not selected_teacher_id %}btn-primary{% else %}btn-outline-primary{% endif %}">전체</a>
           {% for t in teachers %}
           <a href="?teacher={{ t.id }}&institution=&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-             class="btn btn-sm {% if selected_teacher_id == t.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ t.first_name|default:t.username }}{% if t.id in teacher_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
+             class="btn btn-sm {% if selected_teacher_id == t.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{{ t.first_name|default:t.username }}{% with cnt=teacher_unpaid_counts|get_item:t.id %}{% if cnt %}<span class="release-new-badge">{{ cnt }}</span>{% endif %}{% endwith %}</a>
           {% endfor %}
         </div>
 
@@ -656,7 +657,7 @@
             {% for inst in selected_teacher_institutions %}
             <a href="?teacher={{ selected_teacher_id }}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
                class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">
-               {% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.id in institution_new_ids %}<span class="release-new-badge">N</span>{% endif %}
+               {% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% with cnt=institution_unpaid_counts|get_item:inst.id %}{% if cnt %}<span class="release-new-badge">{{ cnt }}</span>{% endif %}{% endwith %}
             </a>
             {% endfor %}
           </div>
@@ -672,7 +673,7 @@
           {% for inst in institutions %}
           {% if inst.place_type == 'school' or inst.place_type == 'kindergarten' %}
           <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.id in institution_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
+             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% with cnt=institution_unpaid_counts|get_item:inst.id %}{% if cnt %}<span class="release-new-badge">{{ cnt }}</span>{% endif %}{% endwith %}</a>
           {% endif %}
           {% endfor %}
         </div>
@@ -686,7 +687,7 @@
           {% for inst in institutions %}
           {% if inst.place_type == 'child_center' or inst.place_type == 'culture_center' or inst.place_type == 'other' %}
           <a href="?teacher={% if not request.user.is_staff %}{{ user.id }}{% endif %}&institution={{ inst.id }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}"
-             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% if inst.id in institution_new_ids %}<span class="release-new-badge">N</span>{% endif %}</a>
+             class="btn btn-sm {% if selected_institution_id == inst.id|stringformat:'s' %}btn-primary{% else %}btn-outline-primary{% endif %}">{% if inst.school %}{{ inst.school.name }}{% else %}{{ inst.name }}{% endif %}{% with cnt=institution_unpaid_counts|get_item:inst.id %}{% if cnt %}<span class="release-new-badge">{{ cnt }}</span>{% endif %}{% endwith %}</a>
           {% endif %}
           {% endfor %}
         </div>
@@ -711,9 +712,6 @@
             <div class="release-group-meta mt-1">강사 {{ group.teacher.first_name }} · 총 {{ group.total_qty }}개 · {{ group.total_price|intcomma }}원</div>
           </div>
           <div class="d-flex flex-wrap gap-2 align-items-center">
-            {% if group.source_type == 'levelup_auto' %}
-              <span class="badge bg-warning-subtle text-dark border release-badge-soft">단계업관리</span>
-            {% endif %}
             {% if group.payment_status == 'paid' %}
               <span class="badge bg-success-subtle text-success border release-badge-soft">수금완료</span>
             {% else %}
@@ -972,7 +970,7 @@
                   {% if request.user.is_superuser and group.source_type != 'levelup_auto' %}
                     <form action="{% url 'delete_release_group' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
                           method="post"
-                          style="align-self: center; margin: 0;"
+                          class="m-0"
                           onsubmit="return confirm('{{ group.order_month }}의 모든 주문을 삭제하시겠습니까? 출고완료 항목은 재고가 복원됩니다.');">
                       {% csrf_token %}
                       <button type="submit" class="btn btn-sm btn-outline-danger">전체삭제</button>
