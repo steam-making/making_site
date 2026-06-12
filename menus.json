@@ -250,5 +250,11 @@
     "title": "QR링크",
     "parent": 323,
     "url": "/q/links/"
+  },
+  {
+    "id": 330,
+    "title": "지도사과정",
+    "parent": 309,
+    "url": "/recruit/instructor/"
   }
 ]
