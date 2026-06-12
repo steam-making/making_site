@@ -1,0 +1,254 @@
+[
+  {
+    "id": 285,
+    "title": "정보",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 286,
+    "title": "소개 ",
+    "parent": 285,
+    "url": "/#about"
+  },
+  {
+    "id": 287,
+    "title": "출강안내 ",
+    "parent": 285,
+    "url": "/#field"
+  },
+  {
+    "id": 288,
+    "title": "자격안내",
+    "parent": 285,
+    "url": "/#certification"
+  },
+  {
+    "id": 289,
+    "title": "공지사항",
+    "parent": 285,
+    "url": "/notices/"
+  },
+  {
+    "id": 326,
+    "title": "수금관리",
+    "parent": 304,
+    "url": "/openbanking/"
+  },
+  {
+    "id": 298,
+    "title": "관리",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 299,
+    "title": "공지사항 관리",
+    "parent": 298,
+    "url": "/notices/"
+  },
+  {
+    "id": 300,
+    "title": "회원승인",
+    "parent": 298,
+    "url": "/accounts/approve_users/"
+  },
+  {
+    "id": 301,
+    "title": "회원목록",
+    "parent": 298,
+    "url": "/accounts/members/"
+  },
+  {
+    "id": 302,
+    "title": "미디어관리",
+    "parent": 298,
+    "url": "/admin/filebrowser/browse/"
+  },
+  {
+    "id": 303,
+    "title": "메뉴관리",
+    "parent": 298,
+    "url": "/menu-management/"
+  },
+  {
+    "id": 309,
+    "title": "모집",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 304,
+    "title": "교구재",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 305,
+    "title": "교구목록",
+    "parent": 304,
+    "url": "/materials/"
+  },
+  {
+    "id": 306,
+    "title": "교구입고",
+    "parent": 304,
+    "url": "/materials/orders/"
+  },
+  {
+    "id": 307,
+    "title": "교구출고",
+    "parent": 304,
+    "url": "/materials/releases/"
+  },
+  {
+    "id": 308,
+    "title": "교구반납 ",
+    "parent": 304,
+    "url": "/materials/returns/"
+  },
+  {
+    "id": 310,
+    "title": "모집공고(광주)",
+    "parent": 309,
+    "url": "/linkhub/?area=gwangju"
+  },
+  {
+    "id": 311,
+    "title": "모집공고(전남)",
+    "parent": 309,
+    "url": "/linkhub/?area=jeonnam"
+  },
+  {
+    "id": 312,
+    "title": "학생",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 313,
+    "title": "학생관리",
+    "parent": 312,
+    "url": "/students/list/"
+  },
+  {
+    "id": 314,
+    "title": "단계업관리 ",
+    "parent": 312,
+    "url": "/robot_LvUP/"
+  },
+  {
+    "id": 290,
+    "title": "수업자료",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 292,
+    "title": "로봇",
+    "parent": 290,
+    "url": "/resources/robot/"
+  },
+  {
+    "id": 293,
+    "title": "과학",
+    "parent": 290,
+    "url": "/resources/science/"
+  },
+  {
+    "id": 294,
+    "title": "창의수학",
+    "parent": 290,
+    "url": "/resources/math/"
+  },
+  {
+    "id": 291,
+    "title": "3D펜 ",
+    "parent": 290,
+    "url": "/resources/3dpen/"
+  },
+  {
+    "id": 295,
+    "title": "코딩",
+    "parent": 290,
+    "url": "/resources/coding/"
+  },
+  {
+    "id": 296,
+    "title": "항공드론",
+    "parent": 290,
+    "url": "/resources/drone/"
+  },
+  {
+    "id": 297,
+    "title": "진로체험",
+    "parent": 290,
+    "url": "/resources/career/"
+  },
+  {
+    "id": 315,
+    "title": "이력",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 316,
+    "title": "출강장소 ",
+    "parent": 315,
+    "url": "/teachers/institutions/"
+  },
+  {
+    "id": 317,
+    "title": "경력관리 ",
+    "parent": 315,
+    "url": "/teachers/careers/"
+  },
+  {
+    "id": 318,
+    "title": "자격증관리 ",
+    "parent": 315,
+    "url": "/teachers/certificates/"
+  },
+  {
+    "id": 319,
+    "title": "기관",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 320,
+    "title": "프로그램목록",
+    "parent": 319,
+    "url": "/products/"
+  },
+  {
+    "id": 321,
+    "title": "예약리스트",
+    "parent": 319,
+    "url": "/reservations/"
+  },
+  {
+    "id": 322,
+    "title": "예약캘린더",
+    "parent": 319,
+    "url": "/reservations/calendar/"
+  },
+  {
+    "id": 323,
+    "title": "유틸",
+    "parent": null,
+    "url": "#"
+  },
+  {
+    "id": 324,
+    "title": "로또추천",
+    "parent": 323,
+    "url": "/lotto/"
+  },
+  {
+    "id": 325,
+    "title": "QR링크",
+    "parent": 323,
+    "url": "/q/links/"
+  }
+]

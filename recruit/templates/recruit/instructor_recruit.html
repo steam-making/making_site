@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-5 pt-3">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">메듀랩 지도사과정 모집</h3>
+    {% if request.user.is_staff %}
+      <div>
+        <a href="{% url 'instructor_course_list' %}" class="btn btn-outline-secondary me-2">
+          <i class="bi bi-gear me-1"></i>과정 관리
+        </a>
+        <a href="{% url 'instructor_recruit_add' %}" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-1"></i>공고 등록
+        </a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="row justify-content-center mb-5">
+    <div class="col-12 text-center">
+      <p class="lead text-muted mb-4">
+        미래 융합교육을 선도할 역량 있는 메듀랩 전문 지도사를 모집합니다.<br>
+        체계적인 교육과 실전 노하우를 통해 최고의 강사로 성장하세요.
+      </p>
+    </div>
+  </div>
+
+  <!-- 공고 목록 -->
+  <div class="row g-4 mb-5">
+    {% for recruit in recruits %}
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm {% if recruit.status == 'closed' %}bg-light text-muted{% endif %}">
+          
+          {% if recruit.image %}
+            <img src="{{ recruit.image.url }}" class="card-img-top" alt="{{ recruit.title }}" style="height: 200px; object-fit: cover; {% if recruit.status == 'closed' %}filter: grayscale(100%);{% endif %}">
+          {% else %}
+            <div class="card-img-top bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center" style="height: 200px; {% if recruit.status == 'closed' %}filter: grayscale(100%);{% endif %}">
+              <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+            </div>
+          {% endif %}
+          
+          <div class="card-body position-relative pb-0">
+            {% if request.user.is_staff %}
+              <div class="dropdown position-absolute top-0 end-0 mt-3 me-3">
+                <button class="btn btn-sm btn-light border-0 shadow-sm rounded-circle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <a class="dropdown-item text-success fw-bold" href="{% url 'instructor_recruit_applications' recruit.id %}">
+                      <i class="bi bi-people-fill me-2"></i>지원자 현황 보기
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li><a class="dropdown-item text-primary" href="{% url 'instructor_recruit_edit' recruit.id %}"><i class="bi bi-pencil-square me-2"></i>수정</a></li>
+                  <li><a class="dropdown-item text-danger" href="{% url 'instructor_recruit_delete' recruit.id %}" onclick="return confirm('정말 삭제하시겠습니까?');"><i class="bi bi-trash me-2"></i>삭제</a></li>
+                </ul>
+              </div>
+            {% endif %}
+
+            <div class="mb-2">
+              {% if recruit.status == 'open' %}
+                <span class="badge bg-success">모집중</span>
+              {% else %}
+                <span class="badge bg-secondary">마감</span>
+              {% endif %}
+              <span class="badge bg-info text-dark ms-1">정원: {% if recruit.capacity > 0 %}{{ recruit.capacity }}명{% else %}제한없음{% endif %}</span>
+            </div>
+            
+            <h5 class="card-title fw-bold mb-3">{{ recruit.title }}</h5>
+            
+            <p class="card-text small mb-4" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+              {{ recruit.course_intro|linebreaksbr }}
+            </p>
+            
+            <div class="mt-auto mb-3">
+              <p class="card-text small mb-1">
+                <i class="bi bi-calendar-check me-1 text-primary"></i>
+                {{ recruit.recruit_start|date:"Y.m.d H:i" }} ~ {{ recruit.recruit_end|date:"Y.m.d H:i" }}
+              </p>
+            </div>
+          </div>
+          
+          <div class="card-footer bg-transparent border-0 p-3 text-center">
+            <div class="row g-2">
+              <div class="col-6">
+                <button class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#detailModal{{ recruit.id }}">
+                  <i class="bi bi-search me-1"></i>상세보기
+                </button>
+              </div>
+              <div class="col-6">
+                {% if recruit.status == 'open' %}
+                  {% if user.is_authenticated %}
+                    <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#applyModal{{ recruit.id }}">
+                      <i class="bi bi-pencil-square me-1"></i>지원하기
+                    </button>
+                  {% else %}
+                    <a href="{% url 'kakao_login' %}?next={{ request.path }}" class="btn btn-primary w-100" style="padding: 0.375rem 0.5rem; font-size: 0.875rem;">
+                      <i class="bi bi-box-arrow-in-right me-1"></i>로그인 지원
+                    </a>
+                  {% endif %}
+                {% else %}
+                  <button class="btn btn-secondary w-100" disabled>모집 마감</button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 상세보기 모달 -->
+      <div class="modal fade" id="detailModal{{ recruit.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+              <h4 class="modal-title fw-bold text-primary">{{ recruit.title }}</h4>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-3">
+              
+              {% if recruit.course_intro %}
+              <div class="mb-4">
+                <h6 class="fw-bold border-bottom pb-2"><i class="bi bi-info-circle me-2 text-primary"></i>과정 소개</h6>
+                <p class="text-muted small mb-0">{{ recruit.course_intro|linebreaksbr }}</p>
+              </div>
+              {% endif %}
+
+              {% if recruit.educational_goal %}
+              <div class="mb-4">
+                <h6 class="fw-bold border-bottom pb-2"><i class="bi bi-bullseye me-2 text-success"></i>교육 목표</h6>
+                <p class="text-muted small mb-0">{{ recruit.educational_goal|linebreaksbr }}</p>
+              </div>
+              {% endif %}
+
+              {% if recruit.curriculum %}
+              <div class="mb-4">
+                <h6 class="fw-bold border-bottom pb-2"><i class="bi bi-journal-text me-2 text-warning"></i>커리큘럼</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered text-center align-middle mb-0" style="font-size: 0.9rem;">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 20%;">차시</th>
+                        <th style="width: 60%;">내용</th>
+                        <th style="width: 20%;">시간</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for item in recruit.curriculum %}
+                      <tr>
+                        <td>{{ item.session }}</td>
+                        <td class="text-start">{{ item.content }}</td>
+                        <td>{{ item.time }}</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if recruit.certificate_agency or recruit.certificate_type != 'none' %}
+              <div class="mb-4">
+                <h6 class="fw-bold border-bottom pb-2"><i class="bi bi-award me-2 text-warning"></i>자격증 정보</h6>
+                <ul class="list-group list-group-flush small">
+                  <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">발급기관</span>
+                    <span class="fw-bold">{{ recruit.certificate_agency|default:"-" }}</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">자격종류</span>
+                    <span class="fw-bold">{{ recruit.get_certificate_type_display|default:"-" }}</span>
+                  </li>
+                </ul>
+              </div>
+              {% endif %}
+
+              <div class="mb-4">
+                <h6 class="fw-bold border-bottom pb-2">
+                  <i class="bi bi-wallet2 me-2 text-info"></i>비용 안내
+                  {% if recruit.cost_includes_all %}
+                  <span class="badge bg-primary ms-2 fw-normal" style="font-size: 0.75rem;">자격발급비, 교구비 포함</span>
+                  {% endif %}
+                </h6>
+                <ul class="list-group list-group-flush small">
+                  <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">교육비</span>
+                    <span class="fw-bold">{{ recruit.cost_education|intcomma }}원</span>
+                  </li>
+                  {% if not recruit.cost_includes_all %}
+                  <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">자격발급비</span>
+                    <span class="fw-bold">{{ recruit.cost_certificate|intcomma }}원</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">교재/교구비</span>
+                    <span class="fw-bold">{{ recruit.cost_material|intcomma }}원</span>
+                  </li>
+                  {% endif %}
+                  <li class="list-group-item d-flex justify-content-between px-0 bg-light rounded mt-2 border-top-0">
+                    <span class="fw-bold">총 합계</span>
+                    <span class="fw-bold text-primary fs-6">{{ recruit.cost_education|add:recruit.cost_certificate|add:recruit.cost_material|intcomma }}원</span>
+                  </li>
+                </ul>
+              </div>
+
+            </div>
+            <div class="modal-footer border-0">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 지원 모달 -->
+      {% if recruit.status == 'open' and user.is_authenticated %}
+      <div class="modal fade" id="applyModal{{ recruit.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header border-0">
+              <h5 class="modal-title fw-bold">[{{ recruit.title }}] 지원하기</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form id="applyForm{{ recruit.id }}">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">이름</label>
+                  <input type="text" name="applicant_name" class="form-control bg-light" value="{{ user.get_full_name|default:user.username }}" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-muted small mb-1">연락처</label>
+                  <input type="text" name="phone" class="form-control bg-light" value="{{ user.profile.phone_number|default:'' }}" placeholder="010-0000-0000" required>
+                </div>
+                <div class="mb-4">
+                  <label class="form-label text-muted small mb-1">지원 동기 및 남길말</label>
+                  <textarea name="memo" class="form-control bg-light" rows="4" placeholder="간단한 지원 동기나 관련 경력 등을 적어주세요."></textarea>
+                </div>
+                <div class="d-grid">
+                  <button type="button" class="btn btn-primary btn-lg" onclick="submitApplication({{ recruit.id }})">지원서 제출</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <i class="bi bi-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+        <p class="text-muted mb-0">현재 등록된 지도사과정 모집 공고가 없습니다.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<script>
+function submitApplication(recruitId) {
+    const form = document.getElementById('applyForm' + recruitId);
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const url = `/recruit/instructor/${recruitId}/apply/`;
+    
+    fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message || '오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('서버와 통신 중 오류가 발생했습니다.');
+    });
+}
+</script>
+{% endblock %}

@@ -535,3 +535,214 @@ def recruit_timetable(request):
         "days": [(d, DAY_LABELS[d]) for d in DAY_ORDER],
     })
 
+from django.utils import timezone
+from django.http import JsonResponse
+from .models import InstructorCourseType, InstructorRecruit, InstructorApplication
+from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
+
+def get_curriculum_from_post(request):
+    sessions = request.POST.getlist("curriculum_session")
+    contents = request.POST.getlist("curriculum_content")
+    times = request.POST.getlist("curriculum_time")
+    return [{"session": s, "content": c, "time": t} for s, c, t in zip(sessions, contents, times) if s or c or t]
+
+def parse_cost(val):
+    if not val:
+        return 0
+    return int(str(val).replace(",", ""))
+
+@staff_member_required
+def instructor_course_list(request):
+    courses = InstructorCourseType.objects.all()
+    return render(request, "recruit/instructor_course_list.html", {"courses": courses})
+
+@staff_member_required
+def instructor_course_add(request):
+    if request.method == "POST":
+        cost_includes_all = request.POST.get("cost_includes_all") == "on"
+        cost_cert = 0 if cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
+        cost_mat = 0 if cost_includes_all else parse_cost(request.POST.get("cost_material"))
+        
+        InstructorCourseType.objects.create(
+            name=request.POST.get("name"),
+            course_intro=request.POST.get("course_intro", ""),
+            educational_goal=request.POST.get("educational_goal", ""),
+            curriculum=get_curriculum_from_post(request),
+            certificate_agency=request.POST.get("certificate_agency", ""),
+            certificate_type=request.POST.get("certificate_type", ""),
+            cost_education=parse_cost(request.POST.get("cost_education")),
+            cost_certificate=cost_cert,
+            cost_material=cost_mat,
+            cost_includes_all=cost_includes_all,
+        )
+        return redirect("instructor_course_list")
+    return render(request, "recruit/instructor_course_form.html")
+
+@staff_member_required
+def instructor_course_edit(request, pk):
+    course = get_object_or_404(InstructorCourseType, pk=pk)
+    if request.method == "POST":
+        course.name = request.POST.get("name")
+        course.course_intro = request.POST.get("course_intro", "")
+        course.educational_goal = request.POST.get("educational_goal", "")
+        course.curriculum = get_curriculum_from_post(request)
+        
+        course.certificate_agency = request.POST.get("certificate_agency", "")
+        course.certificate_type = request.POST.get("certificate_type", "")
+        
+        course.cost_includes_all = request.POST.get("cost_includes_all") == "on"
+        course.cost_education = parse_cost(request.POST.get("cost_education"))
+        course.cost_certificate = 0 if course.cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
+        course.cost_material = 0 if course.cost_includes_all else parse_cost(request.POST.get("cost_material"))
+        
+        course.save()
+        return redirect("instructor_course_list")
+    return render(request, "recruit/instructor_course_form.html", {"course": course})
+
+@staff_member_required
+def instructor_course_delete(request, pk):
+    course = get_object_or_404(InstructorCourseType, pk=pk)
+    course.delete()
+    return redirect("instructor_course_list")
+
+@staff_member_required
+def course_type_api(request, pk):
+    course = get_object_or_404(InstructorCourseType, pk=pk)
+    cohort_num = InstructorRecruit.objects.filter(course_type=course).count() + 1
+    
+    return JsonResponse({
+        "name": course.name,
+        "course_intro": course.course_intro,
+        "educational_goal": course.educational_goal,
+        "curriculum": course.curriculum,
+        "certificate_agency": course.certificate_agency,
+        "certificate_type": course.certificate_type,
+        "cost_education": course.cost_education,
+        "cost_certificate": course.cost_certificate,
+        "cost_material": course.cost_material,
+        "cost_includes_all": course.cost_includes_all,
+        "cohort_num": cohort_num,
+        "suggested_title": f"{course.name} {cohort_num}기"
+    })
+
+def instructor_recruit(request):
+    """지도사과정 모집 페이지"""
+    now = timezone.now()
+    InstructorRecruit.objects.filter(status="open", recruit_end__lt=now).update(status="closed")
+    recruits = InstructorRecruit.objects.exclude(status="hidden").order_by("-created_at")
+    
+    return render(request, "recruit/instructor_recruit.html", {
+        "recruits": recruits,
+        "now": now,
+    })
+
+@staff_member_required
+def instructor_recruit_add(request):
+    courses = InstructorCourseType.objects.all()
+    if request.method == "POST":
+        course_type_id = request.POST.get("course_type")
+        course_type = InstructorCourseType.objects.filter(id=course_type_id).first() if course_type_id else None
+        
+        cost_includes_all = request.POST.get("cost_includes_all") == "on"
+        cost_cert = 0 if cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
+        cost_mat = 0 if cost_includes_all else parse_cost(request.POST.get("cost_material"))
+        
+        InstructorRecruit.objects.create(
+            course_type=course_type,
+            title=request.POST.get("title"),
+            course_intro=request.POST.get("course_intro", ""),
+            educational_goal=request.POST.get("educational_goal", ""),
+            curriculum=get_curriculum_from_post(request),
+            certificate_agency=request.POST.get("certificate_agency", ""),
+            certificate_type=request.POST.get("certificate_type", ""),
+            cost_education=parse_cost(request.POST.get("cost_education")),
+            cost_certificate=cost_cert,
+            cost_material=cost_mat,
+            cost_includes_all=cost_includes_all,
+            recruit_start=request.POST.get("recruit_start"),
+            recruit_end=request.POST.get("recruit_end"),
+            capacity=request.POST.get("capacity") or 0,
+            status=request.POST.get("status"),
+            image=request.FILES.get("image")
+        )
+        return redirect("instructor_recruit")
+        
+    return render(request, "recruit/instructor_recruit_form.html", {"courses": courses})
+
+@staff_member_required
+def instructor_recruit_edit(request, pk):
+    recruit = get_object_or_404(InstructorRecruit, pk=pk)
+    courses = InstructorCourseType.objects.all()
+    
+    if request.method == "POST":
+        course_type_id = request.POST.get("course_type")
+        recruit.course_type = InstructorCourseType.objects.filter(id=course_type_id).first() if course_type_id else None
+        
+        recruit.title = request.POST.get("title")
+        recruit.course_intro = request.POST.get("course_intro", "")
+        recruit.educational_goal = request.POST.get("educational_goal", "")
+        recruit.curriculum = get_curriculum_from_post(request)
+        
+        recruit.certificate_agency = request.POST.get("certificate_agency", "")
+        recruit.certificate_type = request.POST.get("certificate_type", "")
+        
+        recruit.cost_includes_all = request.POST.get("cost_includes_all") == "on"
+        recruit.cost_education = parse_cost(request.POST.get("cost_education"))
+        recruit.cost_certificate = 0 if recruit.cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
+        recruit.cost_material = 0 if recruit.cost_includes_all else parse_cost(request.POST.get("cost_material"))
+        
+        recruit.recruit_start = request.POST.get("recruit_start")
+        recruit.recruit_end = request.POST.get("recruit_end")
+        recruit.capacity = request.POST.get("capacity") or 0
+        recruit.status = request.POST.get("status")
+        
+        if request.FILES.get("image"):
+            recruit.image = request.FILES.get("image")
+            
+        recruit.save()
+        return redirect("instructor_recruit")
+        
+    return render(request, "recruit/instructor_recruit_form.html", {"recruit": recruit, "courses": courses})
+
+@staff_member_required
+def instructor_recruit_delete(request, pk):
+    recruit = get_object_or_404(InstructorRecruit, pk=pk)
+    recruit.delete()
+    return redirect("instructor_recruit")
+
+@login_required
+def instructor_recruit_apply(request, pk):
+    recruit = get_object_or_404(InstructorRecruit, pk=pk)
+    
+    if request.method == "POST":
+        applicant_name = request.POST.get("applicant_name")
+        phone = request.POST.get("phone")
+        memo = request.POST.get("memo")
+        
+        # Check if already applied
+        profile = getattr(request.user, "profile", None)
+        if profile and InstructorApplication.objects.filter(recruit=recruit, applicant=profile).exists():
+            return JsonResponse({"success": False, "message": "이미 지원하셨습니다."})
+            
+        InstructorApplication.objects.create(
+            recruit=recruit,
+            applicant=profile,
+            applicant_name=applicant_name,
+            phone=phone,
+            memo=memo
+        )
+        return JsonResponse({"success": True, "message": "지원이 완료되었습니다."})
+        
+    return JsonResponse({"success": False, "message": "잘못된 요청입니다."})
+
+@staff_member_required
+def instructor_recruit_applications(request, pk):
+    recruit = get_object_or_404(InstructorRecruit, pk=pk)
+    applications = recruit.applications.all().order_by("-applied_at")
+    
+    return render(request, "recruit/instructor_applications.html", {
+        "recruit": recruit,
+        "applications": applications,
+    })
+

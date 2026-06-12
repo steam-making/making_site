@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold">
+                        {% if recruit %}지도사과정 모집 수정{% else %}지도사과정 모집 등록{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">상태</label>
+                            <select name="status" class="form-select" required>
+                                <option value="open" {% if recruit.status == 'open' %}selected{% endif %}>모집중</option>
+                                <option value="closed" {% if recruit.status == 'closed' %}selected{% endif %}>마감</option>
+                                <option value="hidden" {% if recruit.status == 'hidden' %}selected{% endif %}>비공개</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-primary">과정 선택 (자동입력용)</label>
+                            <select name="course_type" id="course_type" class="form-select border-primary">
+                                <option value="">--- 직접 입력 ---</option>
+                                {% for c in courses %}
+                                    <option value="{{ c.id }}" {% if recruit.course_type_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">과정을 선택하면 아래의 공고명, 소개, 커리큘럼 등이 자동으로 채워집니다.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">공고명</label>
+                            <input type="text" name="title" id="id_title" class="form-control" value="{{ recruit.title|default:'' }}" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">과정 소개</label>
+                            <textarea name="course_intro" id="id_course_intro" class="form-control" rows="4">{{ recruit.course_intro|default:'' }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">교육 목표</label>
+                            <textarea name="educational_goal" id="id_educational_goal" class="form-control" rows="4">{{ recruit.educational_goal|default:'' }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                                커리큘럼 (차시별 내용)
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCurriculumRow()">
+                                <i class="bi bi-plus"></i> 차시 추가
+                                </button>
+                            </label>
+                            <table class="table table-bordered align-middle text-center" id="curriculumTable">
+                                <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%">차시</th>
+                                    <th style="width: 60%">내용</th>
+                                    <th style="width: 15%">시간</th>
+                                    <th style="width: 10%">삭제</th>
+                                </tr>
+                                </thead>
+                                <tbody id="curriculumBody">
+                                {% if recruit and recruit.curriculum %}
+                                    {% for item in recruit.curriculum %}
+                                    <tr>
+                                    <td><input type="text" name="curriculum_session" class="form-control form-control-sm" value="{{ item.session }}"></td>
+                                    <td><input type="text" name="curriculum_content" class="form-control form-control-sm" value="{{ item.content }}"></td>
+                                    <td><input type="text" name="curriculum_time" class="form-control form-control-sm" value="{{ item.time }}"></td>
+                                    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                    <td><input type="text" name="curriculum_session" class="form-control form-control-sm" placeholder="예: 1차시"></td>
+                                    <td><input type="text" name="curriculum_content" class="form-control form-control-sm" placeholder="교육 내용"></td>
+                                    <td><input type="text" name="curriculum_time" class="form-control form-control-sm" placeholder="예: 2시간"></td>
+                                    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+                                    </tr>
+                                {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">발급기관</label>
+                                <input type="text" name="certificate_agency" id="id_certificate_agency" class="form-control" value="{{ recruit.certificate_agency|default:'' }}" placeholder="예) 대한로봇코딩협회">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">자격증 종류</label>
+                                <select name="certificate_type" id="id_certificate_type" class="form-select">
+                                    <option value="none" {% if recruit.certificate_type == 'none' %}selected{% endif %}>해당없음/수료증</option>
+                                    <option value="national" {% if recruit.certificate_type == 'national' %}selected{% endif %}>국가자격</option>
+                                    <option value="authorized" {% if recruit.certificate_type == 'authorized' %}selected{% endif %}>국가공인</option>
+                                    <option value="private" {% if recruit.certificate_type == 'private' %}selected{% endif %}>민간자격</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold d-flex align-items-center">
+                                비용 안내
+                                <div class="form-check ms-3 mb-0 fw-normal">
+                                  <input class="form-check-input" type="checkbox" name="cost_includes_all" id="id_cost_includes_all" {% if recruit.cost_includes_all %}checked{% endif %}>
+                                  <label class="form-check-label text-primary" for="id_cost_includes_all">
+                                    교육비에 자격발급비, 교재/교구비 포함
+                                  </label>
+                                </div>
+                            </label>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">교육비</span>
+                                    <input type="text" name="cost_education" id="id_cost_education" class="form-control number-format text-end" value="{{ recruit.cost_education|default:0 }}" required>
+                                    <span class="input-group-text">원</span>
+                                </div>
+                                </div>
+                                <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">자격발급비</span>
+                                    <input type="text" name="cost_certificate" id="id_cost_certificate" class="form-control number-format text-end" value="{{ recruit.cost_certificate|default:0 }}">
+                                    <span class="input-group-text">원</span>
+                                </div>
+                                </div>
+                                <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text">교재/교구비</span>
+                                    <input type="text" name="cost_material" id="id_cost_material" class="form-control number-format text-end" value="{{ recruit.cost_material|default:0 }}">
+                                    <span class="input-group-text">원</span>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">모집 시작일시</label>
+                                <input type="datetime-local" name="recruit_start" class="form-control" value="{{ recruit.recruit_start|date:'Y-m-d\TH:i'|default:'' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">모집 마감일시</label>
+                                <input type="datetime-local" name="recruit_end" class="form-control" value="{{ recruit.recruit_end|date:'Y-m-d\TH:i'|default:'' }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">모집 정원</label>
+                            <input type="number" name="capacity" class="form-control" value="{{ recruit.capacity|default:'0' }}" min="0">
+                            <div class="form-text">0을 입력하면 인원 제한이 없습니다.</div>
+                        </div>
+                        
+                        <div class="mb-5">
+                            <label class="form-label fw-bold">대표 이미지 (옵션)</label>
+                            {% if recruit.image %}
+                                <div class="mb-2">
+                                    <img src="{{ recruit.image.url }}" alt="현재 이미지" class="img-thumbnail" style="max-height: 150px;">
+                                </div>
+                            {% endif %}
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'instructor_recruit' %}" class="btn btn-secondary px-4">취소</a>
+                            <button type="submit" class="btn btn-primary px-5">저장</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addCurriculumRow() {
+    const tbody = document.getElementById('curriculumBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" name="curriculum_session" class="form-control form-control-sm" placeholder="예: N차시"></td>
+      <td><input type="text" name="curriculum_content" class="form-control form-control-sm" placeholder="교육 내용"></td>
+      <td><input type="text" name="curriculum_time" class="form-control form-control-sm" placeholder="예: 2시간"></td>
+      <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+// 숫자 포맷팅 함수
+function formatNumberWithCommas(value) {
+    let numStr = String(value).replace(/[^0-9]/g, '');
+    if (!numStr) return '0';
+    return parseInt(numStr, 10).toLocaleString('en-US');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('id_cost_includes_all');
+    const certInput = document.getElementById('id_cost_certificate');
+    const matInput = document.getElementById('id_cost_material');
+
+    function toggleCostInputs() {
+        if (checkbox.checked) {
+            certInput.value = '0';
+            matInput.value = '0';
+            certInput.setAttribute('readonly', 'readonly');
+            matInput.setAttribute('readonly', 'readonly');
+            certInput.classList.add('bg-light');
+            matInput.classList.add('bg-light');
+        } else {
+            certInput.removeAttribute('readonly');
+            matInput.removeAttribute('readonly');
+            certInput.classList.remove('bg-light');
+            matInput.classList.remove('bg-light');
+        }
+    }
+
+    checkbox.addEventListener('change', toggleCostInputs);
+    toggleCostInputs();
+
+    // 입력 필드 포맷팅
+    document.querySelectorAll('.number-format').forEach(function(input) {
+        input.value = formatNumberWithCommas(input.value);
+
+        input.addEventListener('input', function(e) {
+            let cursorPosition = this.selectionStart;
+            let originalLength = this.value.length;
+            
+            this.value = formatNumberWithCommas(this.value);
+            
+            let newLength = this.value.length;
+            cursorPosition = cursorPosition + (newLength - originalLength);
+            this.setSelectionRange(cursorPosition, cursorPosition);
+        });
+        
+        input.addEventListener('focus', function(e) {
+            if (this.value === '0') this.value = '';
+        });
+        
+        input.addEventListener('blur', function(e) {
+            if (this.value === '') this.value = '0';
+        });
+    });
+
+    // Textarea 자동 높이 조절
+    function autoResizeTextarea(el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+    }
+
+    document.querySelectorAll('textarea').forEach(ta => {
+        ta.addEventListener('input', function() {
+            autoResizeTextarea(this);
+        });
+        // 초기 렌더링 시점
+        if(ta.value) {
+            setTimeout(() => autoResizeTextarea(ta), 0);
+        }
+    });
+
+    // 과정 선택 AJAX
+    document.getElementById('course_type').addEventListener('change', function() {
+        const courseId = this.value;
+        if (!courseId) return;
+        
+        fetch(`/recruit/instructor/courses/${courseId}/api/`)
+            .then(response => response.json())
+            .then(data => {
+                const titleInput = document.getElementById('id_title');
+                const introInput = document.getElementById('id_course_intro');
+                const goalInput = document.getElementById('id_educational_goal');
+                
+                if (titleInput.value || introInput.value || goalInput.value) {
+                    if (!confirm('선택한 과정의 기본 내용으로 기존 입력값을 덮어쓰시겠습니까?')) {
+                        return;
+                    }
+                }
+                
+                titleInput.value = data.suggested_title;
+                introInput.value = data.course_intro;
+                goalInput.value = data.educational_goal;
+                
+                if(data.certificate_agency !== undefined) {
+                    document.getElementById('id_certificate_agency').value = data.certificate_agency;
+                }
+                if(data.certificate_type !== undefined) {
+                    document.getElementById('id_certificate_type').value = data.certificate_type;
+                }
+                
+                // 내용이 변경되었으므로 높이 재조정
+                autoResizeTextarea(introInput);
+                autoResizeTextarea(goalInput);
+                
+                document.getElementById('id_cost_education').value = formatNumberWithCommas(data.cost_education);
+                document.getElementById('id_cost_certificate').value = formatNumberWithCommas(data.cost_certificate);
+                document.getElementById('id_cost_material').value = formatNumberWithCommas(data.cost_material);
+                
+                checkbox.checked = data.cost_includes_all;
+                toggleCostInputs();
+                
+                // 커리큘럼 테이블 재생성
+                const tbody = document.getElementById('curriculumBody');
+                tbody.innerHTML = '';
+                
+                if (data.curriculum && data.curriculum.length > 0) {
+                    data.curriculum.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                          <td><input type="text" name="curriculum_session" class="form-control form-control-sm" value="${item.session}"></td>
+                          <td><input type="text" name="curriculum_content" class="form-control form-control-sm" value="${item.content}"></td>
+                          <td><input type="text" name="curriculum_time" class="form-control form-control-sm" value="${item.time}"></td>
+                          <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    addCurriculumRow(); 
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching course data:', error);
+            });
+    });
+});
+</script>
+{% endblock %}

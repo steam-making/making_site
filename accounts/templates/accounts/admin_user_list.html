@@ -209,9 +209,19 @@
                 {% endif %}
               </td>
               <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
-
+              
               <td class="fw-semibold">
-                {{ u.first_name|default:u.username }}
+                {% if u.first_name %}
+                  {{ u.first_name }}
+                {% elif u.profile and u.profile.kakao_name %}
+                  {{ u.profile.kakao_name }}
+                {% elif u.institution_profile and u.institution_profile.contact_name %}
+                  {{ u.institution_profile.contact_name }}
+                {% else %}
+                  <span class="text-muted fst-italic">
+                    {% if 'kakao_' in u.username %}카카오 유저{% else %}{{ u.username }}{% endif %}
+                  </span>
+                {% endif %}
               </td>
 
               <td>

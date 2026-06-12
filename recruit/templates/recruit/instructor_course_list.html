@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5 pt-3">
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">지도사과정 관리 (유형 설정)</h3>
+    <a href="{% url 'instructor_course_add' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>과정 등록
+    </a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">과정명</th>
+            <th>기본 상세내용 미리보기</th>
+            <th class="text-center">등록일</th>
+            <th class="text-end pe-4">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for course in courses %}
+          <tr>
+            <td class="ps-4 fw-bold">{{ course.name }}</td>
+            <td class="text-muted small" style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ course.default_description }}
+            </td>
+            <td class="text-center">{{ course.created_at|date:"Y.m.d" }}</td>
+            <td class="text-end pe-4">
+              <a href="{% url 'instructor_course_edit' course.id %}" class="btn btn-sm btn-outline-primary me-1">수정</a>
+              <a href="{% url 'instructor_course_delete' course.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('정말 삭제하시겠습니까?');">삭제</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center py-5 text-muted">등록된 과정이 없습니다. 먼저 과정을 등록해 주세요.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-4 text-center">
+    <a href="{% url 'instructor_recruit' %}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left me-1"></i>모집 페이지로 돌아가기
+    </a>
+  </div>
+</div>
+{% endblock %}
