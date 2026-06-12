@@ -86,11 +86,15 @@ class InstructorCourseType(models.Model):
     cost_certificate = models.PositiveIntegerField("자격발급비", default=0)
     cost_material = models.PositiveIntegerField("교재/교구비", default=0)
     cost_includes_all = models.BooleanField("비용 일체 포함 여부", default=False)
+    
+    benefits = models.TextField("제공혜택", blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "지도사과정 유형"
-        verbose_name_plural = "지도사과정 유형 목록"
+        verbose_name_plural = "지도사과정 유형"
         ordering = ["name"]
 
     def __str__(self):
@@ -129,6 +133,8 @@ class InstructorRecruit(models.Model):
     cost_certificate = models.PositiveIntegerField("자격발급비", default=0)
     cost_material = models.PositiveIntegerField("교재/교구비", default=0)
     cost_includes_all = models.BooleanField("비용 일체 포함 여부", default=False)
+    
+    benefits = models.TextField("제공혜택", blank=True)
     
     recruit_start = models.DateTimeField("모집 시작일")
     recruit_end = models.DateTimeField("모집 마감일")

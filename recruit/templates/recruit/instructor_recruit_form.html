@@ -138,6 +138,11 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">제공혜택</label>
+                            <textarea name="benefits" id="id_benefits" class="form-control auto-resize" rows="3" placeholder="예: 수료증 발급, 교육자료 제공, 우수 강사 혜택 등">{{ recruit.benefits|default:'' }}</textarea>
+                        </div>
                         
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
@@ -282,6 +287,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 titleInput.value = data.suggested_title;
                 introInput.value = data.course_intro;
                 goalInput.value = data.educational_goal;
+                
+                const benefitsInput = document.getElementById('id_benefits');
+                if (benefitsInput && data.benefits !== undefined) {
+                    benefitsInput.value = data.benefits;
+                    autoResizeTextarea(benefitsInput);
+                }
                 
                 if(data.certificate_agency !== undefined) {
                     document.getElementById('id_certificate_agency').value = data.certificate_agency;

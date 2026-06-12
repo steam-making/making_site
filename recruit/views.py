@@ -575,6 +575,7 @@ def instructor_course_add(request):
             cost_certificate=cost_cert,
             cost_material=cost_mat,
             cost_includes_all=cost_includes_all,
+            benefits=request.POST.get("benefits", ""),
         )
         return redirect("instructor_course_list")
     return render(request, "recruit/instructor_course_form.html")
@@ -596,6 +597,10 @@ def instructor_course_edit(request, pk):
         course.cost_certificate = 0 if course.cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
         course.cost_material = 0 if course.cost_includes_all else parse_cost(request.POST.get("cost_material"))
         
+        course.benefits = request.POST.get("benefits", "")
+        
+        # 커리큘럼 저장 (JSON)
+        sessions = request.POST.getlist("curriculum_session[]")
         course.save()
         return redirect("instructor_course_list")
     return render(request, "recruit/instructor_course_form.html", {"course": course})
@@ -622,6 +627,7 @@ def course_type_api(request, pk):
         "cost_certificate": course.cost_certificate,
         "cost_material": course.cost_material,
         "cost_includes_all": course.cost_includes_all,
+        "benefits": course.benefits,
         "cohort_num": cohort_num,
         "suggested_title": f"{course.name} {cohort_num}기"
     })
@@ -660,6 +666,7 @@ def instructor_recruit_add(request):
             cost_certificate=cost_cert,
             cost_material=cost_mat,
             cost_includes_all=cost_includes_all,
+            benefits=request.POST.get("benefits", ""),
             recruit_start=request.POST.get("recruit_start"),
             recruit_end=request.POST.get("recruit_end"),
             capacity=request.POST.get("capacity") or 0,
@@ -691,6 +698,8 @@ def instructor_recruit_edit(request, pk):
         recruit.cost_education = parse_cost(request.POST.get("cost_education"))
         recruit.cost_certificate = 0 if recruit.cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
         recruit.cost_material = 0 if recruit.cost_includes_all else parse_cost(request.POST.get("cost_material"))
+        
+        recruit.benefits = request.POST.get("benefits", "")
         
         recruit.recruit_start = request.POST.get("recruit_start")
         recruit.recruit_end = request.POST.get("recruit_end")

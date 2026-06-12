@@ -206,6 +206,16 @@
                 </ul>
               </div>
 
+              {% if recruit.benefits %}
+              <div class="mb-4">
+                <h6 class="fw-bold border-bottom pb-2">
+                  <i class="bi bi-gift me-2 text-warning"></i>제공혜택
+                  <span class="text-muted fw-normal ms-2" style="font-size: 0.8rem;">(제공혜택은 변동될 수 있습니다)</span>
+                </h6>
+                <div class="p-3 bg-light rounded text-dark small" style="white-space: pre-line;">{{ recruit.benefits }}</div>
+              </div>
+              {% endif %}
+
             </div>
             <div class="modal-footer border-0">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>

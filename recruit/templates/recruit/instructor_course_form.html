@@ -116,6 +116,11 @@
               </div>
             </div>
             
+            <div class="mb-4">
+              <label for="benefits" class="form-label fw-bold">제공혜택</label>
+              <textarea name="benefits" id="benefits" class="form-control" rows="3" placeholder="예: 수료증 발급, 교육자료 제공, 우수 강사 혜택 등">{{ course.benefits|default:'' }}</textarea>
+            </div>
+
             <div class="d-flex justify-content-between mt-5">
               <a href="{% url 'instructor_course_list' %}" class="btn btn-secondary px-4">취소</a>
               <button type="submit" class="btn btn-primary px-5">저장</button>
