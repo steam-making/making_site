@@ -122,6 +122,10 @@ class InstructorRecruit(models.Model):
         verbose_name="과정 종류"
     )
     title = models.CharField("공고명", max_length=200)
+    
+    class_days = models.CharField("수업 요일", max_length=50, blank=True)
+    class_time = models.CharField("수업 시간", max_length=100, blank=True)
+    
     course_intro = models.TextField("과정 소개", blank=True)
     educational_goal = models.TextField("교육 목표", blank=True)
     curriculum = models.JSONField("커리큘럼", default=list, blank=True)

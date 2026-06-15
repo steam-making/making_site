@@ -40,6 +40,24 @@
                             <input type="text" name="title" id="id_title" class="form-control" value="{{ recruit.title|default:'' }}" required>
                         </div>
                         
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">수업 요일</label>
+                                <div class="d-flex gap-2 flex-wrap mt-1">
+                                    {% for day in days_of_week %}
+                                    <div class="form-check form-check-inline me-1">
+                                        <input class="form-check-input" type="checkbox" name="class_days" id="day_{{ day }}" value="{{ day }}" {% if day in recruit.class_days %}checked{% endif %}>
+                                        <label class="form-check-label" for="day_{{ day }}">{{ day }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">수업 시간</label>
+                                <input type="text" name="class_time" id="id_class_time" class="form-control" value="{{ recruit.class_time|default:'' }}" placeholder="예) 14:00 ~ 16:00">
+                            </div>
+                        </div>
+                        
                         <div class="mb-4">
                             <label class="form-label fw-bold">과정 소개</label>
                             <textarea name="course_intro" id="id_course_intro" class="form-control" rows="4">{{ recruit.course_intro|default:'' }}</textarea>

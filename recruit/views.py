@@ -657,6 +657,8 @@ def instructor_recruit_add(request):
         InstructorRecruit.objects.create(
             course_type=course_type,
             title=request.POST.get("title"),
+            class_days=",".join(request.POST.getlist("class_days")),
+            class_time=request.POST.get("class_time", ""),
             course_intro=request.POST.get("course_intro", ""),
             educational_goal=request.POST.get("educational_goal", ""),
             curriculum=get_curriculum_from_post(request),
@@ -675,7 +677,10 @@ def instructor_recruit_add(request):
         )
         return redirect("instructor_recruit")
         
-    return render(request, "recruit/instructor_recruit_form.html", {"courses": courses})
+    return render(request, "recruit/instructor_recruit_form.html", {
+        "courses": courses,
+        "days_of_week": ["월","화","수","목","금","토","일"],
+    })
 
 @staff_member_required
 def instructor_recruit_edit(request, pk):
@@ -687,6 +692,8 @@ def instructor_recruit_edit(request, pk):
         recruit.course_type = InstructorCourseType.objects.filter(id=course_type_id).first() if course_type_id else None
         
         recruit.title = request.POST.get("title")
+        recruit.class_days = ",".join(request.POST.getlist("class_days"))
+        recruit.class_time = request.POST.get("class_time", "")
         recruit.course_intro = request.POST.get("course_intro", "")
         recruit.educational_goal = request.POST.get("educational_goal", "")
         recruit.curriculum = get_curriculum_from_post(request)
@@ -712,7 +719,11 @@ def instructor_recruit_edit(request, pk):
         recruit.save()
         return redirect("instructor_recruit")
         
-    return render(request, "recruit/instructor_recruit_form.html", {"recruit": recruit, "courses": courses})
+    return render(request, "recruit/instructor_recruit_form.html", {
+        "recruit": recruit, 
+        "courses": courses,
+        "days_of_week": ["월","화","수","목","금","토","일"],
+    })
 
 @staff_member_required
 def instructor_recruit_delete(request, pk):
