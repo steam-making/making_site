@@ -72,23 +72,19 @@
             
             <h5 class="card-title fw-bold mb-3">{{ recruit.title }}</h5>
             
-            <div class="card-text small mb-4 bg-light p-3 rounded">
-              {% if recruit.class_days %}
-              <div class="mb-1"><i class="bi bi-calendar-event me-2 text-primary"></i><strong>요일:</strong> {{ recruit.class_days }}</div>
-              {% endif %}
-              {% if recruit.class_time %}
-              <div class="mb-0"><i class="bi bi-clock me-2 text-primary"></i><strong>시간:</strong> {{ recruit.class_time }}</div>
-              {% endif %}
-              {% if not recruit.class_days and not recruit.class_time %}
-              <div class="text-muted text-center py-1">수업 일정이 등록되지 않았습니다.</div>
-              {% endif %}
-            </div>
-            
-            <div class="mt-auto mb-3">
-              <p class="card-text small mb-1">
-                <i class="bi bi-calendar-check me-1 text-primary"></i>
+            <div class="card-text small bg-light p-3 rounded mt-auto mb-3">
+              <div class="mb-2 text-truncate">
+                <i class="bi bi-calendar-check me-2 text-primary"></i><strong>모집:</strong> 
                 {{ recruit.recruit_start|date:"Y.m.d H:i" }} ~ {{ recruit.recruit_end|date:"Y.m.d H:i" }}
-              </p>
+              </div>
+              <div class="mb-2 text-truncate">
+                <i class="bi bi-calendar-event me-2 text-primary"></i><strong>요일:</strong> 
+                {% if recruit.class_days %}{{ recruit.class_days }}{% else %}<span class="text-muted">미정</span>{% endif %}
+              </div>
+              <div class="mb-0 text-truncate">
+                <i class="bi bi-clock me-2 text-primary"></i><strong>시간:</strong> 
+                {% if recruit.class_time %}{{ recruit.class_time }}{% else %}<span class="text-muted">미정</span>{% endif %}
+              </div>
             </div>
           </div>
           
