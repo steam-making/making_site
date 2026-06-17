@@ -72,9 +72,17 @@
             
             <h5 class="card-title fw-bold mb-3">{{ recruit.title }}</h5>
             
-            <p class="card-text small mb-4" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-              {{ recruit.course_intro|linebreaksbr }}
-            </p>
+            <div class="card-text small mb-4 bg-light p-3 rounded">
+              {% if recruit.class_days %}
+              <div class="mb-1"><i class="bi bi-calendar-event me-2 text-primary"></i><strong>요일:</strong> {{ recruit.class_days }}</div>
+              {% endif %}
+              {% if recruit.class_time %}
+              <div class="mb-0"><i class="bi bi-clock me-2 text-primary"></i><strong>시간:</strong> {{ recruit.class_time }}</div>
+              {% endif %}
+              {% if not recruit.class_days and not recruit.class_time %}
+              <div class="text-muted text-center py-1">수업 일정이 등록되지 않았습니다.</div>
+              {% endif %}
+            </div>
             
             <div class="mt-auto mb-3">
               <p class="card-text small mb-1">
