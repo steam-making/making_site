@@ -900,6 +900,7 @@ def request_release_notification(request, institution_id, order_month):
 def order_list(request):
     orders = (
         MaterialOrder.objects
+        .filter(receive_type='order')
         .prefetch_related('items__vendor__vendor_type', 'items__material')
         .annotate(
             status_order=Case(
@@ -908,15 +909,9 @@ def order_list(request):
                 default=Value(2),
                 output_field=IntegerField()
             ),
-            total_qty=Sum("items__quantity"),
-            total_price=Sum(
-                ExpressionWrapper(
-                    F("items__quantity") * F("items__material__supply_price"),
-                    output_field=IntegerField()
-                )
-            ),
         )
         .order_by('status_order', '-ordered_date')
+        .distinct()
     )
 
     # ===== 날짜 → [주문들] → (거래처) → items =====
@@ -932,12 +927,20 @@ def order_list(request):
                 "date": order.ordered_date,
                 "date_str": date_str,
                 "orders": [],   # ✅ 같은 날짜의 모든 주문이 이 안에 들어감
+                "daily_total_qty": 0,
+                "daily_total_sum": 0,
             }
             date_order.append(date_str)
 
         # 주문 단위 블록
         vendors_map = {}
+        order_has_items = False
+        
         for item in order.items.all():
+            if item.receive_type == 'return':
+                continue
+                
+            order_has_items = True
             vtype = item.vendor.vendor_type.name if (item.vendor and item.vendor.vendor_type) else "미지정"
             vname = item.vendor.name if item.vendor else "미지정"
             vtype_id = item.vendor.vendor_type_id if (item.vendor and item.vendor.vendor_type_id) else 0
@@ -965,17 +968,21 @@ def order_list(request):
             bucket["unit_sum"] += unit
             bucket["total_sum"] += unit * qty
             bucket["qty_sum"] += qty
+            
+            # 일자별 누적
+            date_map[date_str]["daily_total_qty"] += qty
+            date_map[date_str]["daily_total_sum"] += unit * qty
 
-        order_block = {
-            "order": order,
-            "vendors": sorted(
-                vendors_map.values(),
-                key=lambda b: (b["vendor_type"], b["vendor_name"])
-            ),
-        }
-
-        # ✅ 같은 날짜 블록에 누적
-        date_map[date_str]["orders"].append(order_block)
+        if order_has_items:
+            order_block = {
+                "order": order,
+                "vendors": sorted(
+                    vendors_map.values(),
+                    key=lambda b: (b["vendor_type"], b["vendor_name"])
+                ),
+            }
+            # ✅ 같은 날짜 블록에 누적
+            date_map[date_str]["orders"].append(order_block)
 
     # 날짜 최신순으로 정렬
     date_blocks = [date_map[ds] for ds in date_order]
@@ -3191,37 +3198,81 @@ def return_release_item(request, item_id):
 
 @login_required
 def return_list(request):
-    """강사 전용 반납 내역"""
-    orders = (
-        MaterialOrder.objects
-        .filter(teacher=request.user, receive_type="return")  # ✅ 자기 주문 중 반납입고만
-        .prefetch_related("items__vendor", "items__material")
-        .order_by("-ordered_date")
-    )
+    """강사/관리자용 반납 내역"""
+    orders_query = MaterialOrder.objects.filter(receive_type="return").prefetch_related("items__vendor__vendor_type", "items__material")
+    
+    if not request.user.is_staff:
+        orders_query = orders_query.filter(teacher=request.user)
 
-    date_blocks = []
-    for date, orders_on_date in groupby(orders, key=lambda o: o.ordered_date):
-        block = {
-            "date": date,
-            "date_str": date.strftime("%Y-%m-%d"),  # ✅ 여기 추가
-            "orders": []
-        }
-        for order in orders_on_date:
-            vendors = []
-            for (vendor_type, vendor), items in groupby(order.items.all(), key=lambda i: (i.vendor.vendor_type, i.vendor)):
-                items = list(items)
-                vendors.append({
-                    "vendor_type": vendor_type.name if vendor_type else "",
-                    "vendor_type_id": vendor_type.id if vendor_type else None,
-                    "vendor_name": vendor.name,
-                    "vendor_id": vendor.id,
-                    "items": items,
-                    "unit_sum": sum(i.material.supply_price for i in items),
-                    "total_sum": sum(i.material.supply_price * i.quantity for i in items),
-                    "qty_sum": sum(i.quantity for i in items),
-                })
-            block["orders"].append({"order": order, "vendors": vendors})
-        date_blocks.append(block)
+    orders = orders_query.order_by("-ordered_date").distinct()
+
+    date_map = {}
+    date_order = []
+
+    for order in orders:
+        date_str = order.ordered_date.strftime("%Y-%m-%d")
+
+        if date_str not in date_map:
+            date_map[date_str] = {
+                "date": order.ordered_date,
+                "date_str": date_str,
+                "orders": [],
+                "daily_total_qty": 0,
+                "daily_total_sum": 0,
+            }
+            date_order.append(date_str)
+
+        vendors_map = {}
+        order_has_items = False
+        
+        for item in order.items.all():
+            if item.receive_type != 'return':
+                continue
+                
+            order_has_items = True
+            vtype = item.vendor.vendor_type.name if (item.vendor and item.vendor.vendor_type) else "미지정"
+            vname = item.vendor.name if item.vendor else "미지정"
+            vtype_id = item.vendor.vendor_type_id if (item.vendor and item.vendor.vendor_type_id) else 0
+            vid = item.vendor_id if item.vendor_id else 0
+
+            vkey = f"{vtype} - {vname}"
+            bucket = vendors_map.get(vkey)
+            if not bucket:
+                bucket = {
+                    "vendor_type": vtype,
+                    "vendor_name": vname,
+                    "vendor_type_id": vtype_id,
+                    "vendor_id": vid,
+                    "vkey": vkey,
+                    "items": [],
+                    "unit_sum": 0,
+                    "total_sum": 0,
+                    "qty_sum": 0,
+                }
+                vendors_map[vkey] = bucket
+
+            unit = (item.material.supply_price or 0)
+            qty = (item.quantity or 0)
+            bucket["items"].append(item)
+            bucket["unit_sum"] += unit
+            bucket["total_sum"] += unit * qty
+            bucket["qty_sum"] += qty
+            
+            # 일자별 누적
+            date_map[date_str]["daily_total_qty"] += qty
+            date_map[date_str]["daily_total_sum"] += unit * qty
+
+        if order_has_items:
+            order_block = {
+                "order": order,
+                "vendors": sorted(
+                    vendors_map.values(),
+                    key=lambda b: (b["vendor_type"], b["vendor_name"])
+                ),
+            }
+            date_map[date_str]["orders"].append(order_block)
+
+    date_blocks = [date_map[ds] for ds in date_order]
 
     return render(request, "release/return_list.html", {
         "date_blocks": date_blocks

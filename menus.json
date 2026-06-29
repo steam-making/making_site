@@ -91,7 +91,7 @@
   },
   {
     "id": 306,
-    "title": "교구입고",
+    "title": "거래처별 거래내역",
     "parent": 304,
     "url": "/materials/orders/"
   },
@@ -103,7 +103,7 @@
   },
   {
     "id": 308,
-    "title": "교구반납 ",
+    "title": "반납목록",
     "parent": 304,
     "url": "/materials/returns/"
   },
