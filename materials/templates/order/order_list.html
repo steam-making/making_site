@@ -2,7 +2,7 @@
 {% load humanize custom_filters %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-4 px-md-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0">
       <i class="bi bi-card-checklist me-2"></i> 교구재 주문 목록
@@ -125,7 +125,7 @@
                 {% endwith %}
               {% elif row.type == 'subtotal' %}
                 <tr class="table-secondary" style="border-top: 2px solid #dee2e6;">
-                  <td colspan="5" class="text-end fw-bold"><i class="bi bi-calendar-check me-1"></i> {{ row.date|date:"y-m-d" }} 소계</td>
+                  <td colspan="5" class="text-end fw-bold"><i class="bi bi-calendar-check me-1"></i> [{{ row.teacher.first_name }}] {{ row.date|date:"y-m-d" }} 소계</td>
                   <td class="fw-bold text-primary">{{ row.sum|intcomma }}</td>
                   <td class="fw-bold text-danger">{{ row.qty|intcomma }}</td>
                   <!-- 날짜별 일괄 입금 -->

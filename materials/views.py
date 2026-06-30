@@ -922,7 +922,8 @@ def order_list(request):
     total_qty = 0
     total_sum = 0
     
-    for date_obj, group in groupby(raw_items, key=lambda i: i.order.ordered_date):
+    # 주문일자와 강사(주문자)를 기준으로 함께 그룹화
+    for (date_obj, teacher_obj), group in groupby(raw_items, key=lambda i: (i.order.ordered_date, i.order.teacher)):
         group_items = list(group)
         sub_qty = sum(i.quantity for i in group_items if i.quantity)
         sub_sum = sum((i.material.supply_price or 0) * (i.quantity or 0) for i in group_items)
@@ -942,6 +943,7 @@ def order_list(request):
         table_rows.append({
             "type": "subtotal",
             "date": date_obj,
+            "teacher": teacher_obj,
             "qty": sub_qty,
             "sum": sub_sum
         })
