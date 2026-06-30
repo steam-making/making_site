@@ -2555,6 +2555,9 @@ def release_material_item(request, item_id):
         item.released_at = None
         item.released_quantity = 0
         item.save(update_fields=['status', 'released_at', 'released_quantity'])
+
+        # ✅ 출고 취소 시 연동된 주문(MaterialOrderItem) 자동 삭제
+        MaterialOrderItem.objects.filter(notes__contains=f"[출고연동:{item.id}]").delete()
         matched_release = find_levelup_release(item.release.institution, item.release.order_month)
         if matched_release and matched_release.id == item.release.id:
             sync_levelup_shipment_status(item.release)
@@ -2587,6 +2590,27 @@ def release_material_item(request, item_id):
         item.released_at = timezone.now()
         item.released_quantity = item.quantity
         item.save(update_fields=['status', 'released_at', 'released_quantity'])
+        
+        # ✅ 출고 시 주문(MaterialOrder) 내역 자동 생성
+        order_date = timezone.now().date()
+        teacher = item.release.teacher
+        order, created = MaterialOrder.objects.get_or_create(
+            teacher=teacher,
+            ordered_date=order_date,
+            receive_type='order',
+            defaults={
+                'notes': f"{item.release.institution.name} 출고에 의한 자동생성"
+            }
+        )
+        MaterialOrderItem.objects.create(
+            order=order,
+            vendor=item.vendor,
+            material=item.material,
+            quantity=item.quantity,
+            status='waiting',
+            notes=f"[출고연동:{item.id}]" + (" [택배]" if item.release_method == '택배' else " [센터수령]")
+        )
+
         matched_release = find_levelup_release(item.release.institution, item.release.order_month)
         if matched_release and matched_release.id == item.release.id:
             sync_levelup_shipment_status(item.release)
@@ -2617,6 +2641,10 @@ def unrelease_material_item(request, item_id):
     item.released_at = None
     item.released_quantity = 0
     item.save()
+
+    # ✅ 출고 취소 시 연동된 주문(MaterialOrderItem) 자동 삭제
+    MaterialOrderItem.objects.filter(notes__contains=f"[출고연동:{item.id}]").delete()
+
     matched_release = find_levelup_release(item.release.institution, item.release.order_month)
     if matched_release and matched_release.id == item.release.id:
         sync_levelup_shipment_status(item.release)
