@@ -39,7 +39,7 @@
               <div class="d-flex gap-2">
                 <!-- 반납완료 버튼 -->
                 {% if user.is_staff %}
-                  <form method="post" action="{% url 'toggle_receive_vendor_group' block.date_str v.vendor_type_id v.vendor_id %}">
+                  <form method="post" action="{% url 'toggle_receive_vendor_group' block.date_str v.vendor_type_id v.vendor_id %}" class="m-0">
                     {% csrf_token %}
                     {% if v.items.0.status == "received" %}
                       <button type="button" class="btn btn-sm btn-outline-light btn-confirm" data-confirm-msg="전체반납완료 상태를 취소하시겠습니까?">
@@ -66,7 +66,7 @@
 
                 <!-- 전체삭제 -->
                 {% if user.is_staff and v.items.0.status != "received" %}
-                  <form method="post" action="{% url 'delete_vendor_group_orders' block.date_str v.vendor_type_id v.vendor_id %}">
+                  <form method="post" action="{% url 'delete_vendor_group_orders' block.date_str v.vendor_type_id v.vendor_id %}" class="m-0">
                     {% csrf_token %}
                     <button type="button" class="btn btn-sm btn-danger btn-confirm" data-confirm-msg="이 반납 내역을 삭제하면 출고/재고가 원래대로 되돌려집니다.<br>계속하시겠습니까?">
                       <i class="bi bi-trash3 me-1"></i> 전체삭제
@@ -78,7 +78,7 @@
 
             <!-- 그룹별 아이템 테이블 -->
             <div class="table-responsive">
-              <table class="table table-bordered table-striped text-center mb-3 table-stack">
+              <table class="table table-bordered table-striped text-center align-middle mb-3 table-stack">
                 <thead class="table-light">
                   <tr>
                     <th><i class="bi bi-calendar-date me-1"></i> 반납일자</th>
@@ -141,7 +141,7 @@
                 </tbody>
                 <tfoot class="table-light">
                   <tr>
-                    <td colspan="4" class="text-end fw-bold">거래처 소계</td>
+                    <td colspan="4" class="text-end fw-bold">총 수량</td>
                     <td class="fw-bold">{{ v.qty_sum|intcomma }}</td>
                     <td></td>
                   </tr>
@@ -150,14 +150,6 @@
             </div>
           {% endfor %}
         {% endfor %}
-      </div>
-      
-      <!-- 일자별 총 합계 표시 -->
-      <div class="card-footer bg-light border-top border-2 border-primary text-end">
-        <h5 class="mb-0">
-          <span class="me-3">총 수량: <span class="text-danger fw-bold">{{ block.daily_total_qty|intcomma }}</span>개</span>
-          <span>총 가액: <span class="text-primary fw-bold">{{ block.daily_total_sum|intcomma }}</span>원</span>
-        </h5>
       </div>
     </div>
   {% empty %}
