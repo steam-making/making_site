@@ -857,9 +857,13 @@
                           {% endif %}
                         {% else %}
                           {% if user.is_staff or user.is_superuser %}
-                            <form class="js-async-action-form" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
+                            <form id="release-form-{{ item.id }}" class="js-async-action-form" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
                               {% csrf_token %}
-                       <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('출고 처리 하시겠습니까?');">
+                              <button type="button" class="btn btn-sm btn-outline-success js-release-btn"
+                                      data-form-id="release-form-{{ item.id }}"
+                                      data-method="{{ item.release_method }}"
+                                      data-stock="{{ item.material.stock|default:0 }}"
+                                      data-qty="{{ item.quantity }}">
                                  <i class="bi bi-check-lg"></i> <span class="d-none d-md-inline">출고</span>
                                </button>
                             </form>
@@ -868,6 +872,7 @@
                             <a class="btn btn-sm btn-outline-secondary" href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}">
                               <i class="bi bi-pencil"></i> <span class="d-none d-md-inline">수정</span>
                             </a>
+
                             <form action="{% url 'delete_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post" onsubmit="return confirm('정말 삭제하시겠습니까?');">
                               {% csrf_token %}
                               <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -1450,6 +1455,88 @@ function confirmReleaseNotification(button, isReRequest, instName, orderMonth, u
         form.submit();
     }
 }
+</script>
+
+<!-- 출고 처리 확인 모달 -->
+<div class="modal fade" id="releaseConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">출고 처리</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="releaseConfirmMsg"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+        <button type="button" class="btn btn-success" id="releaseConfirmSubmitBtn">출고 처리</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 재고 부족 모달 -->
+<div class="modal fade" id="releaseStockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> 재고 부족</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="releaseStockMsg" class="text-danger fw-bold"></p>
+        <p class="text-muted small mb-0">먼저 교구재 재고를 확인해 주세요.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const confirmModalEl = document.getElementById("releaseConfirmModal");
+  if (!confirmModalEl) return;
+  const confirmModal = bootstrap.Modal.getOrCreateInstance(confirmModalEl);
+  const confirmMsgEl = document.getElementById("releaseConfirmMsg");
+  const confirmSubmitBtn = document.getElementById("releaseConfirmSubmitBtn");
+
+  const stockModalEl = document.getElementById("releaseStockModal");
+  const stockModal = bootstrap.Modal.getOrCreateInstance(stockModalEl);
+  const stockMsgEl = document.getElementById("releaseStockMsg");
+
+  let pendingReleaseFormId = null;
+
+  document.body.addEventListener("click", function (e) {
+    const btn = e.target.closest(".js-release-btn");
+    if (!btn) return;
+    
+    pendingReleaseFormId = btn.dataset.formId;
+    const method = btn.dataset.method;
+    const stock = parseInt(btn.dataset.stock, 10);
+    const qty = parseInt(btn.dataset.qty, 10);
+
+    // 센터수령일 때 재고 부족 체크
+    if (method === '센터수령' && stock < qty) {
+        stockMsgEl.textContent = `재고가 부족합니다. (현재 재고: ${stock}개 / 필요 수량: ${qty}개)`;
+        stockModal.show();
+        return; // 출고 모달 띄우지 않음
+    }
+
+    // 통과되면 컨펌 모달 표시
+    confirmMsgEl.innerText = `출고방법: [${method}]\n정말 출고 처리 하시겠습니까?`;
+    confirmModal.show();
+  });
+
+  confirmSubmitBtn.addEventListener("click", function () {
+    if (pendingReleaseFormId) {
+      document.getElementById(pendingReleaseFormId).submit();
+    }
+    confirmModal.hide();
+  });
+});
 </script>
 
 <!-- 학생 명단 모달 -->
