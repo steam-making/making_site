@@ -91,7 +91,7 @@
                 </thead>
                 <tbody>
                   {% for item in v.items %}
-                  <tr>
+                  <tr class="align-middle">
                     <td>{{ ob.order.ordered_date|date:"Y-m-d" }}</td>
                     <td>{{ item.original_order_month|default:"-" }}</td>
                     <td>{{ item.original_location|default:"-" }}</td>
@@ -101,7 +101,7 @@
                       {% if item.status == "received" %}
                         <div class="d-flex justify-content-center">
                           {% if user.is_staff %}
-                            <form action="{% url 'receive_material_item' item.id %}" method="post">
+                            <form action="{% url 'receive_material_item' item.id %}" method="post" class="m-0">
                               {% csrf_token %}
                               <button type="button" class="btn btn-sm btn-outline-secondary btn-confirm" data-confirm-msg="반납완료 상태를 취소하시겠습니까?">
                                 <i class="bi bi-arrow-counterclockwise"></i> 반납완료
@@ -109,7 +109,7 @@
                               </button>
                             </form>
                           {% else %}
-                            <div>
+                            <div class="m-0">
                               <span class="badge bg-success">완료</span>
                               {% if item.received_date %}<small>({{ item.received_date|date:"y/m/d" }})</small>{% endif %}
                             </div>
