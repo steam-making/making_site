@@ -2607,26 +2607,27 @@ def release_material_item(request, item_id):
         item.released_quantity = item.quantity
         item.save(update_fields=['status', 'released_at', 'released_quantity'])
         
-        # ✅ 출고 시 주문(MaterialOrder) 내역 자동 생성
-        order_date = timezone.now().date()
-        teacher = item.release.teacher
-        order, created = MaterialOrder.objects.get_or_create(
-            teacher=teacher,
-            ordered_date=order_date,
-            receive_type='order',
-            defaults={
-                'release_location': item.release.institution.name,
-                'notes': ''
-            }
-        )
-        MaterialOrderItem.objects.create(
-            order=order,
-            vendor=item.vendor,
-            material=item.material,
-            quantity=item.quantity,
-            status='waiting',
-            notes=f"[출고연동:{item.id}]" + (" [택배]" if item.release_method == '택배' else " [센터수령]")
-        )
+        # ✅ 택배 출고 시에만 주문(MaterialOrder) 내역 자동 생성
+        if item.release_method == '택배':
+            order_date = timezone.now().date()
+            teacher = item.release.teacher
+            order, created = MaterialOrder.objects.get_or_create(
+                teacher=teacher,
+                ordered_date=order_date,
+                receive_type='order',
+                defaults={
+                    'release_location': item.release.institution.name,
+                    'notes': ''
+                }
+            )
+            MaterialOrderItem.objects.create(
+                order=order,
+                vendor=item.vendor,
+                material=item.material,
+                quantity=item.quantity,
+                status='waiting',
+                notes=f"[출고연동:{item.id}] [택배]"
+            )
 
         matched_release = find_levelup_release(item.release.institution, item.release.order_month)
         if matched_release and matched_release.id == item.release.id:
