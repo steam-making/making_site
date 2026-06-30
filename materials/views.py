@@ -901,8 +901,8 @@ def order_list(request):
     vendor_id_filter = request.GET.get('vendor_id', '')
 
     # UI 상단 필터를 위한 데이터
-    from .models import VendorType, Vendor
-    vendor_types = VendorType.objects.prefetch_related('vendor_set').all()
+    from .models import Vendor
+    vendors = Vendor.objects.all()
 
     orders = (
         MaterialOrder.objects
@@ -1004,7 +1004,7 @@ def order_list(request):
 
     context = {
         "date_blocks": date_blocks,
-        "vendor_types": vendor_types,
+        "vendors": vendors,
         "selected_vendor_id": vendor_id_filter,
     }
     return render(request, "order/order_list.html", context)

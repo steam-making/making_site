@@ -22,24 +22,23 @@
           전체 보기
         </a>
 
-        {% for vt in vendor_types %}
-          <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary bg-white dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              {{ vt.name }}
-            </button>
-            <ul class="dropdown-menu shadow-sm border-0">
-              {% for v in vt.vendor_set.all %}
-                <li>
-                  <a class="dropdown-item {% if selected_vendor_id == v.id|stringformat:'s' %}active bg-primary text-white{% endif %}" href="?vendor_id={{ v.id }}">
-                    {{ v.name }}
-                  </a>
-                </li>
-              {% empty %}
-                <li><span class="dropdown-item text-muted">등록된 거래처 없음</span></li>
-              {% endfor %}
-            </ul>
-          </div>
-        {% endfor %}
+        <!-- 단일 거래처 선택 드롭다운 -->
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary bg-white dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            거래처 선택
+          </button>
+          <ul class="dropdown-menu shadow-sm border-0" style="max-height: 300px; overflow-y: auto;">
+            {% for v in vendors %}
+              <li>
+                <a class="dropdown-item {% if selected_vendor_id == v.id|stringformat:'s' %}active bg-primary text-white{% endif %}" href="?vendor_id={{ v.id }}">
+                  {{ v.name }}
+                </a>
+              </li>
+            {% empty %}
+              <li><span class="dropdown-item text-muted">등록된 거래처 없음</span></li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
     </div>
   </div>
