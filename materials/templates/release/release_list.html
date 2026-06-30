@@ -928,10 +928,11 @@
               <td colspan="4" class="text-center align-middle" data-label="그룹 처리">
                 <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-nowrap">
 
-                  {# ✅ 출고 요청 알림 #}
+                  {# ✅ 출고 요청 알림 (미출고 항목이 있을 때만 표시) #}
+                  {% if group.unshipped_materials_summary %}
                   <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}" class="m-0">
                     {% csrf_token %}
-                    <textarea class="d-none materials-summary-data">{% for mat_name, qty in group.materials_summary.items %}- {{ mat_name }} {{ qty }}개&#10;{% endfor %}</textarea>
+                    <textarea class="d-none materials-summary-data">{% for mat_name, qty in group.unshipped_materials_summary.items %}- {{ mat_name }} {{ qty }}개&#10;{% endfor %}</textarea>
                     {% if user.is_staff %}
                       {# 관리자: 출고요청 버튼 (강사에게 발송) #}
                       <button type="button" class="btn btn-sm btn-outline-info" onclick="return confirmReleaseNotification(this, false, '{% if group.institution.school %}{{ group.institution.school.name|escapejs }}{% else %}{{ group.institution.name|escapejs }}{% endif %}', '{{ group.order_month|escapejs }}', '{{ group.teacher.first_name|default:group.teacher.username|escapejs }}')">
@@ -950,6 +951,7 @@
                       {% endif %}
                     {% endif %}
                   </form>
+                  {% endif %}
 
                   {# ✅ 견적서 발행 → 발송완료로 대체 #}
                   {% if group.estimate_sent %}

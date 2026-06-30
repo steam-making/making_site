@@ -579,6 +579,7 @@ def release_list(request):
                 "tax_invoice_sent": False,
                 "program_display": program_display,
                 "materials_summary": {},
+                "unshipped_materials_summary": {},
                 "items_detail": {},
                 "source_type": getattr(order, 'source_type', ''),
                 "request_sent": order.request_sent,
@@ -601,6 +602,9 @@ def release_list(request):
 
             mat_name = item.material.name
             grouped_data[key]["materials_summary"][mat_name] = grouped_data[key]["materials_summary"].get(mat_name, 0) + item.quantity
+            
+            if item.status != 'shipped':
+                grouped_data[key]["unshipped_materials_summary"][mat_name] = grouped_data[key]["unshipped_materials_summary"].get(mat_name, 0) + item.quantity
             # 세금계산서용: 견적서와 동일하게 group_name 기준, included=True만
             if not getattr(item, 'included', True):
                 continue
