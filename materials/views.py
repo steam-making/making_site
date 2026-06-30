@@ -3127,30 +3127,36 @@ def toggle_payment_vendor_group(request, date_str, vendor_type_id, vendor_id):
     return redirect('order_list')
 
 
-def _date_group_qs(date_str):
-    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
-    return MaterialOrderItem.objects.filter(
+def _date_group_qs(date_str, teacher_id):
+    date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
+    qs = MaterialOrderItem.objects.filter(
         order__ordered_date=date_obj,
         order__receive_type='order'
     )
+    if teacher_id > 0:
+        qs = qs.filter(order__teacher_id=teacher_id)
+    else:
+        qs = qs.filter(order__teacher__isnull=True)
+    return qs
 
 @login_required
 @require_POST
-def toggle_payment_date_group(request, date_str):
-    qs = _date_group_qs(date_str)
+def toggle_payment_date_group(request, date_str, teacher_id):
+    qs = _date_group_qs(date_str, teacher_id)
     already_paid = qs.filter(paid_date__isnull=False).exists()
     if already_paid:
         qs.update(paid_date=None)
         messages.success(request, f"{date_str} 전체 주문의 입금완료를 취소했습니다.")
     else:
+        # datetime이 이미 datetime.datetime이므로 timezone.now().date() 활용
         qs.update(paid_date=timezone.now().date())
         messages.success(request, f"{date_str} 전체 주문을 입금완료 처리했습니다.")
     return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
 @login_required
 @require_POST
-def toggle_receive_date_group(request, date_str):
-    qs = _date_group_qs(date_str).select_related("material")
+def toggle_receive_date_group(request, date_str, teacher_id):
+    qs = _date_group_qs(date_str, teacher_id).select_related("material")
     already_received = qs.filter(status='received').exists()
 
     with transaction.atomic():

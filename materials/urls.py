@@ -59,8 +59,8 @@ urlpatterns = [
     # ==========================================
     # 날짜별 그룹 일괄 처리 (주문입고 전용)
     # ==========================================
-    path('groups/<str:date_str>/toggle-payment/', views.toggle_payment_date_group, name='toggle_payment_date_group'),
-    path('groups/<str:date_str>/toggle-receive/', views.toggle_receive_date_group, name='toggle_receive_date_group'),
+    path('groups/<str:date_str>/<int:teacher_id>/toggle-payment/', views.toggle_payment_date_group, name='toggle_payment_date_group'),
+    path('groups/<str:date_str>/<int:teacher_id>/toggle-receive/', views.toggle_receive_date_group, name='toggle_receive_date_group'),
 
     # ==========================================
     # 거래처별 그룹 일괄 처리 (주문입고 전용)
