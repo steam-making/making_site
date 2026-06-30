@@ -1441,14 +1441,38 @@ def delete_material_item(request, item_id):
 @login_required
 def receive_material_item(request, item_id):
     item = get_object_or_404(MaterialOrderItem, id=item_id)
+    is_return = item.order.receive_type == 'return' or item.receive_type == 'return'
 
-    if item.status != 'received':
-        old_stock = item.material.stock  # ✅ 변경 전 수량
+    if item.status == 'received':
+        # ✅ 이미 완료된 건 -> 취소 처리
+        item.status = 'waiting'
+        item.received_date = None
+        
+        # 일반 입고인 경우 재고 감소 (반납 건은 제외)
+        if not is_return:
+            old_stock = item.material.stock
+            item.material.stock -= item.quantity
+            item.material.save()
+            log_material_history(
+                item.material, request.user,
+                "stock_decrease", old_stock, item.material.stock,
+                f"입고 취소 (주문ID {item.id}, 수량 {item.quantity})"
+            )
+        item.save()
+        
+        if is_return:
+            messages.success(request, f"{item.material.name} 반납처리가 취소되었습니다.<br>현재 재고: {item.material.stock}개|MODAL_SUCCESS")
+        else:
+            messages.success(request, f"{item.material.name} 입고처리가 취소되었습니다.")
+            
+    else:
+        # ✅ 미완료 건 -> 완료 처리
+        old_stock = item.material.stock
         item.status = 'received'
         item.received_date = timezone.now()
 
-        # ✅ 입고 시 재고 증가 (반납 건은 생성 시 이미 증가되므로 제외)
-        if item.order.receive_type != 'return' and item.receive_type != 'return':
+        # 일반 입고인 경우 재고 증가 (반납 건은 제외)
+        if not is_return:
             item.material.stock += item.quantity
             item.material.save()
             log_material_history(
@@ -1459,8 +1483,10 @@ def receive_material_item(request, item_id):
         
         item.save()
 
-        if item.order.receive_type == 'return' or item.receive_type == 'return':
-            messages.success(request, f"{item.material.name} 반납완료 처리되었습니다.|MODAL_SUCCESS")
+        if is_return:
+            messages.success(request, f"{item.material.name} 반납이 완료되었습니다.<br>현재 재고: {item.material.stock}개|MODAL_SUCCESS")
+        else:
+            messages.success(request, f"{item.material.name} 입고처리가 완료되었습니다.")
 
     return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
@@ -3281,6 +3307,8 @@ def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
             # ▶ 미입고 → 입고 완료 처리 (재고 증가)
             now = timezone.now().date()
             total_qty = 0
+            materials_stock = {}
+
             for item in qs:
                 if item.status != "received":
                     total_qty += (item.quantity or 0)
@@ -3307,7 +3335,14 @@ def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
                 item.status = "received"
                 item.received_date = now
                 item.save(update_fields=["status", "received_date"])
-            messages.success(request, f"총 {total_qty}개의 교구재가 성공적으로 완료 처리되었습니다.|MODAL_SUCCESS")
+                
+                if item.material:
+                    materials_stock[item.material.name] = item.material.stock
+
+            # 메시지 조립
+            stock_details = "<br>".join([f"&middot; {name}: {stock}개" for name, stock in materials_stock.items()])
+            msg = f"총 {total_qty}개의 교구재 처리가 완료되었습니다.<br><br><b>[현재 재고]</b><br>{stock_details}|MODAL_SUCCESS"
+            messages.success(request, msg)
 
     return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
