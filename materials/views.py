@@ -943,12 +943,21 @@ def order_list(request):
                 
             table_rows.append({"type": "item", "data": item})
             
+        # 해당 그룹이 순수 '새 주문' (수동 입력)인지 판별
+        # 출고연동이거나 자동생성 문구가 있으면 수동이 아님
+        is_manual = not any(
+            (i.notes and "[출고연동" in i.notes) or 
+            (i.order.notes and i.order.notes.endswith("출고에 의한 자동생성"))
+            for i in group_items
+        )
+            
         table_rows.append({
             "type": "subtotal",
             "date": date_obj,
             "teacher": teacher_obj,
             "qty": sub_qty,
-            "sum": sub_sum
+            "sum": sub_sum,
+            "is_manual": is_manual
         })
         
         total_qty += sub_qty
