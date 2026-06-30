@@ -3274,8 +3274,10 @@ def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
         else:
             # ▶ 미입고 → 입고 완료 처리 (재고 증가)
             now = timezone.now().date()
+            total_qty = 0
             for item in qs:
                 if item.status != "received":
+                    total_qty += (item.quantity or 0)
                     material = item.material
                     if material and hasattr(material, 'stock'):
                         old_stock = material.stock
@@ -3296,9 +3298,9 @@ def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
                 item.status = "received"
                 item.received_date = now
                 item.save(update_fields=["status", "received_date"])
-            messages.success(request, "해당 거래처 그룹을 입고완료 처리했습니다.")
+            messages.success(request, f"총 {total_qty}개의 교구재가 성공적으로 완료 처리되었습니다.|MODAL_SUCCESS")
 
-    return redirect("order_list")
+    return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
 @login_required
 @user_passes_test(is_admin)
