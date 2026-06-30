@@ -794,9 +794,9 @@
                       <form id="toggleForm-{{ item.id }}" action="{% url 'toggle_release_method' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}&unpaid={{ unpaid_filter|default_if_none:'' }}" method="post">
                         {% csrf_token %}
                         {% if item.release_method == '택배' %}
-                          <button type="button" class="btn btn-sm btn-primary js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="센터수령">택배</button>
+                          <button type="button" class="btn btn-sm btn-primary js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="센터수령" {% if item.status == 'released' %}disabled{% endif %}>택배</button>
                         {% elif item.release_method == '센터수령' %}
-                          <button type="button" class="btn btn-sm btn-success js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="택배">센터수령</button>
+                          <button type="button" class="btn btn-sm btn-success js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="택배" {% if item.status == 'released' %}disabled{% endif %}>센터수령</button>
                         {% endif %}
                       </form>
                     {% else %}
@@ -822,9 +822,9 @@
                         {% if user.is_staff or user.is_superuser %}
                           <div class="d-md-none d-flex align-items-center">
                             {% if item.release_method == '택배' %}
-                              <button type="button" class="btn btn-sm btn-primary js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="센터수령">택배</button>
+                              <button type="button" class="btn btn-sm btn-primary js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="센터수령" {% if item.status == 'released' %}disabled{% endif %}>택배</button>
                             {% elif item.release_method == '센터수령' %}
-                              <button type="button" class="btn btn-sm btn-success js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="택배">센터수령</button>
+                              <button type="button" class="btn btn-sm btn-success js-toggle-method-btn" data-form-id="toggleForm-{{ item.id }}" data-to="택배" {% if item.status == 'released' %}disabled{% endif %}>센터수령</button>
                             {% endif %}
                           </div>
                         {% else %}
