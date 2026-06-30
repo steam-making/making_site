@@ -100,6 +100,8 @@ class MaterialOrder(models.Model):
         verbose_name="입고 종류"
     )
 
+    release_location = models.CharField("출고장소", max_length=100, default="메듀랩", blank=True)
+
     # ✅ 주문 단위 비고
     notes = models.TextField("비고", blank=True, null=True)
 

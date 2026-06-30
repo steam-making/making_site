@@ -931,7 +931,11 @@ def order_list(request):
         for item in group_items:
             notes = item.order.notes or ""
             auto_suffix = " 출고에 의한 자동생성"
-            if notes.endswith(auto_suffix):
+            
+            if item.order.release_location:
+                item.release_location = item.order.release_location
+                item.display_notes = notes
+            elif notes.endswith(auto_suffix):
                 item.release_location = notes[:-len(auto_suffix)]
                 item.display_notes = ""
             else:
@@ -1467,6 +1471,7 @@ def create_order(request):
         ordered_date = request.POST.get('ordered_date')
         expected_date = request.POST.get('expected_date')
         receive_type = request.POST.get('receive_type', 'order')
+        release_location = request.POST.get('release_location', '메듀랩')
         notes = request.POST.get('notes', '')
 
         if not ordered_date:
@@ -1519,6 +1524,7 @@ def create_order(request):
             ordered_date=ordered_date,
             expected_date=expected_date,
             receive_type=receive_type,
+            release_location=release_location,
             notes=notes,
         )
 
