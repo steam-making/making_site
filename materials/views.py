@@ -953,6 +953,8 @@ def order_list(request):
         is_manual = not any(i.is_auto_generated for i in group_items)
         all_paid = all(i.paid_date for i in group_items)
         all_received = all(i.status == 'received' for i in group_items)
+        
+        is_completed = all_paid and (not is_manual or all_received)
             
         table_rows.append({
             "type": "subtotal",
@@ -962,7 +964,8 @@ def order_list(request):
             "sum": sub_sum,
             "is_manual": is_manual,
             "all_paid": all_paid,
-            "all_received": all_received
+            "all_received": all_received,
+            "is_completed": is_completed
         })
         
         total_qty += sub_qty

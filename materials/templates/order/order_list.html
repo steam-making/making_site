@@ -140,7 +140,7 @@
                 </tr>
                 {% endwith %}
               {% elif row.type == 'subtotal' %}
-                <tr class="{% if row.all_paid and (not row.is_manual or row.all_received) %}table-success{% else %}table-danger{% endif %}" style="border-top: 2px solid #dee2e6;">
+                <tr class="{% if row.is_completed %}table-success{% else %}table-danger{% endif %}" style="border-top: 2px solid #dee2e6;">
                   <td colspan="5" class="text-end fw-bold"><i class="bi bi-calendar-check me-1"></i> [{{ row.teacher.first_name }}] {{ row.date|date:"y-m-d" }} 소계</td>
                   <td class="fw-bold text-primary">{{ row.sum|intcomma }}</td>
                   <td class="fw-bold text-danger">{{ row.qty|intcomma }}</td>
