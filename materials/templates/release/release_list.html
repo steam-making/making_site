@@ -933,9 +933,9 @@
                     {% csrf_token %}
                     <textarea class="d-none materials-summary-data">{% for mat_name, qty in group.materials_summary.items %}- {{ mat_name }} {{ qty }}개&#10;{% endfor %}</textarea>
                     {% if user.is_staff %}
-                      {# 관리자: 출고안내 버튼 (강사에게 발송) #}
+                      {# 관리자: 출고요청 버튼 (강사에게 발송) #}
                       <button type="button" class="btn btn-sm btn-outline-info" onclick="return confirmReleaseNotification(this, false, '{% if group.institution.school %}{{ group.institution.school.name|escapejs }}{% else %}{{ group.institution.name|escapejs }}{% endif %}', '{{ group.order_month|escapejs }}', '{{ group.teacher.first_name|default:group.teacher.username|escapejs }}')">
-                        <i class="bi bi-chat-dots"></i> 출고안내
+                        <i class="bi bi-chat-dots"></i> 출고요청
                       </button>
                     {% else %}
                       {# 강사: 출고요청/재요청 버튼 (관리자에게 발송) #}
@@ -977,6 +977,13 @@
                   {% endif %}
 
                   {% if request.user.is_superuser and group.source_type != 'levelup_auto' %}
+                    <form id="bulk-release-form-{{ group.institution.id }}-{{ group.order_month }}" action="{% url 'bulk_release_group' group.institution.id group.order_month %}" method="post" class="m-0">
+                      {% csrf_token %}
+                      <button type="button" class="btn btn-sm btn-outline-success js-bulk-release-btn" data-form-id="bulk-release-form-{{ group.institution.id }}-{{ group.order_month }}">
+                        <i class="bi bi-check-all"></i> 전체출고
+                      </button>
+                    </form>
+                  
                     <form action="{% url 'delete_release_group' group.institution.id group.order_month %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
                           method="post"
                           class="m-0"
@@ -1597,6 +1604,15 @@ function confirmReleaseNotification(button, isReRequest, instName, orderMonth, u
               <span class="fw-bold text-success"><span id="bulkCenterCount">0</span>건</span>
             </div>
           </div>
+          
+          <!-- 센터수령 완료 품목 재고 현황 목록 -->
+          <div id="bulkCenterStockContainer" class="w-100 text-start d-none mb-3">
+            <div class="small fw-bold text-muted mb-2"><i class="bi bi-box-seam"></i> 센터수령 재고 차감 현황</div>
+            <ul id="bulkCenterStockList" class="list-group list-group-flush border rounded small" style="max-height: 150px; overflow-y: auto;">
+              <!-- JS에서 동적으로 채움 -->
+            </ul>
+          </div>
+          
           <div id="bulkShortageWarning" class="text-danger small fw-bold d-none">
             <i class="bi bi-exclamation-triangle"></i> 재고 부족으로 출고가 보류된 센터수령 항목: <span id="bulkShortageCount">0</span>건
           </div>
@@ -1684,6 +1700,31 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (bulkSuccessModal) {
                         document.getElementById('bulkParcelCount').textContent = data.parcel;
                         document.getElementById('bulkCenterCount').textContent = data.center;
+                        
+                        // 센터수령 재고 현황 렌더링
+                        const stockContainer = document.getElementById('bulkCenterStockContainer');
+                        const stockList = document.getElementById('bulkCenterStockList');
+                        stockList.innerHTML = ''; // 초기화
+                        
+                        if (data.center_stocks && data.center_stocks.length > 0) {
+                            stockContainer.classList.remove('d-none');
+                            data.center_stocks.forEach(stock => {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item d-flex justify-content-between align-items-center py-1 px-2';
+                                li.innerHTML = `
+                                    <div class="text-truncate" style="max-width: 150px;" title="${stock.name}">${stock.name}</div>
+                                    <div class="text-end">
+                                        <span class="text-danger">-${stock.qty}</span>
+                                        <span class="mx-1">→</span>
+                                        <span class="fw-bold text-primary">${stock.remaining}개</span>
+                                    </div>
+                                `;
+                                stockList.appendChild(li);
+                            });
+                        } else {
+                            stockContainer.classList.add('d-none');
+                        }
+                        
                         const shortageDiv = document.getElementById('bulkShortageWarning');
                         if (data.shortage > 0) {
                             document.getElementById('bulkShortageCount').textContent = data.shortage;

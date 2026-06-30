@@ -2788,6 +2788,7 @@ def bulk_release_group(request, institution_id, order_month):
     count_parcel = 0
     count_center = 0
     count_stock_shortage = 0
+    center_stocks = []
     
     # 해당 그룹에 속한 항목들 중 대기 상태이면서 포함된 항목들만 처리
     items = MaterialReleaseItem.objects.filter(
@@ -2819,6 +2820,12 @@ def bulk_release_group(request, institution_id, order_month):
                     new_value=material.stock,
                     note=f"출고 일괄처리 (출고품목ID {item.id}, 수량 {item.quantity})"
                 )
+                
+                center_stocks.append({
+                    "name": material.name,
+                    "qty": item.quantity,
+                    "remaining": material.stock
+                })
                 
             item.status = 'released'
             item.released_at = timezone.now()
@@ -2864,7 +2871,8 @@ def bulk_release_group(request, institution_id, order_month):
         "success": True,
         "parcel": count_parcel,
         "center": count_center,
-        "shortage": count_stock_shortage
+        "shortage": count_stock_shortage,
+        "center_stocks": center_stocks
     })
 
 @login_required
