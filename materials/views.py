@@ -3483,7 +3483,7 @@ def return_list(request):
                     from .models import MaterialReleaseItem
                     release_item = MaterialReleaseItem.objects.filter(id=m.group(1)).select_related('release__institution').first()
                     if release_item:
-                        item.original_order_month = release_item.release.order_month.strftime("%Y-%m")
+                        item.original_order_month = release_item.release.order_month or ""
                         item.original_location = release_item.release.institution.name
 
             order_has_items = True
