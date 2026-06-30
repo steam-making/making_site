@@ -6,9 +6,43 @@
   <h3 class="text-center mb-4">
     <i class="bi bi-card-checklist me-2"></i> 교구재 주문 목록
   </h3>
-  <a href="{% url 'create_order' %}" class="btn btn-primary mb-3">
-    <i class="bi bi-plus-circle me-1"></i> 새 주문
-  </a>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{% url 'create_order' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i> 새 주문
+    </a>
+  </div>
+
+  <!-- 거래처 필터 영역 -->
+  <div class="card mb-4 shadow-sm border-0 bg-light">
+    <div class="card-body py-2">
+      <div class="d-flex align-items-center flex-wrap gap-2">
+        <span class="fw-bold text-secondary me-2"><i class="bi bi-funnel me-1"></i> 거래처 필터:</span>
+        
+        <a href="{% url 'order_list' %}" class="btn btn-sm {% if not selected_vendor_id %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
+          전체 보기
+        </a>
+
+        {% for vt in vendor_types %}
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary bg-white dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              {{ vt.name }}
+            </button>
+            <ul class="dropdown-menu shadow-sm border-0">
+              {% for v in vt.vendor_set.all %}
+                <li>
+                  <a class="dropdown-item {% if selected_vendor_id == v.id|stringformat:'s' %}active bg-primary text-white{% endif %}" href="?vendor_id={{ v.id }}">
+                    {{ v.name }}
+                  </a>
+                </li>
+              {% empty %}
+                <li><span class="dropdown-item text-muted">등록된 거래처 없음</span></li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
 
   {% for block in date_blocks %}
     <div class="card mb-4 shadow-sm">

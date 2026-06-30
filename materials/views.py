@@ -898,11 +898,23 @@ def request_release_notification(request, institution_id, order_month):
 
 @login_required
 def order_list(request):
+    vendor_id_filter = request.GET.get('vendor_id', '')
+
+    # UI 상단 필터를 위한 데이터
+    from .models import VendorType, Vendor
+    vendor_types = VendorType.objects.prefetch_related('vendor_set').all()
+
     orders = (
         MaterialOrder.objects
         .filter(receive_type='order')
         .prefetch_related('items__vendor__vendor_type', 'items__material')
-        .annotate(
+    )
+
+    if vendor_id_filter:
+        orders = orders.filter(items__vendor_id=vendor_id_filter)
+
+    orders = (
+        orders.annotate(
             status_order=Case(
                 When(items__status='waiting', then=Value(0)),
                 When(items__status='received', then=Value(1)),
@@ -940,6 +952,9 @@ def order_list(request):
             if item.receive_type == 'return':
                 continue
                 
+            if vendor_id_filter and str(item.vendor_id) != vendor_id_filter:
+                continue
+
             order_has_items = True
             vtype = item.vendor.vendor_type.name if (item.vendor and item.vendor.vendor_type) else "미지정"
             vname = item.vendor.name if item.vendor else "미지정"
@@ -989,6 +1004,8 @@ def order_list(request):
 
     context = {
         "date_blocks": date_blocks,
+        "vendor_types": vendor_types,
+        "selected_vendor_id": vendor_id_filter,
     }
     return render(request, "order/order_list.html", context)
 
