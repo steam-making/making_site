@@ -904,106 +904,35 @@ def order_list(request):
     from .models import Vendor
     vendors = Vendor.objects.all()
 
-    orders = (
-        MaterialOrder.objects
-        .filter(receive_type='order')
-        .prefetch_related('items__vendor__vendor_type', 'items__material')
+    # 모든 주문 아이템 조회 (날짜 내림차순 정렬)
+    items_query = (
+        MaterialOrderItem.objects
+        .filter(order__receive_type='order')
+        .select_related('order', 'order__teacher', 'vendor', 'vendor__vendor_type', 'material')
+        .annotate(
+            status_order=Case(
+                When(status='waiting', then=Value(0)),
+                When(status='received', then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField()
+            )
+        )
+        .order_by('status_order', '-order__ordered_date', 'vendor__name')
     )
 
     if vendor_id_filter:
-        orders = orders.filter(items__vendor_id=vendor_id_filter)
+        items_query = items_query.filter(vendor_id=vendor_id_filter)
 
-    orders = (
-        orders.annotate(
-            status_order=Case(
-                When(items__status='waiting', then=Value(0)),
-                When(items__status='received', then=Value(1)),
-                default=Value(2),
-                output_field=IntegerField()
-            ),
-        )
-        .order_by('status_order', '-ordered_date')
-        .distinct()
-    )
+    items_list = list(items_query)
 
-    # ===== 날짜 → [주문들] → (거래처) → items =====
-    date_map = {}
-    date_order = []
-
-    for order in orders:
-        date_str = order.ordered_date.strftime("%Y-%m-%d")
-
-        # 날짜 블록이 없으면 새로 생성
-        if date_str not in date_map:
-            date_map[date_str] = {
-                "date": order.ordered_date,
-                "date_str": date_str,
-                "orders": [],   # ✅ 같은 날짜의 모든 주문이 이 안에 들어감
-                "daily_total_qty": 0,
-                "daily_total_sum": 0,
-            }
-            date_order.append(date_str)
-
-        # 주문 단위 블록
-        vendors_map = {}
-        order_has_items = False
-        
-        for item in order.items.all():
-            if item.receive_type == 'return':
-                continue
-                
-            if vendor_id_filter and str(item.vendor_id) != vendor_id_filter:
-                continue
-
-            order_has_items = True
-            vtype = item.vendor.vendor_type.name if (item.vendor and item.vendor.vendor_type) else "미지정"
-            vname = item.vendor.name if item.vendor else "미지정"
-            vtype_id = item.vendor.vendor_type_id if (item.vendor and item.vendor.vendor_type_id) else 0
-            vid = item.vendor_id if item.vendor_id else 0
-
-            vkey = f"{vtype} - {vname}"
-            bucket = vendors_map.get(vkey)
-            if not bucket:
-                bucket = {
-                    "vendor_type": vtype,
-                    "vendor_name": vname,
-                    "vendor_type_id": vtype_id,
-                    "vendor_id": vid,
-                    "vkey": vkey,
-                    "items": [],
-                    "unit_sum": 0,
-                    "total_sum": 0,
-                    "qty_sum": 0,
-                }
-                vendors_map[vkey] = bucket
-
-            unit = (item.material.supply_price or 0)
-            qty = (item.quantity or 0)
-            bucket["items"].append(item)
-            bucket["unit_sum"] += unit
-            bucket["total_sum"] += unit * qty
-            bucket["qty_sum"] += qty
-            
-            # 일자별 누적
-            date_map[date_str]["daily_total_qty"] += qty
-            date_map[date_str]["daily_total_sum"] += unit * qty
-
-        if order_has_items:
-            order_block = {
-                "order": order,
-                "vendors": sorted(
-                    vendors_map.values(),
-                    key=lambda b: (b["vendor_type"], b["vendor_name"])
-                ),
-            }
-            # ✅ 같은 날짜 블록에 누적
-            date_map[date_str]["orders"].append(order_block)
-
-    # 날짜 최신순으로 정렬
-    date_blocks = [date_map[ds] for ds in date_order]
+    # 전체 합계 계산
+    total_qty = sum(i.quantity for i in items_list if i.quantity)
+    total_sum = sum((i.material.supply_price or 0) * (i.quantity or 0) for i in items_list)
 
     context = {
-        "date_blocks": date_blocks,
+        "items_list": items_list,
+        "total_qty": total_qty,
+        "total_sum": total_sum,
         "vendors": vendors,
         "selected_vendor_id": vendor_id_filter,
     }
