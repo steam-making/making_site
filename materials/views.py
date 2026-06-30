@@ -3476,7 +3476,7 @@ def release_item_students(request, item_id):
             material=item.material,
         ).select_related("student__division").order_by("section", "grade", "class_no", "student_no").values(
             "id", "student_name", "section", "grade", "class_no", "student_no",
-            "shipped_done", "delivery_done",
+            "shipped_done", "shipped_date", "delivery_done",
             "student__division__division",
         )
     )
@@ -3492,6 +3492,7 @@ def release_item_students(request, item_id):
             "class_no": s["class_no"] or "",
             "student_no": s["student_no"] or "",
             "shipped": s["shipped_done"],
+            "shipped_date": s["shipped_date"].strftime("%y-%m-%d") if s["shipped_date"] else None,
             "delivered": s["delivery_done"],
         })
 

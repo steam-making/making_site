@@ -739,7 +739,7 @@ def toggle_shipped_student(request, pk):
     return JsonResponse({
         "success": True,
         "shipped": record.shipped_done,
-        "date": record.shipped_date.strftime("%y.%m.%d") if record.shipped_date else "",
+        "date": record.shipped_date.strftime("%y-%m-%d") if record.shipped_date else "",
     })
 
 

@@ -1958,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', function () {
     data.students.forEach(function (s) {
       var code = [s.grade, s.class_no, s.student_no].filter(Boolean).join('-');
       var shippedBtn = s.shipped
-        ? '<button class="btn btn-success btn-sm student-ship-btn" data-student-id="' + s.id + '" data-item-id="' + itemId + '" style="min-width:58px;font-size:0.78rem;">✅ 출고</button>'
+        ? '<button class="btn btn-success btn-sm student-ship-btn" data-student-id="' + s.id + '" data-item-id="' + itemId + '" style="min-width:58px;font-size:0.78rem;">✅ ' + (s.shipped_date ? s.shipped_date : '출고') + '</button>'
         : '<button class="btn btn-outline-secondary btn-sm student-ship-btn" data-student-id="' + s.id + '" data-item-id="' + itemId + '" style="min-width:58px;font-size:0.78rem;">대기</button>';
       var delivered = s.delivered
         ? '<span class="badge bg-primary">전달</span>'
@@ -2013,7 +2013,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (data.shipped) {
           shipBtn.className = 'btn btn-success btn-sm student-ship-btn';
-          shipBtn.textContent = '✅ 출고';
+          shipBtn.textContent = '✅ ' + (data.date ? data.date : '출고');
         } else {
           shipBtn.className = 'btn btn-outline-secondary btn-sm student-ship-btn';
           shipBtn.textContent = '대기';
