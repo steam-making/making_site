@@ -945,6 +945,12 @@ def order_list(request):
                 (item.notes and "[출고연동" in item.notes) or 
                 notes.endswith(auto_suffix)
             )
+            
+            # 개별 아이템의 완료 여부 (입금 완료 & (입고 완료 or 택배))
+            item.is_completed = bool(
+                item.paid_date and 
+                (item.status == 'received' or (item.notes and '[택배]' in item.notes))
+            )
                 
             table_rows.append({"type": "item", "data": item})
             
