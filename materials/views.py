@@ -932,14 +932,13 @@ def order_list(request):
             notes = item.order.notes or ""
             auto_suffix = " 출고에 의한 자동생성"
             
-            if item.order.release_location:
-                item.release_location = item.order.release_location
-                item.display_notes = notes
-            elif notes.endswith(auto_suffix):
+            # 이전 데이터 호환: notes에 자동생성 문구가 있다면 그 값을 최우선으로 사용하고 notes에서 숨김
+            if notes.endswith(auto_suffix):
                 item.release_location = notes[:-len(auto_suffix)]
                 item.display_notes = ""
             else:
-                item.release_location = ""
+                # 사용자가 직접 입력한 출고장소나 비고 적용
+                item.release_location = item.order.release_location
                 item.display_notes = notes
                 
             table_rows.append({"type": "item", "data": item})
@@ -2616,7 +2615,8 @@ def release_material_item(request, item_id):
             ordered_date=order_date,
             receive_type='order',
             defaults={
-                'notes': f"{item.release.institution.name} 출고에 의한 자동생성"
+                'release_location': item.release.institution.name,
+                'notes': ''
             }
         )
         MaterialOrderItem.objects.create(
