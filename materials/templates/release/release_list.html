@@ -838,9 +838,13 @@
                         {% endif %}
                         {% if item.status == 'released' %}
                           {% if user.is_staff or user.is_superuser %}
-                            <form class="js-async-action-form" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
+                            <form id="unrelease-form-{{ item.id }}" data-target-row="item-row-{{ item.id }}" action="{% url 'release_material_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}" method="post">
                               {% csrf_token %}
-                       <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('출고 완료를 취소하시겠습니까?');">
+                              <button type="button" class="btn btn-sm btn-outline-danger js-unrelease-btn"
+                                      data-form-id="unrelease-form-{{ item.id }}"
+                                      data-method="{{ item.release_method }}"
+                                      data-stock="{{ item.material.stock|default:0 }}"
+                                      data-qty="{{ item.quantity }}">
                                  <i class="bi bi-arrow-counterclockwise"></i> <span class="d-none d-md-inline">출고취소</span>
                                </button>
                             </form>
@@ -1523,6 +1527,55 @@ function confirmReleaseNotification(button, isReRequest, instName, orderMonth, u
   </div>
 </div>
 
+<!-- 출고취소 처리 확인 모달 -->
+<div class="modal fade" id="unreleaseConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">출고 취소 확인</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="unreleaseConfirmMsg" class="fw-bold"></p>
+        <p class="text-muted small mb-0">정말 출고를 취소하시겠습니까?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+        <button type="button" class="btn btn-danger" id="unreleaseConfirmSubmitBtn">출고 취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 출고취소 완료 모달 (센터수령용) -->
+<div class="modal fade" id="unreleaseSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-primary">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="bi bi-info-circle"></i> 출고 취소 완료</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <h5 class="text-primary fw-bold mb-3">정상적으로 출고가 취소되었습니다!</h5>
+        <div class="d-flex justify-content-center gap-5 mt-3">
+          <div>
+            <div class="text-muted small mb-1">반환 수량</div>
+            <div class="fs-5 fw-bold text-success">+<span id="unreleaseSuccessQty">0</span>개</div>
+          </div>
+          <div class="border-end"></div>
+          <div>
+            <div class="text-muted small mb-1">현재 재고</div>
+            <div class="fs-5 fw-bold text-primary"><span id="unreleaseSuccessRemaining">0</span>개</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const confirmModalEl = document.getElementById("releaseConfirmModal");
@@ -1538,13 +1591,39 @@ document.addEventListener("DOMContentLoaded", function () {
   const successModalEl = document.getElementById("releaseSuccessModal");
   const successModal = successModalEl ? bootstrap.Modal.getOrCreateInstance(successModalEl) : null;
 
+  // 출고 취소용 모달 인스턴스
+  const unreleaseConfirmModalEl = document.getElementById("unreleaseConfirmModal");
+  const unreleaseConfirmModal = unreleaseConfirmModalEl ? bootstrap.Modal.getOrCreateInstance(unreleaseConfirmModalEl) : null;
+  const unreleaseConfirmMsgEl = document.getElementById("unreleaseConfirmMsg");
+  const unreleaseConfirmSubmitBtn = document.getElementById("unreleaseConfirmSubmitBtn");
+  const unreleaseSuccessModalEl = document.getElementById("unreleaseSuccessModal");
+  const unreleaseSuccessModal = unreleaseSuccessModalEl ? bootstrap.Modal.getOrCreateInstance(unreleaseSuccessModalEl) : null;
+
   let pendingReleaseFormId = null;
   let pendingReleaseMethod = null;
   let pendingReleaseStock = null;
   let pendingReleaseQty = null;
 
+  let pendingUnreleaseFormId = null;
+  let pendingUnreleaseMethod = null;
+  let pendingUnreleaseStock = null;
+  let pendingUnreleaseQty = null;
+
   document.body.addEventListener("click", function (e) {
     const btn = e.target.closest(".js-release-btn");
+    const unBtn = e.target.closest(".js-unrelease-btn");
+    
+    if (unBtn) {
+        pendingUnreleaseFormId = unBtn.dataset.formId;
+        pendingUnreleaseMethod = unBtn.dataset.method;
+        pendingUnreleaseStock = parseInt(unBtn.dataset.stock, 10);
+        pendingUnreleaseQty = parseInt(unBtn.dataset.qty, 10);
+
+        unreleaseConfirmMsgEl.innerText = `출고방법: [${pendingUnreleaseMethod}]`;
+        if (unreleaseConfirmModal) unreleaseConfirmModal.show();
+        return;
+    }
+
     if (!btn) return;
     
     pendingReleaseFormId = btn.dataset.formId;
@@ -1563,6 +1642,59 @@ document.addEventListener("DOMContentLoaded", function () {
     confirmMsgEl.innerText = `출고방법: [${pendingReleaseMethod}]\n정말 출고 처리 하시겠습니까?`;
     confirmModal.show();
   });
+
+  if (unreleaseConfirmSubmitBtn) {
+      unreleaseConfirmSubmitBtn.addEventListener("click", function () {
+          if (pendingUnreleaseFormId) {
+              const form = document.getElementById(pendingUnreleaseFormId);
+              if (form) {
+                  unreleaseConfirmSubmitBtn.disabled = true;
+                  const originalBtnHtml = unreleaseConfirmSubmitBtn.innerHTML;
+                  unreleaseConfirmSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 처리중...';
+
+                  fetch(form.action, {
+                      method: 'POST',
+                      body: new FormData(form),
+                      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                  })
+                  .then(res => res.text())
+                  .then(html => {
+                      const doc = new DOMParser().parseFromString(html, 'text/html');
+                      const targetRowId = form.dataset.targetRow;
+                      const targetRow = document.getElementById(targetRowId);
+                      const newRow = doc.getElementById(targetRowId);
+                      
+                      if (targetRow && newRow) {
+                          targetRow.replaceWith(newRow);
+                          
+                          // 센터수령인 경우에만 취소 성공 모달 표시 (재고 반환)
+                          if (pendingUnreleaseMethod === '센터수령' && unreleaseSuccessModal) {
+                              const remaining = pendingUnreleaseStock + pendingUnreleaseQty;
+                              document.getElementById('unreleaseSuccessQty').textContent = pendingUnreleaseQty;
+                              document.getElementById('unreleaseSuccessRemaining').textContent = remaining;
+                              unreleaseConfirmModal.hide();
+                              unreleaseSuccessModal.show();
+                          } else {
+                              unreleaseConfirmModal.hide();
+                          }
+                      } else {
+                          window.location.reload();
+                      }
+                  })
+                  .catch(err => {
+                      console.error(err);
+                      window.location.reload();
+                  })
+                  .finally(() => {
+                      unreleaseConfirmSubmitBtn.disabled = false;
+                      unreleaseConfirmSubmitBtn.innerHTML = originalBtnHtml;
+                  });
+                  return;
+              }
+          }
+          if (unreleaseConfirmModal) unreleaseConfirmModal.hide();
+      });
+  }
 
   confirmSubmitBtn.addEventListener("click", function () {
     if (pendingReleaseFormId) {
