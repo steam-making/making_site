@@ -1576,6 +1576,39 @@ function confirmReleaseNotification(button, isReRequest, instName, orderMonth, u
   </div>
 </div>
 
+<!-- 전체출고 결과 안내 모달 -->
+<div class="modal fade" id="bulkReleaseSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-check-circle"></i> 전체 출고 완료</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <h5 class="text-success fw-bold mb-3">전체 출고 처리가 완료되었습니다!</h5>
+        <div class="d-flex flex-column align-items-center gap-2 mt-3">
+          <div class="bg-light p-3 rounded w-100 mb-2">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">택배 주문 생성</span>
+              <span class="fw-bold text-primary"><span id="bulkParcelCount">0</span>건</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">센터수령 출고</span>
+              <span class="fw-bold text-success"><span id="bulkCenterCount">0</span>건</span>
+            </div>
+          </div>
+          <div id="bulkShortageWarning" class="text-danger small fw-bold d-none">
+            <i class="bi bi-exclamation-triangle"></i> 재고 부족으로 출고가 보류된 센터수령 항목: <span id="bulkShortageCount">0</span>건
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary px-4" id="bulkReleaseModalCloseBtn">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const confirmModalEl = document.getElementById("releaseConfirmModal");
@@ -1599,6 +1632,23 @@ document.addEventListener("DOMContentLoaded", function () {
   const unreleaseSuccessModalEl = document.getElementById("unreleaseSuccessModal");
   const unreleaseSuccessModal = unreleaseSuccessModalEl ? bootstrap.Modal.getOrCreateInstance(unreleaseSuccessModalEl) : null;
 
+  // 전체출고 모달 인스턴스
+  const bulkSuccessModalEl = document.getElementById("bulkReleaseSuccessModal");
+  const bulkSuccessModal = bulkSuccessModalEl ? bootstrap.Modal.getOrCreateInstance(bulkSuccessModalEl) : null;
+  const bulkCloseBtn = document.getElementById("bulkReleaseModalCloseBtn");
+  
+  if (bulkCloseBtn) {
+      bulkCloseBtn.addEventListener('click', function() {
+          bulkSuccessModal.hide();
+          window.location.reload();
+      });
+  }
+  if (bulkSuccessModalEl) {
+      bulkSuccessModalEl.addEventListener('hidden.bs.modal', function () {
+          window.location.reload();
+      });
+  }
+
   let pendingReleaseFormId = null;
   let pendingReleaseMethod = null;
   let pendingReleaseStock = null;
@@ -1610,6 +1660,55 @@ document.addEventListener("DOMContentLoaded", function () {
   let pendingUnreleaseQty = null;
 
   document.body.addEventListener("click", function (e) {
+    const bulkBtn = e.target.closest(".js-bulk-release-btn");
+    if (bulkBtn) {
+        if (!confirm('현재 그룹의 "대기" 상태인 항목들을 모두 출고 처리하시겠습니까?\n(택배는 주문 자동 생성, 센터수령은 재고 자동차감 처리됩니다)')) {
+            return;
+        }
+        
+        const formId = bulkBtn.dataset.formId;
+        const form = document.getElementById(formId);
+        if (form) {
+            bulkBtn.disabled = true;
+            const originHtml = bulkBtn.innerHTML;
+            bulkBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 처리중...';
+            
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    if (bulkSuccessModal) {
+                        document.getElementById('bulkParcelCount').textContent = data.parcel;
+                        document.getElementById('bulkCenterCount').textContent = data.center;
+                        const shortageDiv = document.getElementById('bulkShortageWarning');
+                        if (data.shortage > 0) {
+                            document.getElementById('bulkShortageCount').textContent = data.shortage;
+                            shortageDiv.classList.remove('d-none');
+                        } else {
+                            shortageDiv.classList.add('d-none');
+                        }
+                        bulkSuccessModal.show();
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    alert('전체 출고 처리에 실패했습니다. ' + (data.message || ''));
+                    window.location.reload();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('요청 중 오류가 발생했습니다.');
+                window.location.reload();
+            });
+        }
+        return;
+    }
+
     const btn = e.target.closest(".js-release-btn");
     const unBtn = e.target.closest(".js-unrelease-btn");
     

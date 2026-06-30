@@ -2772,6 +2772,104 @@ def delete_release_item(request, item_id):
 @login_required
 @user_passes_test(is_admin)
 @require_POST
+def bulk_release_group(request, institution_id, order_month):
+    """지정된 기관+주문월 그룹 내 대기(pending) 상태인 출고 항목 일괄 출고"""
+    releases_qs = MaterialRelease.objects.filter(
+        institution_id=institution_id,
+        order_month=order_month,
+    )
+    
+    if not releases_qs.exists():
+        return JsonResponse({"success": False, "message": "해당 그룹이 존재하지 않습니다."})
+
+    from robot_LvUP.views import find_levelup_release, sync_levelup_shipment_status
+    from .utils import log_material_history
+    
+    count_parcel = 0
+    count_center = 0
+    count_stock_shortage = 0
+    
+    # 해당 그룹에 속한 항목들 중 대기 상태이면서 포함된 항목들만 처리
+    items = MaterialReleaseItem.objects.filter(
+        release__in=releases_qs,
+        included=True,
+        status='pending'
+    ).select_related('material', 'release__institution', 'release__teacher', 'vendor')
+
+    for item in items:
+        material = item.material
+        
+        # 1. 센터수령: 재고 차감 필요
+        if item.release_method == '센터수령':
+            if material and hasattr(material, 'stock'):
+                if (material.stock or 0) < (item.quantity or 0):
+                    count_stock_shortage += 1
+                    continue # 재고 부족 시 건너뜀
+                
+                old_stock = material.stock
+                material.stock = F('stock') - (item.quantity or 0)
+                material.save(update_fields=['stock'])
+                material.refresh_from_db(fields=["stock"])
+                
+                log_material_history(
+                    material=material,
+                    user=request.user,
+                    change_type="stock_decrease",
+                    old_value=old_stock,
+                    new_value=material.stock,
+                    note=f"출고 일괄처리 (출고품목ID {item.id}, 수량 {item.quantity})"
+                )
+                
+            item.status = 'released'
+            item.released_at = timezone.now()
+            item.released_quantity = item.quantity
+            item.save(update_fields=['status', 'released_at', 'released_quantity'])
+            
+            count_center += 1
+            
+        # 2. 택배: 교구재 주문 자동 생성
+        elif item.release_method == '택배':
+            item.status = 'released'
+            item.released_at = timezone.now()
+            item.released_quantity = item.quantity
+            item.save(update_fields=['status', 'released_at', 'released_quantity'])
+            
+            order_date = timezone.now().date()
+            teacher = item.release.teacher
+            order, created = MaterialOrder.objects.get_or_create(
+                teacher=teacher,
+                ordered_date=order_date,
+                receive_type='order',
+                defaults={
+                    'release_location': item.release.institution.name,
+                    'notes': ''
+                }
+            )
+            MaterialOrderItem.objects.create(
+                order=order,
+                vendor=item.vendor,
+                material=item.material,
+                quantity=item.quantity,
+                status='waiting',
+                notes=f"[출고연동:{item.id}] [택배]"
+            )
+            count_parcel += 1
+
+    for r in releases_qs:
+        matched_release = find_levelup_release(r.institution, r.order_month)
+        if matched_release and matched_release.id == r.id:
+            sync_levelup_shipment_status(r)
+
+    return JsonResponse({
+        "success": True,
+        "parcel": count_parcel,
+        "center": count_center,
+        "shortage": count_stock_shortage
+    })
+
+@login_required
+@user_passes_test(is_admin)
+@require_POST
 def delete_release_group(request, institution_id, order_month):
     # 같은 기관 + 같은 주문월에 해당하는 모든 release
     releases = (MaterialRelease.objects

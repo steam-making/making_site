@@ -51,6 +51,7 @@ urlpatterns = [
     path('releases/item/<int:item_id>/edit/', views.edit_release_item, name='edit_release_item'),
     path('releases/item/<int:item_id>/delete/', views.delete_release_item, name='delete_release_item'),
     path('releases/group/<int:institution_id>/<str:order_month>/delete/', views.delete_release_group, name='delete_release_group'),
+    path('releases/group/<int:institution_id>/<str:order_month>/bulk-release/', views.bulk_release_group, name='bulk_release_group'),
     
     
     path('materials/bulk_delete/', views.material_bulk_delete, name='material_bulk_delete'),
