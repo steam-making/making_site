@@ -1494,6 +1494,34 @@ function confirmReleaseNotification(button, isReRequest, instName, orderMonth, u
     </div>
   </div>
 </div>
+<!-- 출고 완료 모달 (센터수령용) -->
+<div class="modal fade" id="releaseSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title"><i class="bi bi-check-circle"></i> 출고 완료</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-4">
+        <h5 class="text-success fw-bold mb-3">정상적으로 출고되었습니다!</h5>
+        <div class="d-flex justify-content-center gap-5 mt-3">
+          <div>
+            <div class="text-muted small mb-1">출고 수량</div>
+            <div class="fs-5 fw-bold"><span id="releaseSuccessQty">0</span>개</div>
+          </div>
+          <div class="border-end"></div>
+          <div>
+            <div class="text-muted small mb-1">남은 재고</div>
+            <div class="fs-5 fw-bold text-primary"><span id="releaseSuccessRemaining">0</span>개</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -1507,32 +1535,83 @@ document.addEventListener("DOMContentLoaded", function () {
   const stockModal = bootstrap.Modal.getOrCreateInstance(stockModalEl);
   const stockMsgEl = document.getElementById("releaseStockMsg");
 
+  const successModalEl = document.getElementById("releaseSuccessModal");
+  const successModal = successModalEl ? bootstrap.Modal.getOrCreateInstance(successModalEl) : null;
+
   let pendingReleaseFormId = null;
+  let pendingReleaseMethod = null;
+  let pendingReleaseStock = null;
+  let pendingReleaseQty = null;
 
   document.body.addEventListener("click", function (e) {
     const btn = e.target.closest(".js-release-btn");
     if (!btn) return;
     
     pendingReleaseFormId = btn.dataset.formId;
-    const method = btn.dataset.method;
-    const stock = parseInt(btn.dataset.stock, 10);
-    const qty = parseInt(btn.dataset.qty, 10);
+    pendingReleaseMethod = btn.dataset.method;
+    pendingReleaseStock = parseInt(btn.dataset.stock, 10);
+    pendingReleaseQty = parseInt(btn.dataset.qty, 10);
 
     // 센터수령일 때 재고 부족 체크
-    if (method === '센터수령' && stock < qty) {
-        stockMsgEl.textContent = `재고가 부족합니다. (현재 재고: ${stock}개 / 필요 수량: ${qty}개)`;
+    if (pendingReleaseMethod === '센터수령' && pendingReleaseStock < pendingReleaseQty) {
+        stockMsgEl.textContent = `재고가 부족합니다. (현재 재고: ${pendingReleaseStock}개 / 필요 수량: ${pendingReleaseQty}개)`;
         stockModal.show();
         return; // 출고 모달 띄우지 않음
     }
 
     // 통과되면 컨펌 모달 표시
-    confirmMsgEl.innerText = `출고방법: [${method}]\n정말 출고 처리 하시겠습니까?`;
+    confirmMsgEl.innerText = `출고방법: [${pendingReleaseMethod}]\n정말 출고 처리 하시겠습니까?`;
     confirmModal.show();
   });
 
   confirmSubmitBtn.addEventListener("click", function () {
     if (pendingReleaseFormId) {
-      document.getElementById(pendingReleaseFormId).submit();
+      const form = document.getElementById(pendingReleaseFormId);
+      if (form) {
+          // 비활성화 및 처리중 표시
+          confirmSubmitBtn.disabled = true;
+          const originalBtnHtml = confirmSubmitBtn.innerHTML;
+          confirmSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 처리중...';
+
+          fetch(form.action, {
+              method: 'POST',
+              body: new FormData(form),
+              headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          .then(res => res.text())
+          .then(html => {
+              const doc = new DOMParser().parseFromString(html, 'text/html');
+              const targetRowId = form.dataset.targetRow;
+              const targetRow = document.getElementById(targetRowId);
+              const newRow = doc.getElementById(targetRowId);
+              
+              if (targetRow && newRow) {
+                  targetRow.replaceWith(newRow);
+                  
+                  // 센터수령인 경우에만 성공 모달 표시
+                  if (pendingReleaseMethod === '센터수령' && successModal) {
+                      const remaining = pendingReleaseStock - pendingReleaseQty;
+                      document.getElementById('releaseSuccessQty').textContent = pendingReleaseQty;
+                      document.getElementById('releaseSuccessRemaining').textContent = remaining;
+                      confirmModal.hide();
+                      successModal.show();
+                  } else {
+                      confirmModal.hide();
+                  }
+              } else {
+                  window.location.reload();
+              }
+          })
+          .catch(err => {
+              console.error(err);
+              window.location.reload();
+          })
+          .finally(() => {
+              confirmSubmitBtn.disabled = false;
+              confirmSubmitBtn.innerHTML = originalBtnHtml;
+          });
+          return; // 성공/실패 시 모달 처리는 Promise 내부에서 수행
+      }
     }
     confirmModal.hide();
   });
