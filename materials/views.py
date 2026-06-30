@@ -941,15 +941,18 @@ def order_list(request):
                 item.release_location = item.order.release_location
                 item.display_notes = notes
                 
+            item.is_auto_generated = bool(
+                (item.notes and "[출고연동" in item.notes) or 
+                notes.endswith(auto_suffix)
+            )
+                
             table_rows.append({"type": "item", "data": item})
             
         # 해당 그룹이 순수 '새 주문' (수동 입력)인지 판별
         # 출고연동이거나 자동생성 문구가 있으면 수동이 아님
-        is_manual = not any(
-            (i.notes and "[출고연동" in i.notes) or 
-            (i.order.notes and i.order.notes.endswith("출고에 의한 자동생성"))
-            for i in group_items
-        )
+        is_manual = not any(i.is_auto_generated for i in group_items)
+        all_paid = all(i.paid_date for i in group_items)
+        all_received = all(i.status == 'received' for i in group_items)
             
         table_rows.append({
             "type": "subtotal",
@@ -957,7 +960,9 @@ def order_list(request):
             "teacher": teacher_obj,
             "qty": sub_qty,
             "sum": sub_sum,
-            "is_manual": is_manual
+            "is_manual": is_manual,
+            "all_paid": all_paid,
+            "all_received": all_received
         })
         
         total_qty += sub_qty

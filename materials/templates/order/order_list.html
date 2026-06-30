@@ -121,17 +121,21 @@
 
                   <!-- 관리 (수정/삭제) -->
                   <td>
-                    <div class="d-flex justify-content-center align-items-center gap-1">
-                      <a href="{% url 'edit_material_item' item.id %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" title="수정" style="width: 32px; height: 32px; padding: 0;">
-                        <i class="bi bi-pencil-square"></i>
-                      </a>
-                      <form action="{% url 'delete_material_item' item.id %}" method="post" class="m-0 p-0" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" title="삭제" onclick="return confirm('정말 삭제하시겠습니까?');" style="width: 32px; height: 32px; padding: 0;">
-                          <i class="bi bi-trash3"></i>
-                        </button>
-                      </form>
-                    </div>
+                    {% if item.is_auto_generated %}
+                      <span class="badge bg-secondary">교구출고변경</span>
+                    {% else %}
+                      <div class="d-flex justify-content-center align-items-center gap-1">
+                        <a href="{% url 'edit_material_item' item.id %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" title="수정" style="width: 32px; height: 32px; padding: 0;">
+                          <i class="bi bi-pencil-square"></i>
+                        </a>
+                        <form action="{% url 'delete_material_item' item.id %}" method="post" class="m-0 p-0" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" title="삭제" onclick="return confirm('정말 삭제하시겠습니까?');" style="width: 32px; height: 32px; padding: 0;">
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </form>
+                      </div>
+                    {% endif %}
                   </td>
                 </tr>
                 {% endwith %}
@@ -142,22 +146,30 @@
                   <td class="fw-bold text-danger">{{ row.qty|intcomma }}</td>
                   <!-- 날짜별 일괄 입금 -->
                   <td>
-                    <form action="{% url 'toggle_payment_date_group' row.date|date:'Y-m-d' %}" method="post" style="display:inline;">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-sm btn-outline-dark border-0 fw-bold" onclick="return confirm('해당 날짜의 모든 주문을 일괄 입금완료/취소 처리 하시겠습니까?');" title="일괄 입금 처리">
-                        <i class="bi bi-check2-all text-primary"></i> 입금
-                      </button>
-                    </form>
+                    {% if row.all_paid %}
+                      <span class="badge bg-primary text-white"><i class="bi bi-check-circle"></i> 입금완료</span>
+                    {% else %}
+                      <form action="{% url 'toggle_payment_date_group' row.date|date:'Y-m-d' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-dark border-0 fw-bold" onclick="return confirm('해당 날짜의 모든 주문을 일괄 입금완료 처리 하시겠습니까?');" title="일괄 입금 처리">
+                          <i class="bi bi-check2-all text-primary"></i> 전체입금처리
+                        </button>
+                      </form>
+                    {% endif %}
                   </td>
                   <!-- 날짜별 일괄 입고 -->
                   <td>
                     {% if row.is_manual %}
-                    <form action="{% url 'toggle_receive_date_group' row.date|date:'Y-m-d' %}" method="post" style="display:inline;">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-sm btn-outline-dark border-0 fw-bold" onclick="return confirm('해당 날짜의 모든 주문을 일괄 입고완료/취소 처리 하시겠습니까?');" title="일괄 입고 처리">
-                        <i class="bi bi-check2-all text-success"></i> 입고
-                      </button>
-                    </form>
+                      {% if row.all_received %}
+                        <span class="badge bg-success text-white"><i class="bi bi-check-circle"></i> 입고완료</span>
+                      {% else %}
+                        <form action="{% url 'toggle_receive_date_group' row.date|date:'Y-m-d' %}" method="post" style="display:inline;">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-dark border-0 fw-bold" onclick="return confirm('해당 날짜의 모든 주문을 일괄 입고완료 처리 하시겠습니까?');" title="일괄 입고 처리">
+                            <i class="bi bi-check2-all text-success"></i> 전체입고처리
+                          </button>
+                        </form>
+                      {% endif %}
                     {% endif %}
                   </td>
                   <td></td>
