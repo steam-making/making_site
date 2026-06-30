@@ -117,14 +117,14 @@
                         </div>
                       {% else %}
                         {% if user.is_staff %}
-                          <div class="d-flex justify-content-center gap-1">
-                            <form action="{% url 'receive_material_item' item.id %}" method="post" style="display:inline;">
+                          <div class="d-flex justify-content-center gap-1 align-items-center">
+                            <form action="{% url 'receive_material_item' item.id %}" method="post" class="m-0">
                               {% csrf_token %}
                               <button type="button" class="btn btn-sm btn-success btn-confirm" data-confirm-msg="이 항목을 반납처리 하시겠습니까?">
                                 <i class="bi bi-check-circle"></i> 반납처리
                               </button>
                             </form>
-                            <form action="{% url 'delete_material_item' item.id %}" method="post" style="display:inline;">
+                            <form action="{% url 'delete_material_item' item.id %}" method="post" class="m-0">
                               {% csrf_token %}
                               <button type="button" class="btn btn-sm btn-danger btn-confirm" data-confirm-msg="정말 삭제하시겠습니까?">
                                 <i class="bi bi-x-lg"></i> 삭제
