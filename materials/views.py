@@ -603,7 +603,7 @@ def release_list(request):
             mat_name = item.material.name
             grouped_data[key]["materials_summary"][mat_name] = grouped_data[key]["materials_summary"].get(mat_name, 0) + item.quantity
             
-            if item.status != 'shipped':
+            if item.status != 'released':
                 grouped_data[key]["unshipped_materials_summary"][mat_name] = grouped_data[key]["unshipped_materials_summary"].get(mat_name, 0) + item.quantity
             # 세금계산서용: 견적서와 동일하게 group_name 기준, included=True만
             if not getattr(item, 'included', True):
