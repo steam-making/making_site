@@ -3386,6 +3386,7 @@ def return_release_item(request, item_id):
         material=material,
         vendor=item.vendor,
         quantity=return_qty,
+        receive_type="return",
     )
 
     messages.success(request, f"{material.name} {return_qty}개 반납 처리 및 입고 기록 생성 완료")
