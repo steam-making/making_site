@@ -38,9 +38,10 @@
     <div class="card-body p-0">
       <div class="table-responsive" style="max-height: 700px; overflow-y: auto;">
         <table class="table table-hover table-bordered table-striped text-center mb-0 align-middle">
-          <thead class="table-light position-sticky top-0 shadow-sm" style="z-index: 10;">
+          <thead class="table-light position-sticky top-0 shadow-sm" style="z-index: 10; white-space: nowrap;">
             <tr>
               <th><i class="bi bi-calendar-date me-1"></i> 주문일자</th>
+              <th><i class="bi bi-geo-alt me-1"></i> 출고장소</th>
               <th><i class="bi bi-shop me-1"></i> 거래처</th>
               <th><i class="bi bi-box me-1"></i> 교구재</th>
               <th><i class="bi bi-cash-stack me-1"></i> 공급가(단가)</th>
@@ -57,14 +58,15 @@
                 {% with item=row.data %}
                 <tr>
                   <td>
-                    {{ item.order.ordered_date|date:"Y-m-d" }}<br>
+                    {{ item.order.ordered_date|date:"y-m-d" }}<br>
                     <small class="text-muted"><i class="bi bi-person-fill"></i> {{ item.order.teacher.first_name }}</small>
                   </td>
+                  <td>{{ item.release_location }}</td>
                   <td>{{ item.vendor.name }}</td>
                   <td>
                     {{ item.material.name }}
-                    {% if item.order.notes %}
-                      <br><small class="text-muted"><i class="bi bi-pencil-square"></i> {{ item.order.notes }}</small>
+                    {% if item.display_notes %}
+                      <br><small class="text-muted"><i class="bi bi-pencil-square"></i> {{ item.display_notes }}</small>
                     {% endif %}
                   </td>
                   <td>{{ item.material.supply_price|intcomma }}</td>
@@ -123,7 +125,7 @@
                 {% endwith %}
               {% elif row.type == 'subtotal' %}
                 <tr class="table-secondary" style="border-top: 2px solid #dee2e6;">
-                  <td colspan="4" class="text-end fw-bold"><i class="bi bi-calendar-check me-1"></i> {{ row.date|date:"Y-m-d" }} 소계</td>
+                  <td colspan="5" class="text-end fw-bold"><i class="bi bi-calendar-check me-1"></i> {{ row.date|date:"y-m-d" }} 소계</td>
                   <td class="fw-bold text-primary">{{ row.sum|intcomma }}</td>
                   <td class="fw-bold text-danger">{{ row.qty|intcomma }}</td>
                   <!-- 날짜별 일괄 입금 -->
@@ -149,7 +151,7 @@
               {% endif %}
             {% empty %}
             <tr>
-              <td colspan="9" class="text-center py-4 text-muted">등록된 거래 내역이 없습니다.</td>
+              <td colspan="10" class="text-center py-4 text-muted">등록된 거래 내역이 없습니다.</td>
             </tr>
             {% endfor %}
           </tbody>

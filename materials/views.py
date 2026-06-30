@@ -928,6 +928,15 @@ def order_list(request):
         sub_sum = sum((i.material.supply_price or 0) * (i.quantity or 0) for i in group_items)
         
         for item in group_items:
+            notes = item.order.notes or ""
+            auto_suffix = " 출고에 의한 자동생성"
+            if notes.endswith(auto_suffix):
+                item.release_location = notes[:-len(auto_suffix)]
+                item.display_notes = ""
+            else:
+                item.release_location = ""
+                item.display_notes = notes
+                
             table_rows.append({"type": "item", "data": item})
             
         table_rows.append({
