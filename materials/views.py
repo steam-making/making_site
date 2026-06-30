@@ -1447,18 +1447,22 @@ def receive_material_item(request, item_id):
         item.status = 'received'
         item.received_date = timezone.now()
 
-        # ✅ 입고 시 재고 증가
-        item.material.stock += item.quantity
-        item.material.save()
+        # ✅ 입고 시 재고 증가 (반납 건은 생성 시 이미 증가되므로 제외)
+        if item.order.receive_type != 'return' and item.receive_type != 'return':
+            item.material.stock += item.quantity
+            item.material.save()
+            log_material_history(
+                item.material, request.user,
+                "stock_increase", old_stock, item.material.stock,
+                f"입고 처리 (주문ID {item.id}, 수량 {item.quantity})"
+            )
+        
         item.save()
 
-        log_material_history(
-            item.material, request.user,
-            "stock_increase", old_stock, item.material.stock,
-            f"입고 처리 (주문ID {item.id}, 수량 {item.quantity})"
-        )
+        if item.order.receive_type == 'return' or item.receive_type == 'return':
+            messages.success(request, f"{item.material.name} 반납완료 처리되었습니다.|MODAL_SUCCESS")
 
-    return redirect('order_list')
+    return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
 def receive_order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
@@ -3249,27 +3253,29 @@ def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
             # ▶ 입고 완료 → 미입고로 취소 (재고 되돌림)
             for item in qs:
                 if item.status == "received":
-                    material = item.material
-                    if material and hasattr(material, 'stock'):
-                        old_stock = material.stock
-                        Material.objects.filter(id=material.id).update(
-                            stock=F("stock") - (item.quantity or 0)
-                        )
-                        material.refresh_from_db(fields=["stock"])
+                    # ✅ 입고 취소 시 재고 되돌림 (반납 건은 제외)
+                    if item.order.receive_type != 'return' and item.receive_type != 'return':
+                        material = item.material
+                        if material and hasattr(material, 'stock'):
+                            old_stock = material.stock
+                            Material.objects.filter(id=material.id).update(
+                                stock=F("stock") - (item.quantity or 0)
+                            )
+                            material.refresh_from_db(fields=["stock"])
 
-                        log_material_history(
-                            material=material,
-                            user=request.user,
-                            change_type="입고 취소",
-                            old_value=old_stock,
-                            new_value=material.stock,
-                            note=f"거래처 그룹 입고취소 (item_id={item.id}, 수량 {item.quantity})"
-                        )
+                            log_material_history(
+                                material=material,
+                                user=request.user,
+                                change_type="입고 취소",
+                                old_value=old_stock,
+                                new_value=material.stock,
+                                note=f"거래처 그룹 입고취소 (item_id={item.id}, 수량 {item.quantity})"
+                            )
 
                     item.status = "waiting"
                     item.received_date = None
                     item.save(update_fields=["status", "received_date"])
-            messages.success(request, "해당 거래처 그룹의 입고완료가 취소되었습니다.")
+            messages.success(request, "해당 거래처 그룹의 반납(입고)완료가 취소되었습니다.")
 
         else:
             # ▶ 미입고 → 입고 완료 처리 (재고 증가)
@@ -3278,22 +3284,25 @@ def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
             for item in qs:
                 if item.status != "received":
                     total_qty += (item.quantity or 0)
-                    material = item.material
-                    if material and hasattr(material, 'stock'):
-                        old_stock = material.stock
-                        Material.objects.filter(id=material.id).update(
-                            stock=F("stock") + (item.quantity or 0)
-                        )
-                        material.refresh_from_db(fields=["stock"])
+                    
+                    # ✅ 입고 시 재고 증가 (반납 건은 생성 시 이미 증가되므로 제외)
+                    if item.order.receive_type != 'return' and item.receive_type != 'return':
+                        material = item.material
+                        if material and hasattr(material, 'stock'):
+                            old_stock = material.stock
+                            Material.objects.filter(id=material.id).update(
+                                stock=F("stock") + (item.quantity or 0)
+                            )
+                            material.refresh_from_db(fields=["stock"])
 
-                        log_material_history(
-                            material=material,
-                            user=request.user,
-                            change_type="입고 완료",
-                            old_value=old_stock,
-                            new_value=material.stock,
-                            note=f"거래처 그룹 입고완료 (item_id={item.id}, 수량 {item.quantity})"
-                        )
+                            log_material_history(
+                                material=material,
+                                user=request.user,
+                                change_type="입고 완료",
+                                old_value=old_stock,
+                                new_value=material.stock,
+                                note=f"거래처 그룹 입고완료 (item_id={item.id}, 수량 {item.quantity})"
+                            )
 
                 item.status = "received"
                 item.received_date = now
@@ -3465,6 +3474,18 @@ def return_list(request):
             if item.receive_type != 'return':
                 continue
                 
+            item.original_order_month = ""
+            item.original_location = ""
+            if order.notes:
+                import re
+                m = re.search(r"출고항목 #(\d+)", order.notes)
+                if m:
+                    from .models import MaterialReleaseItem
+                    release_item = MaterialReleaseItem.objects.filter(id=m.group(1)).select_related('release__institution').first()
+                    if release_item:
+                        item.original_order_month = release_item.release.order_month.strftime("%Y-%m")
+                        item.original_location = release_item.release.institution.name
+
             order_has_items = True
             vtype = item.vendor.vendor_type.name if (item.vendor and item.vendor.vendor_type) else "미지정"
             vname = item.vendor.name if item.vendor else "미지정"

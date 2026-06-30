@@ -42,13 +42,13 @@
                   <form method="post" action="{% url 'toggle_receive_vendor_group' block.date_str v.vendor_type_id v.vendor_id %}">
                     {% csrf_token %}
                     {% if v.items.0.status == "received" %}
-                      <button type="button" class="btn btn-sm btn-outline-light btn-confirm" data-confirm-msg="반납완료를 취소하시겠습니까?">
+                      <button type="button" class="btn btn-sm btn-outline-light btn-confirm" data-confirm-msg="전체반납완료 상태를 취소하시겠습니까?">
                         <i class="bi bi-box-seam me-1"></i> 반납완료
                         {% if v.items.0.received_date %}({{ v.items.0.received_date|date:"Y-m-d" }}){% endif %}
                       </button>
                     {% else %}
-                      <button type="button" class="btn btn-sm btn-success btn-confirm" data-confirm-msg="반납완료 처리 하시겠습니까?">
-                        <i class="bi bi-truck me-1"></i> 미반납
+                      <button type="button" class="btn btn-sm btn-success btn-confirm" data-confirm-msg="전체반납처리 완료 하시겠습니까?">
+                        <i class="bi bi-truck me-1"></i> 전체반납처리
                       </button>
                     {% endif %}
                   </form>
@@ -82,9 +82,9 @@
                 <thead class="table-light">
                   <tr>
                     <th><i class="bi bi-calendar-date me-1"></i> 반납일자</th>
+                    <th><i class="bi bi-calendar-month me-1"></i> 주문년월</th>
+                    <th><i class="bi bi-geo-alt me-1"></i> 출강장소</th>
                     <th><i class="bi bi-box me-1"></i> 교구재</th>
-                    <th><i class="bi bi-cash-stack me-1"></i> 단가(가액)</th>
-                    <th><i class="bi bi-123 me-1"></i> 합계(가액)</th>
                     <th><i class="bi bi-plus-square me-1"></i> 수량</th>
                     <th><i class="bi bi-gear me-1"></i> 관리</th>
                   </tr>
@@ -93,9 +93,9 @@
                   {% for item in v.items %}
                   <tr>
                     <td>{{ ob.order.ordered_date|date:"Y-m-d" }}</td>
+                    <td>{{ item.original_order_month|default:"-" }}</td>
+                    <td>{{ item.original_location|default:"-" }}</td>
                     <td>{{ item.material.name }}</td>
-                    <td>{{ item.material.supply_price|intcomma }}</td>
-                    <td>{{ item.material.supply_price|mul:item.quantity|intcomma }}</td>
                     <td>{{ item.quantity|intcomma }}</td>
                     <td>
                       {% if item.status == "received" %}
@@ -105,6 +105,12 @@
                       {% else %}
                         {% if user.is_staff %}
                           <div class="d-flex justify-content-center gap-1">
+                            <form action="{% url 'receive_material_item' item.id %}" method="post" style="display:inline;">
+                              {% csrf_token %}
+                              <button type="button" class="btn btn-sm btn-success btn-confirm" data-confirm-msg="이 항목을 반납처리 하시겠습니까?">
+                                <i class="bi bi-check-circle"></i> 반납처리
+                              </button>
+                            </form>
                             <form action="{% url 'delete_material_item' item.id %}" method="post" style="display:inline;">
                               {% csrf_token %}
                               <button type="button" class="btn btn-sm btn-danger btn-confirm" data-confirm-msg="정말 삭제하시겠습니까?">
@@ -122,9 +128,7 @@
                 </tbody>
                 <tfoot class="table-light">
                   <tr>
-                    <td colspan="2" class="text-end fw-bold">거래처 소계</td>
-                    <td class="fw-bold">{{ v.unit_sum|intcomma }}</td>
-                    <td class="fw-bold text-primary">{{ v.total_sum|intcomma }}</td>
+                    <td colspan="4" class="text-end fw-bold">거래처 소계</td>
                     <td class="fw-bold">{{ v.qty_sum|intcomma }}</td>
                     <td></td>
                   </tr>
