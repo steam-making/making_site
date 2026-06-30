@@ -190,7 +190,7 @@
   {% for message in messages %}
     {% if "MODAL_SUCCESS" in message.message %}
       <!-- 플래그가 있는 메시지는 화면에 표시하지 않음 (모달에서 띄움) -->
-      <span class="d-none system-modal-message" data-msg="{{ message.message|replace:'|MODAL_SUCCESS'|default:message.message|cut:'|MODAL_SUCCESS' }}"></span>
+      <span class="d-none system-modal-message" data-msg="{{ message.message|cut:'|MODAL_SUCCESS' }}"></span>
     {% endif %}
   {% endfor %}
 {% endif %}
