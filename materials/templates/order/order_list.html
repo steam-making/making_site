@@ -68,7 +68,7 @@
             {% for row in table_rows %}
               {% if row.type == 'item' %}
                 {% with item=row.data %}
-                <tr class="{% if not item.paid_date or item.status != 'received' %}table-danger{% else %}table-success{% endif %}">
+                <tr class="{% if item.paid_date and (item.status == 'received' or '[택배]' in item.notes) %}table-success{% else %}table-danger{% endif %}">
                   <td>
                     {{ item.order.ordered_date|date:"y-m-d" }}<br>
                     <small class="text-muted"><i class="bi bi-person-fill"></i> {{ item.order.teacher.first_name }}</small>

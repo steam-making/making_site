@@ -952,7 +952,7 @@ def order_list(request):
         # 출고연동이거나 자동생성 문구가 있으면 수동이 아님
         is_manual = not any(i.is_auto_generated for i in group_items)
         all_paid = all(i.paid_date for i in group_items)
-        all_received = all(i.status == 'received' for i in group_items)
+        all_received = all(i.status == 'received' or (i.notes and '[택배]' in i.notes) for i in group_items)
         
         is_completed = all_paid and (not is_manual or all_received)
             
