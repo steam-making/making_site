@@ -1,10 +1,20 @@
 {% extends "base.html" %}
 {% load humanize custom_filters %}
 
-{% block content_container_class %}container-fluid px-0{% endblock %}
+{% block extra_css %}
+<style>
+  .order-page {
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+</style>
+{% endblock %}
 
-{% block content %}
-<div class="container-fluid mt-4 px-0 px-md-2">
+{% block content_container_class %}d-none{% endblock %}
+
+{% block full_page_content %}
+<div class="container-fluid px-0 order-page" style="padding-top: calc(70px + 0.5rem);">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="mb-0">
       <i class="bi bi-card-checklist me-2"></i> 교구재 주문 목록
