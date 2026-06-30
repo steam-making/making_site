@@ -55,8 +55,15 @@ urlpatterns = [
     
     path('materials/bulk_delete/', views.material_bulk_delete, name='material_bulk_delete'),
     path("orders/item/<int:item_id>/toggle_payment/", views.toggle_payment_item, name="toggle_payment_item"),
-    
-    # ✅ 주문 그룹 단위 (날짜별)
+    # ==========================================
+    # 날짜별 그룹 일괄 처리 (주문입고 전용)
+    # ==========================================
+    path('groups/<str:date_str>/toggle-payment/', views.toggle_payment_date_group, name='toggle_payment_date_group'),
+    path('groups/<str:date_str>/toggle-receive/', views.toggle_receive_date_group, name='toggle_receive_date_group'),
+
+    # ==========================================
+    # 거래처별 그룹 일괄 처리 (주문입고 전용)
+    # ==========================================
     path("orders/group/<str:grouper>/toggle_payment/", views.toggle_payment_group, name="toggle_payment_group"),
     path("orders/group/<str:grouper>/receive/", views.receive_group, name="receive_group"),
     path("orders/group/<str:grouper>/delete/", views.delete_group_orders, name="delete_group_orders"),

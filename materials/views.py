@@ -2961,6 +2961,57 @@ def toggle_payment_vendor_group(request, date_str, vendor_type_id, vendor_id):
     return redirect('order_list')
 
 
+def _date_group_qs(date_str):
+    date_obj = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+    return MaterialOrderItem.objects.filter(
+        order__ordered_date=date_obj,
+        order__receive_type='order'
+    )
+
+@login_required
+@require_POST
+def toggle_payment_date_group(request, date_str):
+    qs = _date_group_qs(date_str)
+    already_paid = qs.filter(paid_date__isnull=False).exists()
+    if already_paid:
+        qs.update(paid_date=None)
+        messages.success(request, f"{date_str} 전체 주문의 입금완료를 취소했습니다.")
+    else:
+        qs.update(paid_date=timezone.now().date())
+        messages.success(request, f"{date_str} 전체 주문을 입금완료 처리했습니다.")
+    return redirect(request.META.get('HTTP_REFERER', 'order_list'))
+
+@login_required
+@require_POST
+def toggle_receive_date_group(request, date_str):
+    qs = _date_group_qs(date_str).select_related("material")
+    already_received = qs.filter(status='received').exists()
+
+    with transaction.atomic():
+        if already_received:
+            for item in qs:
+                if item.status == "received":
+                    material = item.material
+                    if material and hasattr(material, 'stock'):
+                        Material.objects.filter(id=material.id).update(
+                            stock=F("stock") - (item.quantity or 0)
+                        )
+            qs.update(status="waiting", received_date=None)
+            messages.success(request, f"{date_str} 전체 주문의 입고완료를 취소했습니다.")
+        else:
+            for item in qs:
+                if item.status != "received":
+                    material = item.material
+                    if material and hasattr(material, 'stock'):
+                        Material.objects.filter(id=material.id).update(
+                            stock=F("stock") + (item.quantity or 0)
+                        )
+            qs.update(status="received", received_date=timezone.now().date())
+            messages.success(request, f"{date_str} 전체 주문을 입고완료 처리했습니다.")
+
+    return redirect(request.META.get('HTTP_REFERER', 'order_list'))
+
+
 @login_required
 @require_POST
 def toggle_receive_vendor_group(request, date_str, vendor_type_id, vendor_id):
