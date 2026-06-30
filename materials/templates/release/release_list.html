@@ -753,8 +753,8 @@
               <th class="d-none d-md-table-cell">납품가<br>(단가)</th>
               <th>납품가<br>(합계)</th>
               <th>수량</th>
-              <th class="d-none d-md-table-cell" style="width:1%;">출고방법</th>
-              <th style="width:15%;">출고처리</th>
+              <th class="d-none d-md-table-cell" style="width:12%;">출고방법</th>
+              <th style="width:30%;">출고처리</th>
             </tr>
           </thead>
           <tbody>
@@ -926,7 +926,7 @@
               <td class="text-end align-middle" data-label="납품가 합계">{{ group.total_price|intcomma }}원</td>
               <td class="align-middle" data-label="총 수량">{{ group.total_qty }}</td>
               <td colspan="4" class="text-center align-middle" data-label="그룹 처리">
-                <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-wrap">
+                <div class="group-actions d-flex gap-2 justify-content-center align-items-center flex-nowrap">
 
                   {# ✅ 출고 요청 알림 #}
                   <form method="post" action="{% url 'request_release_notification' group.institution.id group.order_month %}" class="m-0">
