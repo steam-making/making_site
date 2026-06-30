@@ -2598,13 +2598,16 @@ def release_material_item(request, item_id):
 
     else:
         # ✅ 출고 처리
-        if item.release_method == '센터수령' and material and hasattr(material, 'stock'):
-            if (material.stock or 0) < (item.quantity or 0):
-                messages.error(request, f"재고가 부족합니다. (현재 재고: {material.stock})")
+        old_released_quantity = item.released_quantity or 0
+        new_release_qty = item.quantity - old_released_quantity
+
+        if item.release_method == '센터수령' and material and hasattr(material, 'stock') and new_release_qty > 0:
+            if (material.stock or 0) < new_release_qty:
+                messages.error(request, f"재고가 부족합니다. (필요: {new_release_qty}, 현재 재고: {material.stock})")
                 return redirect('release_list')
 
             old_stock = material.stock
-            material.stock = F('stock') - (item.quantity or 0)
+            material.stock = F('stock') - new_release_qty
             material.save(update_fields=['stock'])
             material.refresh_from_db(fields=["stock"])  # 최신값 반영
 
@@ -2616,7 +2619,7 @@ def release_material_item(request, item_id):
                 change_type="stock_decrease",
                 old_value=old_stock,
                 new_value=material.stock,
-                note=f"출고 처리 (출고품목ID {item.id}, 수량 {item.quantity})"
+                note=f"출고 처리 (출고품목ID {item.id}, 잔여 수량 {new_release_qty})"
             )
 
         item.status = 'released'
@@ -2624,8 +2627,8 @@ def release_material_item(request, item_id):
         item.released_quantity = item.quantity
         item.save(update_fields=['status', 'released_at', 'released_quantity'])
         
-        # ✅ 택배 출고 시에만 주문(MaterialOrder) 내역 자동 생성
-        if item.release_method == '택배':
+        # ✅ 택배 출고 시에만 주문(MaterialOrder) 내역 자동 생성 (남은 수량에 대해서만)
+        if item.release_method == '택배' and new_release_qty > 0:
             order_date = timezone.now().date()
             teacher = item.release.teacher
             order, created = MaterialOrder.objects.get_or_create(
@@ -2641,15 +2644,15 @@ def release_material_item(request, item_id):
                 order=order,
                 vendor=item.vendor,
                 material=item.material,
-                quantity=item.quantity,
+                quantity=new_release_qty,
                 status='waiting',
-                notes=f"[출고연동:{item.id}] [택배]"
+                notes=f"[출고연동:{item.id}] [택배] [수량:{new_release_qty}]"
             )
 
         matched_release = find_levelup_release(item.release.institution, item.release.order_month)
         if matched_release and matched_release.id == item.release.id:
             sync_levelup_shipment_status(item.release)
-        messages.success(request, "출고를 완료했습니다.")
+        messages.success(request, f"출고를 완료했습니다. (신규 출고 수량: {new_release_qty})")
 
     from .utils import redirect_with_filters
     return redirect_with_filters(request, "release_list")
@@ -2816,16 +2819,18 @@ def bulk_release_group(request, institution_id, order_month):
 
     for item in items:
         material = item.material
+        old_released_quantity = item.released_quantity or 0
+        new_release_qty = item.quantity - old_released_quantity
         
         # 1. 센터수령: 재고 차감 필요
         if item.release_method == '센터수령':
-            if material and hasattr(material, 'stock'):
-                if (material.stock or 0) < (item.quantity or 0):
+            if material and hasattr(material, 'stock') and new_release_qty > 0:
+                if (material.stock or 0) < new_release_qty:
                     count_stock_shortage += 1
                     continue # 재고 부족 시 건너뜀
                 
                 old_stock = material.stock
-                material.stock = F('stock') - (item.quantity or 0)
+                material.stock = F('stock') - new_release_qty
                 material.save(update_fields=['stock'])
                 material.refresh_from_db(fields=["stock"])
                 
@@ -2835,12 +2840,12 @@ def bulk_release_group(request, institution_id, order_month):
                     change_type="stock_decrease",
                     old_value=old_stock,
                     new_value=material.stock,
-                    note=f"출고 일괄처리 (출고품목ID {item.id}, 수량 {item.quantity})"
+                    note=f"출고 일괄처리 (출고품목ID {item.id}, 잔여 수량 {new_release_qty})"
                 )
                 
                 center_stocks.append({
                     "name": material.name,
-                    "qty": item.quantity,
+                    "qty": new_release_qty,
                     "remaining": material.stock
                 })
                 
@@ -2858,25 +2863,26 @@ def bulk_release_group(request, institution_id, order_month):
             item.released_quantity = item.quantity
             item.save(update_fields=['status', 'released_at', 'released_quantity'])
             
-            order_date = timezone.now().date()
-            teacher = item.release.teacher
-            order, created = MaterialOrder.objects.get_or_create(
-                teacher=teacher,
-                ordered_date=order_date,
-                receive_type='order',
-                defaults={
-                    'release_location': item.release.institution.name,
-                    'notes': ''
-                }
-            )
-            MaterialOrderItem.objects.create(
-                order=order,
-                vendor=item.vendor,
-                material=item.material,
-                quantity=item.quantity,
-                status='waiting',
-                notes=f"[출고연동:{item.id}] [택배]"
-            )
+            if new_release_qty > 0:
+                order_date = timezone.now().date()
+                teacher = item.release.teacher
+                order, created = MaterialOrder.objects.get_or_create(
+                    teacher=teacher,
+                    ordered_date=order_date,
+                    receive_type='order',
+                    defaults={
+                        'release_location': item.release.institution.name,
+                        'notes': ''
+                    }
+                )
+                MaterialOrderItem.objects.create(
+                    order=order,
+                    vendor=item.vendor,
+                    material=item.material,
+                    quantity=new_release_qty,
+                    status='waiting',
+                    notes=f"[출고연동:{item.id}] [택배] [수량:{new_release_qty}]"
+                )
             count_parcel += 1
 
     for r in releases_qs:
