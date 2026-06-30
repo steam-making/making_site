@@ -909,28 +909,39 @@ def order_list(request):
         MaterialOrderItem.objects
         .filter(order__receive_type='order')
         .select_related('order', 'order__teacher', 'vendor', 'vendor__vendor_type', 'material')
-        .annotate(
-            status_order=Case(
-                When(status='waiting', then=Value(0)),
-                When(status='received', then=Value(1)),
-                default=Value(2),
-                output_field=IntegerField()
-            )
-        )
-        .order_by('status_order', '-order__ordered_date', 'vendor__name')
+        .order_by('-order__ordered_date', 'vendor__name', 'material__name')
     )
 
     if vendor_id_filter:
         items_query = items_query.filter(vendor_id=vendor_id_filter)
 
-    items_list = list(items_query)
-
-    # 전체 합계 계산
-    total_qty = sum(i.quantity for i in items_list if i.quantity)
-    total_sum = sum((i.material.supply_price or 0) * (i.quantity or 0) for i in items_list)
+    from itertools import groupby
+    raw_items = list(items_query)
+    
+    table_rows = []
+    total_qty = 0
+    total_sum = 0
+    
+    for date_obj, group in groupby(raw_items, key=lambda i: i.order.ordered_date):
+        group_items = list(group)
+        sub_qty = sum(i.quantity for i in group_items if i.quantity)
+        sub_sum = sum((i.material.supply_price or 0) * (i.quantity or 0) for i in group_items)
+        
+        for item in group_items:
+            table_rows.append({"type": "item", "data": item})
+            
+        table_rows.append({
+            "type": "subtotal",
+            "date": date_obj,
+            "qty": sub_qty,
+            "sum": sub_sum
+        })
+        
+        total_qty += sub_qty
+        total_sum += sub_sum
 
     context = {
-        "items_list": items_list,
+        "table_rows": table_rows,
         "total_qty": total_qty,
         "total_sum": total_sum,
         "vendors": vendors,

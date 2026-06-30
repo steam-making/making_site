@@ -53,66 +53,79 @@
             </tr>
           </thead>
           <tbody>
-            {% for item in items_list %}
-            <tr>
-              <td>
-                {{ item.order.ordered_date|date:"Y-m-d" }}<br>
-                <small class="text-muted"><i class="bi bi-person-fill"></i> {{ item.order.teacher.first_name }}</small>
-              </td>
-              <td>{{ item.vendor.name }}</td>
-              <td>
-                {{ item.material.name }}
-                {% if item.order.notes %}
-                  <br><small class="text-muted"><i class="bi bi-pencil-square"></i> {{ item.order.notes }}</small>
-                {% endif %}
-              </td>
-              <td>{{ item.material.supply_price|intcomma }}</td>
-              <td>{{ item.material.supply_price|mul:item.quantity|intcomma }}</td>
-              <td>{{ item.quantity|intcomma }}</td>
-              
-              <!-- 입금 버튼 -->
-              <td>
-                <form action="{% url 'toggle_payment_item' item.id %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  {% if item.paid_date %}
-                    <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('입금완료 상태를 취소하시겠습니까?');">
-                      입금완료<br><small>({{ item.paid_date|date:"Y-m-d" }})</small>
-                    </button>
-                  {% else %}
-                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('이 항목을 입금 처리하시겠습니까?');">미입금</button>
-                  {% endif %}
-                </form>
-              </td>
+            {% for row in table_rows %}
+              {% if row.type == 'item' %}
+                {% with item=row.data %}
+                <tr>
+                  <td>
+                    {{ item.order.ordered_date|date:"Y-m-d" }}<br>
+                    <small class="text-muted"><i class="bi bi-person-fill"></i> {{ item.order.teacher.first_name }}</small>
+                  </td>
+                  <td>{{ item.vendor.name }}</td>
+                  <td>
+                    {{ item.material.name }}
+                    {% if item.order.notes %}
+                      <br><small class="text-muted"><i class="bi bi-pencil-square"></i> {{ item.order.notes }}</small>
+                    {% endif %}
+                  </td>
+                  <td>{{ item.material.supply_price|intcomma }}</td>
+                  <td>{{ item.material.supply_price|mul:item.quantity|intcomma }}</td>
+                  <td>{{ item.quantity|intcomma }}</td>
+                  
+                  <!-- 입금 버튼 -->
+                  <td>
+                    <form action="{% url 'toggle_payment_item' item.id %}" method="post" style="display:inline;">
+                      {% csrf_token %}
+                      {% if item.paid_date %}
+                        <button type="submit" class="btn btn-sm btn-outline-secondary border-0" onclick="return confirm('입금완료 상태를 취소하시겠습니까?');" title="입금완료 취소">
+                          <i class="bi bi-check-circle-fill text-primary fs-5"></i><br>
+                          <small class="text-muted">{{ item.paid_date|date:"m-d" }}</small>
+                        </button>
+                      {% else %}
+                        <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('이 항목을 입금 처리하시겠습니까?');">미입금</button>
+                      {% endif %}
+                    </form>
+                  </td>
 
-              <!-- 입고 버튼 -->
-              <td>
-                <form action="{% url 'receive_material_item' item.id %}" method="post" style="display:inline;">
-                  {% csrf_token %}
-                  {% if item.status == 'received' %}
-                    <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('입고완료 상태를 취소하시겠습니까?');">
-                      입고완료<br><small>({{ item.received_date|date:"Y-m-d" }})</small>
-                    </button>
-                  {% else %}
-                    <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('이 항목을 입고 처리하시겠습니까?');">미입고</button>
-                  {% endif %}
-                </form>
-              </td>
+                  <!-- 입고 버튼 -->
+                  <td>
+                    <form action="{% url 'receive_material_item' item.id %}" method="post" style="display:inline;">
+                      {% csrf_token %}
+                      {% if item.status == 'received' %}
+                        <button type="submit" class="btn btn-sm btn-outline-secondary border-0" onclick="return confirm('입고완료 상태를 취소하시겠습니까?');" title="입고완료 취소">
+                          <i class="bi bi-check-circle-fill text-success fs-5"></i><br>
+                          <small class="text-muted">{{ item.received_date|date:"m-d" }}</small>
+                        </button>
+                      {% else %}
+                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('이 항목을 입고 처리하시겠습니까?');">미입고</button>
+                      {% endif %}
+                    </form>
+                  </td>
 
-              <!-- 관리 (수정/삭제) -->
-              <td>
-                <div class="d-flex justify-content-center gap-1">
-                  <a href="{% url 'edit_material_item' item.id %}" class="btn btn-sm btn-outline-primary" title="수정">
-                    <i class="bi bi-pencil-square"></i>
-                  </a>
-                  <form action="{% url 'delete_material_item' item.id %}" method="post" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger" title="삭제" onclick="return confirm('정말 삭제하시겠습니까?');">
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
+                  <!-- 관리 (수정/삭제) -->
+                  <td>
+                    <div class="d-flex justify-content-center gap-1">
+                      <a href="{% url 'edit_material_item' item.id %}" class="btn btn-sm btn-outline-primary" title="수정">
+                        <i class="bi bi-pencil-square"></i>
+                      </a>
+                      <form action="{% url 'delete_material_item' item.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="삭제" onclick="return confirm('정말 삭제하시겠습니까?');">
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endwith %}
+              {% elif row.type == 'subtotal' %}
+                <tr class="table-secondary" style="border-top: 2px solid #dee2e6;">
+                  <td colspan="4" class="text-end fw-bold"><i class="bi bi-calendar-check me-1"></i> {{ row.date|date:"Y-m-d" }} 소계</td>
+                  <td class="fw-bold text-primary">{{ row.sum|intcomma }}</td>
+                  <td class="fw-bold text-danger">{{ row.qty|intcomma }}</td>
+                  <td colspan="3"></td>
+                </tr>
+              {% endif %}
             {% empty %}
             <tr>
               <td colspan="9" class="text-center py-4 text-muted">등록된 거래 내역이 없습니다.</td>
