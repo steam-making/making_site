@@ -1390,13 +1390,51 @@ def delete_material_item(request, item_id):
     item = get_object_or_404(MaterialOrderItem, id=item_id)
     order = item.order  # 부모 주문 저장
 
+    receive_type = order.receive_type
+
+    if receive_type == "return":
+        # ✅ 반납입고 → 출고/재고 되돌리기
+        material = item.material
+        qty = item.quantity
+        if material:
+            old_stock = material.stock
+            
+            # 출고항목 복원
+            from .models import MaterialReleaseItem
+            release_item = MaterialReleaseItem.objects.filter(
+                material=material,
+                vendor=item.vendor
+            ).order_by("-released_at").first()
+            if release_item:
+                release_item.quantity += qty
+                release_item.save()
+
+            # 재고 되돌리기
+            material.stock = (material.stock or 0) - qty
+            if material.stock < 0:
+                material.stock = 0
+            material.save()
+
+            log_material_history(
+                material=material,
+                user=request.user,
+                change_type="stock_restore",
+                old_value=old_stock,
+                new_value=material.stock,
+                note=f"반납입고 개별삭제 처리 (item_id={item.id}, 수량 {qty})"
+            )
+
     item.delete()
 
     # ✅ 아이템이 하나도 안 남으면 부모 주문도 삭제
     if not order.items.exists():
         order.delete()
 
-    messages.success(request, "주문 항목이 삭제되었습니다.")
+    messages.success(request, "항목이 삭제되었습니다.")
+    
+    if receive_type == "return":
+        return redirect("return_list")
+        
     return redirect("order_list")
 
 
