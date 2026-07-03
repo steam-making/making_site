@@ -133,7 +133,7 @@ def toggle_payment_item(request, item_id):
         item.paid_date = timezone.now().date()
         messages.success(request, "입금이 완료되었습니다.")
     item.save()
-    
+    return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
 
 from django.urls import reverse
