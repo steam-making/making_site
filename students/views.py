@@ -467,21 +467,26 @@ def medutech_sync_students(request, institution_id):
         messages.error(request, str(exc))
         return redirect('students:student_detail', institution_id=institution.id)
 
+    if not items:
+        messages.warning(
+            request,
+            "출첵마스터에서 학생 목록을 받아오지 못했습니다(0명). 실수로 전체 삭제되는 것을 막기 위해 동기화를 건너뛰었습니다."
+        )
+        return redirect('students:student_detail', institution_id=institution.id)
+
     created_count = 0
     updated_count = 0
+    seen_medutech_ids = set()
 
     with transaction.atomic():
         for item in items:
             medutech_student_id = item.get('student_id')
+            seen_medutech_ids.add(medutech_student_id)
+
             division_name = (item.get('department') or '미수강').strip()
             division, _ = ProgramDivision.objects.get_or_create(
                 institution=institution, division=division_name
             )
-
-            student = Student.objects.filter(
-                division__institution=institution,
-                medutech_student_id=medutech_student_id,
-            ).first()
 
             field_values = {
                 'division': division,
@@ -493,6 +498,11 @@ def medutech_sync_students(request, institution_id):
                 'medutech_student_id': medutech_student_id,
             }
 
+            student = Student.objects.filter(
+                division__institution=institution,
+                medutech_student_id=medutech_student_id,
+            ).first()
+
             if student:
                 for field, value in field_values.items():
                     setattr(student, field, value)
@@ -502,8 +512,14 @@ def medutech_sync_students(request, institution_id):
                 Student.objects.create(**field_values)
                 created_count += 1
 
+        # 출첵마스터 명단과 완전히 동일해지도록, 이제 없는 학생은 로컬에서도 제거
+        # (예전에 수동/엑셀로 등록되어 medutech_student_id가 없는 중복 항목도 함께 정리됨)
+        removed_count, _ = Student.objects.filter(
+            division__institution=institution
+        ).exclude(medutech_student_id__in=seen_medutech_ids).delete()
+
     messages.success(
         request,
-        f"출첵마스터 동기화 완료: 신규 {created_count}명, 갱신 {updated_count}명."
+        f"출첵마스터 동기화 완료: 신규 {created_count}명, 갱신 {updated_count}명, 삭제 {removed_count}명."
     )
     return redirect('students:student_detail', institution_id=institution.id)

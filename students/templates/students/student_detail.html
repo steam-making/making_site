@@ -47,6 +47,18 @@
     white-space: nowrap;
   }
 
+  .student-toolbar-row form {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .student-toolbar-row .btn {
+    height: 31px;
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+  }
+
   @media (max-width: 991.98px) {
     .student-toolbar-sticky {
       top: 68px;
@@ -86,7 +98,7 @@
     <div class="student-toolbar-card p-3 p-lg-4">
       <div class="row g-3 align-items-end">
         <div class="col-12">
-          <div class="d-flex student-toolbar-row gap-2 justify-content-xl-end">
+          <div class="d-flex align-items-center student-toolbar-row gap-2 justify-content-xl-end">
             <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#bulkMoveModal">
               <i class="bi bi-arrow-right-circle me-1"></i>선택 학생 이동
             </button>
