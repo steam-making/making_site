@@ -1,3 +1,4 @@
+import re
 import requests
 from django.conf import settings
 
@@ -6,6 +7,23 @@ class MedutechAPIError(Exception):
     def __init__(self, message, status_code=None):
         super().__init__(message)
         self.status_code = status_code
+
+
+# 학교/기관 이름 뒤에 흔히 붙는 유형 표기. 긴 표현부터 매칭되도록 길이순으로 정렬.
+_NAME_SUFFIXES = sorted(
+    ['초등학교', '중학교', '고등학교', '지역아동센터', '문화센터', '아동센터',
+     '유치원', '초교', '중교', '센터', '초', '중', '고'],
+    key=len, reverse=True,
+)
+
+
+def _normalize_school_name(name):
+    """'화정남초등학교'와 '화정남초'처럼 표기만 다른 같은 학교명을 같은 값으로 취급하기 위한 정규화."""
+    name = re.sub(r'\s+', '', name or '')
+    for suffix in _NAME_SUFFIXES:
+        if name.endswith(suffix) and len(name) > len(suffix):
+            return name[: -len(suffix)]
+    return name
 
 
 def _base_url():
@@ -42,9 +60,13 @@ def get_schools(api_token):
 def auto_match_schools(user):
     """
     출첵마스터 계정 연동 시 1회만 실행: 이 유저가 담당하는 출강장소 중
-    이름이 정확히 일치하는 출첵마스터 학교를 찾아 자동으로 매핑을 생성한다.
+    이름이 같은(표기 차이는 무시) 출첵마스터 학교를 찾아 자동으로 매핑을 생성한다.
+    '화정남초등학교' <-> '화정남초'처럼 학교 유형 표기(초등학교/초/중학교 등)만
+    다른 경우도 같은 학교로 인식한다. 정규화된 이름이 여러 학교와 겹치는 경우는
+    잘못 연결될 위험이 있어 자동 매칭에서 제외하고 수동 연동으로 남겨둔다.
     이미 매핑되어 있는 출강장소는 건드리지 않는다.
     """
+    from collections import defaultdict
     from teachers.models import TeachingInstitution
     from .models import MedutechAccount, MedutechSchoolMapping
 
@@ -53,16 +75,19 @@ def auto_match_schools(user):
         return 0, 0
 
     schools = get_schools(account.api_token)
-    school_by_name = {s['name']: s for s in schools}
+    schools_by_norm = defaultdict(list)
+    for school in schools:
+        schools_by_norm[_normalize_school_name(school['name'])].append(school)
 
     institutions = TeachingInstitution.objects.filter(teacher=user)
     matched = 0
     for institution in institutions:
         if MedutechSchoolMapping.objects.filter(institution=institution).exists():
             continue
-        school = school_by_name.get(institution.name)
-        if not school:
+        candidates = schools_by_norm.get(_normalize_school_name(institution.name), [])
+        if len(candidates) != 1:
             continue
+        school = candidates[0]
         MedutechSchoolMapping.objects.update_or_create(
             institution=institution,
             defaults={
