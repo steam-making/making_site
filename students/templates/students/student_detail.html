@@ -30,6 +30,23 @@
     max-width: 320px;
   }
 
+  .student-toolbar-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .student-toolbar-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .student-toolbar-row .btn,
+  .student-toolbar-row form {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   @media (max-width: 991.98px) {
     .student-toolbar-sticky {
       top: 68px;
@@ -69,25 +86,43 @@
     <div class="student-toolbar-card p-3 p-lg-4">
       <div class="row g-3 align-items-end">
         <div class="col-12">
-          <div class="d-flex flex-wrap gap-2 justify-content-xl-end">
-            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#bulkMoveModal">
+          <div class="d-flex student-toolbar-row gap-2 justify-content-xl-end">
+            <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#bulkMoveModal">
               <i class="bi bi-arrow-right-circle me-1"></i>선택 학생 이동
             </button>
-            <a href="{% url 'students:student_create' institution.id %}" class="btn btn-success">
+            <a href="{% url 'students:student_create' institution.id %}" class="btn btn-sm btn-success">
               <i class="bi bi-person-plus me-1"></i>학생 추가
             </a>
-            <a href="{% url 'students:student_upload' %}" class="btn btn-primary">
+            <a href="{% url 'students:student_upload' %}" class="btn btn-sm btn-primary">
               <i class="bi bi-upload me-1"></i>엑셀 업로드
             </a>
-            <a href="{% url 'robot_levelup_by_institution' institution.id %}" class="btn btn-outline-success">
+            <a href="{% url 'robot_levelup_by_institution' institution.id %}" class="btn btn-sm btn-outline-success">
               <i class="bi bi-bar-chart-line me-1"></i>단계업관리 이동
             </a>
-            <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary">
+            <a href="{% url 'students:student_list' %}" class="btn btn-sm btn-outline-secondary">
               <i class="bi bi-arrow-left me-1"></i>출강장소 목록
             </a>
-            <a href="{% url 'students:student_reset' institution.id %}" class="btn btn-outline-danger">
+            <a href="{% url 'students:student_reset' institution.id %}" class="btn btn-sm btn-outline-danger">
               <i class="bi bi-trash me-1"></i>전체 삭제
             </a>
+            {% if medutech_mapping %}
+              <form method="post" action="{% url 'students:medutech_sync_students' institution.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-info" title="출첵마스터({{ medutech_mapping.medutech_school_name }})에서 학생 목록 불러오기">
+                  <i class="bi bi-arrow-repeat me-1"></i>출첵마스터 동기화
+                </button>
+              </form>
+              <a href="{% url 'students:medutech_map_institution' institution.id %}" class="btn btn-sm btn-outline-secondary" title="연동된 출첵마스터 학교 변경">
+                <i class="bi bi-gear me-1"></i>연동 변경
+              </a>
+            {% else %}
+              <a href="{% url 'students:medutech_settings' %}" class="btn btn-sm btn-outline-info" title="계정당 한 번만 등록하면 이름이 일치하는 출강장소가 자동으로 연동됩니다">
+                <i class="bi bi-link-45deg me-1"></i>출첵마스터 연동
+              </a>
+              <a href="{% url 'students:medutech_map_institution' institution.id %}" class="btn btn-sm btn-outline-secondary" title="자동 연동이 안 될 경우 수동으로 선택">
+                수동 연동
+              </a>
+            {% endif %}
           </div>
         </div>
       </div>

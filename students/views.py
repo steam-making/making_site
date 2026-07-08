@@ -4,7 +4,8 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 
 from teachers.models import TeachingInstitution
-from .models import ProgramDivision, Student
+from .models import ProgramDivision, Student, MedutechAccount, MedutechSchoolMapping
+from . import medutech_client
 from openpyxl import Workbook
 from openpyxl.worksheet.datavalidation import DataValidation
 
@@ -75,6 +76,7 @@ def student_detail(request, institution_id):
         'divisions': divisions,
         'division_summary': " / ".join(division_summary) if division_summary else "등록된 학생 없음",
         'total_students': total_students,
+        'medutech_mapping': MedutechSchoolMapping.objects.filter(institution=institution).first(),
     })
 
 
@@ -348,3 +350,160 @@ def student_bulk_move(request):
     )
 
     return redirect("students:student_detail", institution_id=institution.id)
+
+
+@login_required
+def medutech_settings(request):
+    """출첵마스터 API 토큰 등록/수정 (계정당 1회, 학교별 매핑은 자동 진행)"""
+    account = MedutechAccount.objects.filter(user=request.user).first()
+
+    if request.method == 'POST':
+        token = request.POST.get('api_token', '').strip()
+        if not token:
+            messages.error(request, "API 토큰을 입력해주세요.")
+        else:
+            try:
+                medutech_client.get_schools(token)
+            except medutech_client.MedutechAPIError as exc:
+                messages.error(request, str(exc))
+            else:
+                MedutechAccount.objects.update_or_create(
+                    user=request.user, defaults={'api_token': token}
+                )
+                matched, total = medutech_client.auto_match_schools(request.user)
+                messages.success(
+                    request,
+                    f"출첵마스터 연동이 완료되었습니다. (출강장소 {total}곳 중 {matched}곳 자동 연동)"
+                )
+                return redirect('students:medutech_settings')
+
+    return render(request, 'students/medutech_settings.html', {'account': account})
+
+
+@require_POST
+@login_required
+def medutech_rematch(request):
+    """출강장소가 새로 추가된 경우 등, 이름 일치 매핑을 다시 시도"""
+    account = MedutechAccount.objects.filter(user=request.user).first()
+    if not account:
+        messages.error(request, "먼저 출첵마스터 API 토큰을 등록해주세요.")
+        return redirect('students:medutech_settings')
+
+    try:
+        matched, total = medutech_client.auto_match_schools(request.user)
+    except medutech_client.MedutechAPIError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, f"자동 연동을 다시 시도했습니다. (신규 매칭 {matched}건)")
+
+    return redirect('students:medutech_settings')
+
+
+@login_required
+def medutech_map_institution(request, institution_id):
+    """출강장소 <-> medutech.kr 학교 매핑"""
+    institution = get_object_or_404(TeachingInstitution, id=institution_id)
+    if not request.user.is_staff and institution.teacher != request.user:
+        return HttpResponseForbidden("접근 권한이 없습니다.")
+
+    account = MedutechAccount.objects.filter(user=request.user).first()
+    if not account:
+        messages.error(request, "먼저 출첵마스터 API 토큰을 등록해주세요.")
+        return redirect('students:medutech_settings')
+
+    mapping = MedutechSchoolMapping.objects.filter(institution=institution).first()
+
+    try:
+        schools = medutech_client.get_schools(account.api_token)
+    except medutech_client.MedutechAPIError as exc:
+        messages.error(request, str(exc))
+        schools = []
+
+    if request.method == 'POST':
+        school_id = request.POST.get('medutech_school_id')
+        selected = next((s for s in schools if str(s['id']) == school_id), None)
+        if not selected:
+            messages.error(request, "선택한 학교 정보를 확인할 수 없습니다.")
+        else:
+            MedutechSchoolMapping.objects.update_or_create(
+                institution=institution,
+                defaults={
+                    'medutech_school_id': selected['id'],
+                    'medutech_school_name': selected['name'],
+                    'medutech_program_name': selected.get('program_name', ''),
+                }
+            )
+            messages.success(request, f"'{selected['name']}'(으)로 연동되었습니다.")
+            return redirect('students:student_detail', institution_id=institution.id)
+
+    return render(request, 'students/medutech_map.html', {
+        'institution': institution,
+        'mapping': mapping,
+        'schools': schools,
+    })
+
+
+@require_POST
+@login_required
+def medutech_sync_students(request, institution_id):
+    """medutech.kr에서 학생 목록을 가져와 로컬 Student와 동기화"""
+    institution = get_object_or_404(TeachingInstitution, id=institution_id)
+    if not request.user.is_staff and institution.teacher != request.user:
+        return HttpResponseForbidden("접근 권한이 없습니다.")
+
+    account = MedutechAccount.objects.filter(user=request.user).first()
+    mapping = MedutechSchoolMapping.objects.filter(institution=institution).first()
+
+    if not account:
+        messages.error(request, "먼저 출첵마스터 API 토큰을 등록해주세요.")
+        return redirect('students:medutech_settings')
+    if not mapping:
+        messages.error(request, "이 출강장소와 이름이 일치하는 출첵마스터 학교를 찾지 못했습니다. 수동으로 연동해주세요.")
+        return redirect('students:medutech_map_institution', institution_id=institution.id)
+
+    try:
+        items = medutech_client.get_students_today(account.api_token, mapping.medutech_school_id)
+    except medutech_client.MedutechAPIError as exc:
+        messages.error(request, str(exc))
+        return redirect('students:student_detail', institution_id=institution.id)
+
+    created_count = 0
+    updated_count = 0
+
+    with transaction.atomic():
+        for item in items:
+            medutech_student_id = item.get('student_id')
+            division_name = (item.get('department') or '미수강').strip()
+            division, _ = ProgramDivision.objects.get_or_create(
+                institution=institution, division=division_name
+            )
+
+            student = Student.objects.filter(
+                division__institution=institution,
+                medutech_student_id=medutech_student_id,
+            ).first()
+
+            field_values = {
+                'division': division,
+                'grade': str(item.get('grade') or ''),
+                'class_name': str(item.get('class_no') or ''),
+                'number': str(item.get('number') or ''),
+                'name': item.get('name') or '',
+                'parent_contact': item.get('phone') or '',
+                'medutech_student_id': medutech_student_id,
+            }
+
+            if student:
+                for field, value in field_values.items():
+                    setattr(student, field, value)
+                student.save()
+                updated_count += 1
+            else:
+                Student.objects.create(**field_values)
+                created_count += 1
+
+    messages.success(
+        request,
+        f"출첵마스터 동기화 완료: 신규 {created_count}명, 갱신 {updated_count}명."
+    )
+    return redirect('students:student_detail', institution_id=institution.id)

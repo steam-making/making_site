@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 640px;">
+  <h4 class="mb-3"><i class="bi bi-link-45deg me-2"></i>{{ institution.name }} - 출첵마스터 수동 연동</h4>
+  <p class="text-muted">이름이 자동으로 매칭되지 않은 경우에만 사용하세요. 이 출강장소가 출첵마스터의 어느 학교/프로그램에 해당하는지 선택하면, 이후에는 "출첵마스터 동기화" 버튼만으로 학생 목록을 불러올 수 있습니다.</p>
+
+  {% if mapping %}
+    <div class="alert alert-info">
+      현재 연동: <strong>{{ mapping.medutech_school_name }}</strong> ({{ mapping.medutech_program_name }})
+    </div>
+  {% endif %}
+
+  {% if schools %}
+    <form method="post">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="medutech_school_id" class="form-label">출첵마스터 학교 선택</label>
+        <select name="medutech_school_id" id="medutech_school_id" class="form-select" required>
+          <option value="">-- 선택 --</option>
+          {% for s in schools %}
+            <option value="{{ s.id }}" {% if mapping and mapping.medutech_school_id == s.id %}selected{% endif %}>
+              {{ s.name }} ({{ s.program_name }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">연동 저장</button>
+      <a href="{% url 'students:student_detail' institution.id %}" class="btn btn-outline-secondary">취소</a>
+    </form>
+  {% else %}
+    <div class="alert alert-warning">
+      출첵마스터에서 학교 목록을 불러오지 못했습니다. 토큰이 올바른지 <a href="{% url 'students:medutech_settings' %}">연동 설정</a>에서 확인해주세요.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

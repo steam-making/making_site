@@ -112,6 +112,9 @@ CRONJOBS = [
 # 🔐 API 키는 .env로 빼는 걸 추천
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 
+# medutech.kr(making_attendance) 학생 목록 연동
+MEDUTECH_API_BASE_URL = env("MEDUTECH_API_BASE_URL", default="https://api.medutech.kr")
+
 # 오픈뱅킹
 OPENBANKING_CLIENT_ID = env("OPENBANKING_CLIENT_ID", default="")
 OPENBANKING_CLIENT_SECRET = env("OPENBANKING_CLIENT_SECRET", default="")

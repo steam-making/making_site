@@ -17,4 +17,10 @@ urlpatterns = [
 
     path("students/move/", views.student_bulk_move, name="student_bulk_move"),
 
+    # ✅ 출첵마스터(medutech.kr) 연동
+    path("medutech/settings/", views.medutech_settings, name="medutech_settings"),
+    path("medutech/rematch/", views.medutech_rematch, name="medutech_rematch"),
+    path("medutech/<int:institution_id>/map/", views.medutech_map_institution, name="medutech_map_institution"),
+    path("medutech/<int:institution_id>/sync/", views.medutech_sync_students, name="medutech_sync_students"),
+
 ]

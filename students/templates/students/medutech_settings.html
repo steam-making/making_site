@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 640px;">
+  <h4 class="mb-3"><i class="bi bi-link-45deg me-2"></i>출첵마스터 연동 설정</h4>
+  <p class="text-muted">
+    출첵마스터(api.medutech.kr) 사이트에 로그인 후 <strong>설정 &gt; 외부 연동 API 토큰</strong>에서 발급받은 토큰을 붙여넣으세요.
+    계정당 한 번만 등록하면 되고, 이름이 일치하는 출강장소는 자동으로 연동됩니다.
+  </p>
+
+  {% if account %}
+    <div class="alert alert-success">
+      현재 연동된 토큰: <code>{{ account.api_token|slice:":6" }}••••••••</code>
+    </div>
+    <form method="post" action="{% url 'students:medutech_rematch' %}" class="mb-4">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline-info btn-sm">
+        <i class="bi bi-arrow-repeat me-1"></i>새로 추가된 출강장소 자동 연동 다시 시도
+      </button>
+    </form>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="api_token" class="form-label">API 토큰</label>
+      <input type="text" name="api_token" id="api_token" class="form-control" placeholder="출첵마스터에서 발급받은 토큰" required>
+    </div>
+    <button type="submit" class="btn btn-primary">저장</button>
+    <a href="{% url 'students:student_list' %}" class="btn btn-outline-secondary">취소</a>
+  </form>
+</div>
+{% endblock %}
