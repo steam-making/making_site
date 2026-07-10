@@ -31,13 +31,15 @@
     #releaseTable,
     #releaseTable thead,
     #releaseTable tbody,
+    #releaseTable tfoot,
     #releaseTable th,
     #releaseTable td,
     #releaseTable tr { display: block; }
 
     #releaseTable thead tr { display: none; }
 
-    #releaseTable tbody tr {
+    #releaseTable tbody tr,
+    #releaseTable tfoot tr {
       background: #fff;
       border: 1px solid #e2e8f0;
       border-radius: 14px;
@@ -199,6 +201,7 @@
               <th>교구재</th>
               <th>납품가</th>
               <th>수량</th>
+              <th>합계</th>
               <th>센터재고</th>
               <th>출고방법</th>
             </tr>
@@ -254,11 +257,16 @@
               </td>
 
               <td data-label="수량">
-                <input type="number" 
-                      name="quantity_{{ row.index }}" 
+                <input type="number"
+                      name="quantity_{{ row.index }}"
                       class="form-control text-end material-qty"
                       data-row="{{ row.index }}"
                       value="{{ row.quantity|default:'0' }}">
+              </td>
+
+              <!-- 합계 (납품가 * 수량) -->
+              <td data-label="합계" class="text-end">
+                <span class="row-total fw-semibold" data-row="{{ row.index }}">0</span>
               </td>
 
               <!-- ⭐ 센터재고 칸 -->
@@ -277,6 +285,14 @@
             {% endfor %}
           </tbody>
 
+          <tfoot>
+            <tr class="table-light fw-bold">
+              <td colspan="4" class="text-end" data-label="합계">총계</td>
+              <td class="text-end" data-label="수량합계"><span id="totalQuantity">0</span></td>
+              <td class="text-end" data-label="총액"><span id="totalAmount">0</span></td>
+              <td colspan="2" data-label=""></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 

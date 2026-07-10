@@ -1,3 +1,45 @@
+// ==============================
+// 행별 합계(납품가 * 수량) / 전체 합계 계산
+// ==============================
+function parseNumericInput(value) {
+  if (!value) return 0;
+  const n = Number(String(value).replace(/,/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+
+function recalcRowTotal(rowIndex) {
+  const priceInput = document.querySelector(`input[name="unit_price_${rowIndex}"]`);
+  const qtyInput = document.querySelector(`input[name="quantity_${rowIndex}"]`);
+  const totalSpan = document.querySelector(`.row-total[data-row="${rowIndex}"]`);
+
+  const price = priceInput ? parseNumericInput(priceInput.value) : 0;
+  const qty = qtyInput ? parseNumericInput(qtyInput.value) : 0;
+  const total = price * qty;
+
+  if (totalSpan) totalSpan.textContent = total.toLocaleString();
+
+  return { qty, total };
+}
+
+function recalcAllTotals() {
+  let totalQty = 0;
+  let totalAmount = 0;
+
+  document.querySelectorAll("#releaseTable tbody tr").forEach(function (tr) {
+    const qtyInput = tr.querySelector('input[name^="quantity_"]');
+    if (!qtyInput) return;
+    const rowIndex = qtyInput.name.replace("quantity_", "");
+    const { qty, total } = recalcRowTotal(rowIndex);
+    totalQty += qty;
+    totalAmount += total;
+  });
+
+  const totalQtyEl = document.getElementById("totalQuantity");
+  const totalAmountEl = document.getElementById("totalAmount");
+  if (totalQtyEl) totalQtyEl.textContent = totalQty.toLocaleString();
+  if (totalAmountEl) totalAmountEl.textContent = totalAmount.toLocaleString();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   console.log("✅ release_form.js loaded (autocomplete ver)");
 
@@ -231,6 +273,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // 재고 표시
       if (stockSpan) stockSpan.textContent = stock;
+
+      // 합계 재계산 (납품가가 자동입력되었으므로 input 이벤트가 발생하지 않음)
+      recalcAllTotals();
     });
   }
 
@@ -239,6 +284,7 @@ document.addEventListener("DOMContentLoaded", function () {
   for (let i = 1; i <= initialRows; i++) {
     bindRowAutocomplete(i);
   }
+  recalcAllTotals();
 
   // ==============================
   // 행 추가
@@ -278,8 +324,13 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       newRow.querySelectorAll("select").forEach(el => el.selectedIndex = 0);
 
+      // 합계 표시 초기화
+      const rowTotalSpan = newRow.querySelector(".row-total");
+      if (rowTotalSpan) rowTotalSpan.textContent = "0";
+
       tableBody.appendChild(newRow);
       rowCountInput.value = newIndex;
+      recalcAllTotals();
 
       bindRowAutocomplete(newIndex);
       applyVendorTypeFilter();
@@ -326,6 +377,13 @@ document.addEventListener("input", function (e) {
     if (!isNaN(value) && value !== "") {
       e.target.value = Number(value).toLocaleString();
     }
+  }
+
+  if (
+    e.target.classList.contains("price-input") ||
+    (e.target.name && e.target.name.startsWith("quantity_"))
+  ) {
+    recalcAllTotals();
   }
 });
 
