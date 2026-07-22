@@ -57,7 +57,8 @@ def kakao_login(request):
     
     kakao_auth_url = (
         f"https://kauth.kakao.com/oauth/authorize?"
-        f"client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope=talk_message,friends"
+        f"client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
+        f"&scope=talk_message,friends,profile_nickname,account_email"
     )
     return redirect(kakao_auth_url)
 
@@ -93,7 +94,12 @@ def kakao_callback(request):
     kakao_id = str(user_info.get("id"))
     kakao_account = user_info.get("kakao_account", {})
     email = kakao_account.get("email")
-    nickname = kakao_account.get("profile", {}).get("nickname", "")
+    # 동의 항목 설정에 따라 nickname이 kakao_account.profile 또는 최상위 properties에 들어있을 수 있어 둘 다 확인
+    nickname = (
+        kakao_account.get("profile", {}).get("nickname")
+        or user_info.get("properties", {}).get("nickname")
+        or ""
+    )
 
     # 3. 로그인/연동/가입 로직
     if request.user.is_authenticated:
@@ -138,7 +144,15 @@ def kakao_callback(request):
         if profile:
             # 기존 사용자 로그인
             login(request, profile.user)
-            
+
+            # 이전 로그인 시 동의 항목이 없어 닉네임을 못 받아온 계정도 이번 로그인에서 채워준다
+            if nickname and not profile.kakao_name:
+                profile.kakao_name = nickname
+                profile.save(update_fields=["kakao_name"])
+            if nickname and not profile.user.first_name:
+                profile.user.first_name = nickname
+                profile.user.save(update_fields=["first_name"])
+
             # 토큰 저장
             KakaoToken.objects.update_or_create(
                 user=profile.user,

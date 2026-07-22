@@ -634,10 +634,25 @@ def course_type_api(request, pk):
 
 def instructor_recruit(request):
     """지도사과정 모집 페이지"""
+    from django.db.models import Case, When, Value, IntegerField
+
     now = timezone.now()
     InstructorRecruit.objects.filter(status="open", recruit_end__lt=now).update(status="closed")
-    recruits = InstructorRecruit.objects.exclude(status="hidden").order_by("-created_at")
-    
+
+    recruits = InstructorRecruit.objects.all()
+    if not (request.user.is_authenticated and request.user.is_staff):
+        recruits = recruits.exclude(status="hidden")
+
+    recruits = recruits.annotate(
+        status_order=Case(
+            When(status="open", then=Value(0)),
+            When(status="closed", then=Value(1)),
+            When(status="hidden", then=Value(2)),
+            default=Value(3),
+            output_field=IntegerField(),
+        )
+    ).order_by("status_order", "-created_at")
+
     return render(request, "recruit/instructor_recruit.html", {
         "recruits": recruits,
         "now": now,
