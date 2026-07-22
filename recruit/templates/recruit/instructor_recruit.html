@@ -234,6 +234,19 @@
             </div>
             <div class="modal-footer border-0">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+              {% if recruit.status == 'open' %}
+                {% if user.is_authenticated %}
+                  <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-open-apply="{{ recruit.id }}">
+                    <i class="bi bi-pencil-square me-1"></i>지원하기
+                  </button>
+                {% else %}
+                  <a href="{% url 'kakao_login' %}?next={{ request.path }}" class="btn btn-primary">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>로그인 후 지원
+                  </a>
+                {% endif %}
+              {% else %}
+                <button type="button" class="btn btn-secondary" disabled>모집 마감</button>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -322,5 +335,36 @@ function submitApplication(recruitId) {
         alert('서버와 통신 중 오류가 발생했습니다.');
     });
 }
+
+// 자격증리스트 등 외부 페이지에서 ?open=<recruit_id>로 들어오면 해당 공고의 상세보기 모달을 자동으로 연다.
+document.addEventListener("DOMContentLoaded", function () {
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get("open");
+    if (!openId) return;
+
+    const detailModalEl = document.getElementById("detailModal" + openId);
+    if (detailModalEl) {
+        new bootstrap.Modal(detailModalEl).show();
+    }
+});
+
+// 상세보기 모달 안의 '지원하기' 버튼 -> 상세보기가 닫힌 뒤 지원 모달을 이어서 연다.
+document.querySelectorAll("[data-open-apply]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        const recruitId = this.dataset.openApply;
+        const applyModalEl = document.getElementById("applyModal" + recruitId);
+        if (!applyModalEl) return;
+
+        const currentModalEl = this.closest(".modal");
+        if (currentModalEl) {
+            currentModalEl.addEventListener("hidden.bs.modal", function handler() {
+                new bootstrap.Modal(applyModalEl).show();
+                currentModalEl.removeEventListener("hidden.bs.modal", handler);
+            });
+        } else {
+            new bootstrap.Modal(applyModalEl).show();
+        }
+    });
+});
 </script>
 {% endblock %}

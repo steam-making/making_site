@@ -11,6 +11,10 @@ urlpatterns = [
     path('dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     
     path('certificates/', views.certificate_list, name='certificate_list'),
+    path('certificate-catalog/', views.certificate_catalog, name='certificate_catalog'),
+    path('certificate-catalog/acquire/', views.certificate_catalog_acquire, name='certificate_catalog_acquire'),
+    path('certificate-catalog/save/', views.certificate_catalog_save, name='certificate_catalog_save'),
+    path('certificate-catalog/<int:item_id>/delete/', views.certificate_catalog_delete, name='certificate_catalog_delete'),
     path('certificates/new/', views.certificate_create, name='certificate_create'),
     path("certificate/<int:pk>/edit/", views.certificate_update, name="certificate_update"),
     path("certificate/<int:pk>/delete/", views.certificate_delete, name="certificate_delete"),

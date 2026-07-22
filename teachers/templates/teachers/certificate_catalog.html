@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4" style="max-width: 1300px;">
+  <div class="card shadow-sm border-0 rounded-3 mb-4">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+      <h4 class="mb-0"><i class="bi bi-award-fill me-2"></i> 자격증 리스트</h4>
+      {% if user.is_staff %}
+      <button type="button" class="btn btn-light btn-sm" id="addCertBtn"
+              data-bs-toggle="modal" data-bs-target="#editModal">
+        <i class="bi bi-plus-circle me-1"></i> 자격증 추가
+      </button>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-0">취득 대상 자격증 목록입니다. "취득"을 누르면 취득년월을 선택해 내 자격증관리에 추가됩니다.</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0 align-middle text-center">
+          <thead class="table-light">
+            <tr>
+              <th>종류</th>
+              <th>인증</th>
+              <th>자격증명</th>
+              <th>발행처</th>
+              <th>교육과정</th>
+              <th>취득여부</th>
+              <th>상세보기</th>
+              {% if user.is_staff %}<th>관리</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in catalog %}
+            <tr>
+              <td>{{ item.category }}</td>
+              <td>{{ item.auth_type }}</td>
+              <td class="text-break">{{ item.name }}</td>
+              <td class="text-break">{{ item.issuer }}</td>
+              <td>
+                {% if item.related_recruit_id %}
+                  {% if item.recruit_open %}
+                    <a href="{% url 'instructor_recruit' %}?open={{ item.related_recruit_id }}" class="btn btn-sm btn-success">수강</a>
+                  {% else %}
+                    <a href="{% url 'instructor_recruit' %}?open={{ item.related_recruit_id }}" class="btn btn-sm btn-outline-secondary">모집마감</a>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted small">-</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.acquired_date %}
+                  <span class="badge bg-success">취득완료 ({{ item.acquired_date|date:"Y-m" }})</span>
+                {% else %}
+                  <button type="button" class="btn btn-sm btn-primary acquire-btn"
+                          data-bs-toggle="modal" data-bs-target="#acquireModal"
+                          data-cert-id="{{ item.id }}" data-cert-name="{{ item.name }}">
+                    취득
+                  </button>
+                {% endif %}
+              </td>
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-secondary detail-btn"
+                        data-bs-toggle="modal" data-bs-target="#detailModal"
+                        data-cert-id="{{ item.id }}">
+                  상세보기
+                </button>
+              </td>
+              {% if user.is_staff %}
+              <td>
+                <button type="button" class="btn btn-sm btn-outline-primary edit-cert-btn me-1" title="수정"
+                        data-bs-toggle="modal" data-bs-target="#editModal"
+                        data-cert-id="{{ item.id }}">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <form method="post" action="{% url 'certificate_catalog_delete' item.id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="삭제"
+                          onclick="return confirm('정말 삭제하시겠습니까?');">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+              {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="text-center text-muted py-4">등록된 자격증이 없습니다.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ catalog_for_js|json_script:"catalog-json-data" }}
+
+<!-- 취득 모달 -->
+<div class="modal fade" id="acquireModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'certificate_catalog_acquire' %}">
+        {% csrf_token %}
+        <input type="hidden" name="cert_id" id="acquireCertId">
+        <div class="modal-header">
+          <h5 class="modal-title"><span id="acquireCertName"></span> 취득</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">취득년월</label>
+          <div class="d-flex gap-2">
+            <select name="year" class="form-select" required>
+              <option value="">년</option>
+            </select>
+            <select name="month" class="form-select" required>
+              <option value="">월</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 상세보기 모달 -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailModalTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <div class="modal-body" id="detailModalBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if user.is_staff %}
+<!-- 추가/수정 모달 (관리자 전용) -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <form method="post" action="{% url 'certificate_catalog_save' %}">
+        {% csrf_token %}
+        <input type="hidden" name="item_id" id="editItemId">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editModalTitle">자격증 추가</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-6">
+              <label class="form-label">종류</label>
+              <input type="text" name="category" id="editCategory" class="form-control" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label">인증</label>
+              <input type="text" name="auth_type" id="editAuthType" class="form-control" placeholder="민간 / 국가공인" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">자격증명</label>
+              <input type="text" name="name" id="editName" class="form-control" required>
+            </div>
+            <div class="col-12">
+              <label class="form-label">발행처</label>
+              <input type="text" name="issuer" id="editIssuer" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">유효기간</label>
+              <input type="text" name="validity" id="editValidity" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">교구재</label>
+              <input type="text" name="materials" id="editMaterials" class="form-control">
+            </div>
+            <div class="col-4">
+              <label class="form-label">발급비</label>
+              <input type="text" name="issue_fee" id="editIssueFee" class="form-control">
+            </div>
+            <div class="col-4">
+              <label class="form-label">교육비</label>
+              <input type="text" name="education_fee" id="editEducationFee" class="form-control">
+            </div>
+            <div class="col-4">
+              <label class="form-label">최소수강인원</label>
+              <input type="text" name="min_students" id="editMinStudents" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">1차시 시간</label>
+              <input type="text" name="session_length" id="editSessionLength" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">교육차시</label>
+              <input type="number" name="session_count" id="editSessionCount" class="form-control" min="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label">시험형태</label>
+              <input type="text" name="exam_type" id="editExamType" class="form-control">
+            </div>
+            <div class="col-6">
+              <label class="form-label">시험비</label>
+              <input type="text" name="exam_fee" id="editExamFee" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">관련링크</label>
+              <input type="url" name="related_link" id="editRelatedLink" class="form-control" placeholder="https://...">
+            </div>
+            <div class="col-12">
+              <label class="form-label">연결된 교육과정(모집공고)</label>
+              <select name="related_recruit_id" id="editRelatedRecruit" class="form-select">
+                <option value="">-- 선택 안 함 --</option>
+                {% for r in recruit_choices %}
+                <option value="{{ r.id }}">{{ r.title }} ({{ r.get_status_display }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">차시별 커리큘럼 <small class="text-muted">(한 줄에 한 차시씩)</small></label>
+              <textarea name="curriculum" id="editCurriculum" class="form-control" rows="4"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<style>
+.table td.text-break { word-break: break-word; white-space: normal; }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const catalog = JSON.parse(document.getElementById("catalog-json-data").textContent);
+  const catalogById = {};
+  catalog.forEach(item => { catalogById[item.id] = item; });
+
+  // ===== 취득 모달 =====
+  const acquireModal = document.getElementById("acquireModal");
+  const acquireCertId = document.getElementById("acquireCertId");
+  const acquireCertName = document.getElementById("acquireCertName");
+  const yearSelect = acquireModal.querySelector('select[name="year"]');
+  const monthSelect = acquireModal.querySelector('select[name="month"]');
+
+  const currentYear = new Date().getFullYear();
+  yearSelect.innerHTML = '<option value="">년</option>';
+  for (let y = currentYear; y >= currentYear - 10; y--) {
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y + "년";
+    yearSelect.appendChild(opt);
+  }
+
+  monthSelect.innerHTML = '<option value="">월</option>';
+  for (let m = 1; m <= 12; m++) {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m + "월";
+    monthSelect.appendChild(opt);
+  }
+
+  document.querySelectorAll(".acquire-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      acquireCertId.value = this.dataset.certId;
+      acquireCertName.textContent = this.dataset.certName;
+      yearSelect.value = currentYear;
+      monthSelect.value = new Date().getMonth() + 1;
+    });
+  });
+
+  // ===== 상세보기 모달 =====
+  const detailModalTitle = document.getElementById("detailModalTitle");
+  const detailModalBody = document.getElementById("detailModalBody");
+
+  function formatFee(value, suffix) {
+    if (value === undefined || value === null || value === "") return null;
+    const asString = String(value);
+    if (/^\d+$/.test(asString)) {
+      return Number(asString).toLocaleString() + (suffix || "원");
+    }
+    return asString;
+  }
+
+  function renderDetail(item) {
+    const d = item.detail || {};
+    let html = '<table class="table table-sm table-borderless mb-2">';
+
+    function row(label, value) {
+      if (value === undefined || value === null || value === "") return "";
+      return `<tr><th class="text-muted" style="width:35%">${label}</th><td>${value}</td></tr>`;
+    }
+
+    html += row("발행처", item.issuer);
+    html += row("유효기간", d.validity);
+    html += row("발급비", formatFee(d.issue_fee));
+    const educationFee = formatFee(d.education_fee);
+    html += row("교육비", educationFee ? educationFee + " (자격발급비 별도)" : "");
+    html += row("교구재", d.materials);
+    html += row("최소수강인원", d.min_students);
+    html += row("1차시 시간", d.session_length);
+    html += row("교육차시", d.session_count ? d.session_count + "차시" : "");
+    html += row("시험형태", d.exam_type);
+    html += row("시험비", d.exam_fee);
+    if (d.related_link) {
+      const safeHref = d.related_link.replace(/"/g, "&quot;");
+      html += row("관련링크", `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${d.related_link}</a>`);
+    }
+    html += "</table>";
+
+    if (d.curriculum && d.curriculum.length) {
+      html += '<div class="fw-bold text-muted mb-1"><i class="bi bi-list-check me-1"></i>차시별 커리큘럼</div>';
+      html += '<ol class="ps-3 mb-0">';
+      d.curriculum.forEach(step => { html += `<li class="mb-1">${step}</li>`; });
+      html += "</ol>";
+    }
+
+    return html;
+  }
+
+  document.querySelectorAll(".detail-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const item = catalogById[this.dataset.certId];
+      if (!item) return;
+      detailModalTitle.textContent = item.name;
+      detailModalBody.innerHTML = renderDetail(item);
+    });
+  });
+
+  // ===== 추가/수정 모달 (관리자) =====
+  const editModal = document.getElementById("editModal");
+  if (!editModal) return;
+
+  const editForm = editModal.querySelector("form");
+  const editModalTitle = document.getElementById("editModalTitle");
+  function resetEditForm() {
+    editForm.reset();
+    document.getElementById("editItemId").value = "";
+    document.getElementById("editCurriculum").value = "";
+    editModalTitle.textContent = "자격증 추가";
+  }
+
+  const addBtn = document.getElementById("addCertBtn");
+  if (addBtn) addBtn.addEventListener("click", resetEditForm);
+
+  document.querySelectorAll(".edit-cert-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const item = catalogById[this.dataset.certId];
+      if (!item) return;
+      const d = item.detail || {};
+
+      document.getElementById("editItemId").value = item.id;
+      document.getElementById("editCategory").value = item.category || "";
+      document.getElementById("editAuthType").value = item.auth_type || "";
+      document.getElementById("editName").value = item.name || "";
+      document.getElementById("editIssuer").value = item.issuer || "";
+      document.getElementById("editValidity").value = d.validity || "";
+      document.getElementById("editMaterials").value = d.materials || "";
+      document.getElementById("editIssueFee").value = d.issue_fee || "";
+      document.getElementById("editEducationFee").value = d.education_fee || "";
+      document.getElementById("editMinStudents").value = d.min_students || "";
+      document.getElementById("editSessionLength").value = d.session_length || "";
+      document.getElementById("editSessionCount").value = d.session_count || "";
+      document.getElementById("editExamType").value = d.exam_type || "";
+      document.getElementById("editExamFee").value = d.exam_fee || "";
+      document.getElementById("editRelatedLink").value = d.related_link || "";
+      document.getElementById("editRelatedRecruit").value = item.related_recruit_id || "";
+      document.getElementById("editCurriculum").value = (d.curriculum || []).join("\n");
+      editModalTitle.textContent = "자격증 수정";
+    });
+  });
+});
+</script>
+{% endblock %}

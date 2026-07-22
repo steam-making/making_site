@@ -3,15 +3,16 @@ from django import forms
 from .forms import TeachingInstitutionForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from datetime import datetime
+from datetime import datetime, date
 from django.contrib.auth.models import User
 from .models import TeachingInstitution, TeachingDay
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from .models import Certificate, Career
+from .models import Certificate, Career, CertificateCatalogItem
+from django.http import HttpResponseForbidden
 from .forms import CertificateForm, CareerForm
 from collections import OrderedDict
 
@@ -329,6 +330,198 @@ def institution_close(request, pk):
 
     
     
+def _parse_material_cost(materials_text):
+    import re
+    if not materials_text:
+        return None
+    match = re.search(r'([\d,]+)\s*원', materials_text)
+    if match:
+        return int(match.group(1).replace(",", ""))
+    return None
+
+
+def _safe_parse_cost(val, fallback):
+    from recruit.views import parse_cost
+    try:
+        return parse_cost(val)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _sync_related_recruit(item):
+    """자격증리스트 항목을 저장할 때, 연결된 지도사과정 모집공고(및 과정 템플릿)에도 반영한다."""
+    if not item.related_recruit_id:
+        return
+
+    recruit = item.related_recruit
+    recruit.certificate_agency = item.issuer
+    recruit.cost_education = _safe_parse_cost(item.education_fee, recruit.cost_education)
+    recruit.cost_certificate = _safe_parse_cost(item.issue_fee, recruit.cost_certificate)
+    material_cost = _parse_material_cost(item.materials)
+    if material_cost is not None:
+        recruit.cost_material = material_cost
+    curriculum = item.curriculum_list()
+    if curriculum:
+        recruit.curriculum = [
+            {"session": str(i + 1), "content": line, "time": "1"}
+            for i, line in enumerate(curriculum)
+        ]
+    recruit.save(update_fields=[
+        "certificate_agency", "cost_education", "cost_certificate", "cost_material", "curriculum",
+    ])
+
+    course_type = recruit.course_type
+    if course_type:
+        course_type.certificate_agency = item.issuer
+        course_type.cost_education = recruit.cost_education
+        course_type.cost_certificate = recruit.cost_certificate
+        course_type.cost_material = recruit.cost_material
+        if curriculum:
+            course_type.curriculum = recruit.curriculum
+        course_type.save(update_fields=[
+            "certificate_agency", "cost_education", "cost_certificate", "cost_material", "curriculum",
+        ])
+
+
+def _catalog_item_to_dict(item):
+    return {
+        "id": item.id,
+        "category": item.category,
+        "auth_type": item.auth_type,
+        "name": item.name,
+        "issuer": item.issuer,
+        "related_recruit_id": item.related_recruit_id,
+        "detail": {
+            "validity": item.validity,
+            "issue_fee": item.issue_fee,
+            "education_fee": item.education_fee,
+            "materials": item.materials,
+            "min_students": item.min_students,
+            "session_length": item.session_length,
+            "session_count": item.session_count,
+            "curriculum": item.curriculum_list(),
+            "exam_type": item.exam_type,
+            "exam_fee": item.exam_fee,
+            "related_link": item.related_link,
+        },
+    }
+
+
+@login_required
+def certificate_catalog(request):
+    """취득 대상 자격증 리스트(카탈로그) - 지도사자격/기타자격 안내 + 취득 여부 관리"""
+    from recruit.models import InstructorRecruit
+
+    my_certs = {c.name: c for c in Certificate.objects.filter(teacher=request.user)}
+    items = CertificateCatalogItem.objects.select_related('related_recruit').all()
+
+    catalog = []
+    catalog_for_js = []
+    for item in items:
+        acquired = my_certs.get(item.name)
+        row = _catalog_item_to_dict(item)
+        row["acquired_date"] = acquired.issued_date if acquired else None
+        row["recruit_open"] = bool(item.related_recruit and item.related_recruit.status == "open")
+        catalog.append(row)
+        catalog_for_js.append(_catalog_item_to_dict(item))
+
+    return render(request, 'teachers/certificate_catalog.html', {
+        'catalog': catalog,
+        'catalog_for_js': catalog_for_js,
+        'recruit_choices': InstructorRecruit.objects.select_related('course_type').order_by('-created_at'),
+    })
+
+
+@login_required
+def certificate_catalog_acquire(request):
+    """카탈로그에서 '취득' 처리 -> 내 자격증관리(Certificate)에 추가"""
+    if request.method != "POST":
+        return redirect('certificate_catalog')
+
+    cert_id = request.POST.get("cert_id")
+    year = request.POST.get("year")
+    month = request.POST.get("month")
+
+    item = CertificateCatalogItem.objects.filter(id=cert_id).first()
+    if not item:
+        messages.error(request, "존재하지 않는 자격증입니다.")
+        return redirect('certificate_catalog')
+
+    try:
+        issued_date = date(int(year), int(month), 1)
+    except (TypeError, ValueError):
+        messages.error(request, "취득년월을 올바르게 선택해주세요.")
+        return redirect('certificate_catalog')
+
+    Certificate.objects.update_or_create(
+        teacher=request.user,
+        name=item.name,
+        defaults={"issued_by": item.issuer, "issued_date": issued_date},
+    )
+    messages.success(request, f"'{item.name}'이(가) 자격증관리에 추가되었습니다.")
+    return redirect('certificate_catalog')
+
+
+@login_required
+def certificate_catalog_save(request):
+    """관리자 전용: 카탈로그 항목 추가/수정"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden("접근 권한이 없습니다.")
+    if request.method != "POST":
+        return redirect('certificate_catalog')
+
+    item_id = request.POST.get("item_id")
+    if item_id:
+        item = get_object_or_404(CertificateCatalogItem, id=item_id)
+    else:
+        item = CertificateCatalogItem()
+        max_order = CertificateCatalogItem.objects.aggregate(Max('order'))['order__max'] or 0
+        item.order = max_order + 1
+
+    item.category = request.POST.get("category", "").strip()
+    item.auth_type = request.POST.get("auth_type", "").strip()
+    item.name = request.POST.get("name", "").strip()
+    item.issuer = request.POST.get("issuer", "").strip()
+    item.validity = request.POST.get("validity", "").strip()
+    item.issue_fee = request.POST.get("issue_fee", "").strip()
+    item.education_fee = request.POST.get("education_fee", "").strip()
+    item.materials = request.POST.get("materials", "").strip()
+    item.min_students = request.POST.get("min_students", "").strip()
+    item.session_length = request.POST.get("session_length", "").strip()
+    session_count = request.POST.get("session_count", "").strip()
+    item.session_count = int(session_count) if session_count.isdigit() else None
+    item.curriculum = request.POST.get("curriculum", "").strip()
+    item.exam_type = request.POST.get("exam_type", "").strip()
+    item.exam_fee = request.POST.get("exam_fee", "").strip()
+    item.related_link = request.POST.get("related_link", "").strip()
+
+    related_recruit_id = request.POST.get("related_recruit_id", "").strip()
+    item.related_recruit_id = int(related_recruit_id) if related_recruit_id.isdigit() else None
+
+    if not item.name:
+        messages.error(request, "자격증명을 입력해주세요.")
+        return redirect('certificate_catalog')
+
+    item.save()
+    _sync_related_recruit(item)
+    messages.success(request, f"'{item.name}'이(가) 저장되었습니다.")
+    return redirect('certificate_catalog')
+
+
+@require_POST
+@login_required
+def certificate_catalog_delete(request, item_id):
+    """관리자 전용: 카탈로그 항목 삭제"""
+    if not request.user.is_staff:
+        return HttpResponseForbidden("접근 권한이 없습니다.")
+
+    item = get_object_or_404(CertificateCatalogItem, id=item_id)
+    name = item.name
+    item.delete()
+    messages.success(request, f"'{name}'이(가) 삭제되었습니다.")
+    return redirect('certificate_catalog')
+
+
 @login_required
 def certificate_list(request):
     certificates = Certificate.objects.filter(teacher=request.user)

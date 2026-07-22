@@ -71,6 +71,47 @@ class Certificate(models.Model):
         return f"{self.name} - {self.teacher.first_name}"
 
 
+class CertificateCatalogItem(models.Model):
+    """취득 대상 자격증 리스트(카탈로그). 관리자가 추가/수정/삭제 가능."""
+    category = models.CharField("종류", max_length=50)
+    auth_type = models.CharField("인증", max_length=50, help_text="예: 민간, 국가공인")
+    name = models.CharField("자격증명", max_length=200)
+    issuer = models.CharField("발행처", max_length=200, blank=True)
+
+    validity = models.CharField("유효기간", max_length=100, blank=True)
+    issue_fee = models.CharField("발급비", max_length=100, blank=True)
+    education_fee = models.CharField("교육비", max_length=100, blank=True)
+    materials = models.CharField("교구재", max_length=200, blank=True)
+    min_students = models.CharField("최소수강인원", max_length=100, blank=True)
+    session_length = models.CharField("1차시 시간", max_length=50, blank=True)
+    session_count = models.PositiveIntegerField("교육차시", null=True, blank=True)
+    curriculum = models.TextField("차시별 커리큘럼", blank=True, help_text="한 줄에 한 차시씩 입력")
+
+    exam_type = models.CharField("시험형태", max_length=200, blank=True)
+    exam_fee = models.CharField("시험비", max_length=100, blank=True)
+
+    related_link = models.URLField("관련링크", max_length=500, blank=True)
+    related_recruit = models.ForeignKey(
+        "recruit.InstructorRecruit",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="catalog_items",
+        verbose_name="연결된 교육과정(모집공고)",
+    )
+
+    order = models.PositiveIntegerField("표시 순서", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.name
+
+    def curriculum_list(self):
+        return [line.strip() for line in self.curriculum.splitlines() if line.strip()]
+
+
 from django.db import models
 from datetime import date
 
