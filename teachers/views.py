@@ -425,10 +425,15 @@ def certificate_catalog(request):
         catalog.append(row)
         catalog_for_js.append(_catalog_item_to_dict(item))
 
+    categories = sorted({item.category for item in items if item.category})
+    auth_types = sorted({item.auth_type for item in items if item.auth_type})
+
     return render(request, 'teachers/certificate_catalog.html', {
         'catalog': catalog,
         'catalog_for_js': catalog_for_js,
         'recruit_choices': InstructorRecruit.objects.select_related('course_type').order_by('-created_at'),
+        'categories': categories,
+        'auth_types': auth_types,
     })
 
 

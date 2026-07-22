@@ -16,10 +16,33 @@
     </div>
   </div>
 
+  <div class="card shadow-sm border-0 rounded-3 mb-3">
+    <div class="card-body">
+      <div class="cert-filter-group mb-3">
+        <div class="small text-muted fw-bold mb-1">종류</div>
+        <div class="d-flex flex-wrap gap-2" id="categoryFilterGroup">
+          <button type="button" class="btn btn-sm btn-primary active" data-filter-category="">전체</button>
+          {% for c in categories %}
+          <button type="button" class="btn btn-sm btn-outline-primary" data-filter-category="{{ c }}">{{ c }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="cert-filter-group">
+        <div class="small text-muted fw-bold mb-1">인증</div>
+        <div class="d-flex flex-wrap gap-2" id="authFilterGroup">
+          <button type="button" class="btn btn-sm btn-secondary active" data-filter-auth="">전체</button>
+          {% for a in auth_types %}
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-filter-auth="{{ a }}">{{ a }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="card shadow-sm border-0 rounded-3">
     <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-hover table-striped mb-0 align-middle text-center">
+        <table class="table table-hover table-striped mb-0 align-middle text-center" id="certCatalogTable">
           <thead class="table-light">
             <tr>
               <th>종류</th>
@@ -34,11 +57,11 @@
           </thead>
           <tbody>
             {% for item in catalog %}
-            <tr>
+            <tr data-category="{{ item.category }}" data-auth="{{ item.auth_type }}">
               <td>{{ item.category }}</td>
               <td>{{ item.auth_type }}</td>
-              <td class="text-break">{{ item.name }}</td>
-              <td class="text-break">{{ item.issuer }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.issuer }}</td>
               <td>
                 {% if item.related_recruit_id %}
                   {% if item.recruit_open %}
@@ -242,7 +265,18 @@
 {% endif %}
 
 <style>
-.table td.text-break { word-break: break-word; white-space: normal; }
+#certCatalogTable th,
+#certCatalogTable td {
+  white-space: nowrap;
+}
+
+#certCatalogTable .btn {
+  white-space: nowrap;
+}
+
+.cert-filter-group .btn {
+  border-radius: 999px;
+}
 </style>
 
 <script>
@@ -382,6 +416,45 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("editRelatedRecruit").value = item.related_recruit_id || "";
       document.getElementById("editCurriculum").value = (d.curriculum || []).join("\n");
       editModalTitle.textContent = "자격증 수정";
+    });
+  });
+
+  // ===== 종류/인증 필터 =====
+  let activeCategory = "";
+  let activeAuth = "";
+  const rows = document.querySelectorAll("#certCatalogTable tbody tr[data-category]");
+
+  function applyFilters() {
+    rows.forEach(row => {
+      const matchesCategory = !activeCategory || row.dataset.category === activeCategory;
+      const matchesAuth = !activeAuth || row.dataset.auth === activeAuth;
+      row.style.display = (matchesCategory && matchesAuth) ? "" : "none";
+    });
+  }
+
+  document.querySelectorAll("#categoryFilterGroup [data-filter-category]").forEach(btn => {
+    btn.addEventListener("click", function () {
+      activeCategory = this.dataset.filterCategory;
+      document.querySelectorAll("#categoryFilterGroup .btn").forEach(b => {
+        b.classList.remove("btn-primary", "active");
+        b.classList.add("btn-outline-primary");
+      });
+      this.classList.remove("btn-outline-primary");
+      this.classList.add("btn-primary", "active");
+      applyFilters();
+    });
+  });
+
+  document.querySelectorAll("#authFilterGroup [data-filter-auth]").forEach(btn => {
+    btn.addEventListener("click", function () {
+      activeAuth = this.dataset.filterAuth;
+      document.querySelectorAll("#authFilterGroup .btn").forEach(b => {
+        b.classList.remove("btn-secondary", "active");
+        b.classList.add("btn-outline-secondary");
+      });
+      this.classList.remove("btn-outline-secondary");
+      this.classList.add("btn-secondary", "active");
+      applyFilters();
     });
   });
 });
