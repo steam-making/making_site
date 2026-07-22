@@ -58,11 +58,11 @@
           <tbody>
             {% for item in catalog %}
             <tr data-category="{{ item.category }}" data-auth="{{ item.auth_type }}">
-              <td>{{ item.category }}</td>
-              <td>{{ item.auth_type }}</td>
-              <td>{{ item.name }}</td>
-              <td>{{ item.issuer }}</td>
-              <td>
+              <td data-label="종류">{{ item.category }}</td>
+              <td data-label="인증">{{ item.auth_type }}</td>
+              <td data-label="자격증명">{{ item.name }}</td>
+              <td data-label="발행처">{{ item.issuer }}</td>
+              <td data-label="교육과정">
                 {% if item.related_recruit_id %}
                   {% if item.recruit_open %}
                     <a href="{% url 'instructor_recruit' %}?open={{ item.related_recruit_id }}" class="btn btn-sm btn-success">수강</a>
@@ -73,7 +73,7 @@
                   <span class="text-muted small">-</span>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="취득여부">
                 {% if item.acquired_date %}
                   <span class="badge bg-success">취득완료 ({{ item.acquired_date|date:"Y-m" }})</span>
                 {% else %}
@@ -84,7 +84,7 @@
                   </button>
                 {% endif %}
               </td>
-              <td>
+              <td data-label="상세보기">
                 <button type="button" class="btn btn-sm btn-outline-secondary detail-btn"
                         data-bs-toggle="modal" data-bs-target="#detailModal"
                         data-cert-id="{{ item.id }}">
@@ -92,7 +92,7 @@
                 </button>
               </td>
               {% if user.is_staff %}
-              <td>
+              <td data-label="관리">
                 <button type="button" class="btn btn-sm btn-outline-primary edit-cert-btn me-1" title="수정"
                         data-bs-toggle="modal" data-bs-target="#editModal"
                         data-cert-id="{{ item.id }}">
@@ -265,17 +265,71 @@
 {% endif %}
 
 <style>
-#certCatalogTable th,
-#certCatalogTable td {
-  white-space: nowrap;
+/* 가로 스크롤 대신 필요하면 줄이 늘어나도록: 버튼/뱃지만 한 줄 유지, 나머지 텍스트는 자연스럽게 줄바꿈 */
+#certCatalogTable {
+  table-layout: auto;
 }
 
-#certCatalogTable .btn {
+#certCatalogTable th,
+#certCatalogTable td {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+
+#certCatalogTable td {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+#certCatalogTable .btn,
+#certCatalogTable .badge {
   white-space: nowrap;
 }
 
 .cert-filter-group .btn {
   border-radius: 999px;
+}
+
+/* 좁은 화면에서는 표 대신 카드형으로 전환해 가로 스크롤을 없앰 */
+@media (max-width: 767.98px) {
+  #certCatalogTable,
+  #certCatalogTable thead,
+  #certCatalogTable tbody,
+  #certCatalogTable th,
+  #certCatalogTable td,
+  #certCatalogTable tr { display: block; }
+
+  #certCatalogTable thead tr { display: none; }
+
+  #certCatalogTable tbody tr {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    margin: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+  }
+
+  #certCatalogTable td {
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  #certCatalogTable td:last-child { border-bottom: none; }
+
+  #certCatalogTable td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: #64748b;
+    min-width: 72px;
+    flex-shrink: 0;
+  }
 }
 </style>
 
