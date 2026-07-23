@@ -2,7 +2,7 @@ from datetime import datetime, date
 from django.shortcuts import get_object_or_404, render, redirect
 from .models import RecruitNotice
 from schools.models import School
-from teachers.models import TeachingInstitution
+from teachers.models import TeachingInstitution, CertificateCatalogItem
 from django.contrib.auth.decorators import login_required
 
 from datetime import date
@@ -632,6 +632,82 @@ def course_type_api(request, pk):
         "suggested_title": f"{course.name} {cohort_num}기"
     })
 
+
+def _cert_auth_to_certificate_type(auth_type):
+    mapping = {"민간자격": "private", "민간": "private", "국가공인": "authorized", "국가자격": "national"}
+    return mapping.get(auth_type, "none")
+
+
+def _cert_parse_fee(value):
+    if not value:
+        return 0
+    try:
+        return int(str(value).replace(",", "").strip())
+    except (TypeError, ValueError):
+        return 0
+
+
+def _cert_parse_material_fee(materials_text):
+    if not materials_text:
+        return 0
+    match = re.search(r'([\d,]+)\s*원', materials_text)
+    if match:
+        return int(match.group(1).replace(",", ""))
+    return 0
+
+
+def _cert_item_course_intro(cert_item):
+    return cert_item.course_intro or f"{cert_item.name} 과정으로, {cert_item.issuer}에서 인증하는 자격을 취득할 수 있습니다."
+
+
+def _cert_item_educational_goal(cert_item):
+    return cert_item.educational_goal or f"{cert_item.category} 분야를 현장에서 효과적으로 지도할 수 있는 역량을 기르는 것을 목표로 합니다."
+
+
+def _get_or_create_course_type_from_cert_item(cert_item):
+    course_type, _ = InstructorCourseType.objects.get_or_create(
+        name=cert_item.name,
+        defaults={
+            "course_intro": _cert_item_course_intro(cert_item),
+            "educational_goal": _cert_item_educational_goal(cert_item),
+            "certificate_agency": cert_item.issuer,
+            "certificate_type": _cert_auth_to_certificate_type(cert_item.auth_type),
+            "cost_education": _cert_parse_fee(cert_item.education_fee),
+            "cost_certificate": _cert_parse_fee(cert_item.issue_fee),
+            "cost_material": _cert_parse_material_fee(cert_item.materials),
+        },
+    )
+    return course_type
+
+
+@staff_member_required
+def cert_item_api(request, pk):
+    """자격증리스트 항목을 지도사과정 공고 등록/수정 시 자동입력용으로 제공"""
+    item = get_object_or_404(CertificateCatalogItem, pk=pk)
+    cohort_num = InstructorRecruit.objects.filter(course_type__name=item.name).count() + 1
+
+    curriculum = [
+        {"session": str(i + 1), "content": line, "time": "1"}
+        for i, line in enumerate(item.curriculum_list())
+    ]
+
+    return JsonResponse({
+        "name": item.name,
+        "course_intro": _cert_item_course_intro(item),
+        "educational_goal": _cert_item_educational_goal(item),
+        "curriculum": curriculum,
+        "certificate_agency": item.issuer,
+        "certificate_type": _cert_auth_to_certificate_type(item.auth_type),
+        "cost_education": _cert_parse_fee(item.education_fee),
+        "cost_certificate": _cert_parse_fee(item.issue_fee),
+        "cost_material": _cert_parse_material_fee(item.materials),
+        "cost_includes_all": False,
+        "benefits": "자격증 발급, 교육자료 제공",
+        "cohort_num": cohort_num,
+        "suggested_title": f"{item.name} {cohort_num}기",
+    })
+
+
 def instructor_recruit(request):
     """지도사과정 모집 페이지"""
     from django.db.models import Case, When, Value, IntegerField
@@ -660,16 +736,17 @@ def instructor_recruit(request):
 
 @staff_member_required
 def instructor_recruit_add(request):
-    courses = InstructorCourseType.objects.all()
+    cert_items = CertificateCatalogItem.objects.all().order_by('order')
     if request.method == "POST":
-        course_type_id = request.POST.get("course_type")
-        course_type = InstructorCourseType.objects.filter(id=course_type_id).first() if course_type_id else None
-        
+        cert_item_id = request.POST.get("cert_item")
+        cert_item = CertificateCatalogItem.objects.filter(id=cert_item_id).first() if cert_item_id else None
+        course_type = _get_or_create_course_type_from_cert_item(cert_item) if cert_item else None
+
         cost_includes_all = request.POST.get("cost_includes_all") == "on"
         cost_cert = 0 if cost_includes_all else parse_cost(request.POST.get("cost_certificate"))
         cost_mat = 0 if cost_includes_all else parse_cost(request.POST.get("cost_material"))
-        
-        InstructorRecruit.objects.create(
+
+        recruit = InstructorRecruit.objects.create(
             course_type=course_type,
             title=request.POST.get("title"),
             class_days=",".join(request.POST.getlist("class_days")),
@@ -690,22 +767,39 @@ def instructor_recruit_add(request):
             status=request.POST.get("status"),
             image=request.FILES.get("image")
         )
+
+        if cert_item:
+            cert_item.related_recruit = recruit
+            cert_item.save(update_fields=["related_recruit"])
+
         return redirect("instructor_recruit")
-        
+
     return render(request, "recruit/instructor_recruit_form.html", {
-        "courses": courses,
+        "cert_items": cert_items,
         "days_of_week": ["월","화","수","목","금","토","일"],
     })
 
 @staff_member_required
 def instructor_recruit_edit(request, pk):
     recruit = get_object_or_404(InstructorRecruit, pk=pk)
-    courses = InstructorCourseType.objects.all()
-    
+    cert_items = CertificateCatalogItem.objects.all().order_by('order')
+    selected_cert_item = CertificateCatalogItem.objects.filter(related_recruit=recruit).first()
+
     if request.method == "POST":
-        course_type_id = request.POST.get("course_type")
-        recruit.course_type = InstructorCourseType.objects.filter(id=course_type_id).first() if course_type_id else None
-        
+        cert_item_id = request.POST.get("cert_item")
+        new_cert_item = CertificateCatalogItem.objects.filter(id=cert_item_id).first() if cert_item_id else None
+
+        # 다른 자격증으로 재연결하는 경우, 기존에 이 공고를 가리키던 연결은 해제
+        if selected_cert_item and selected_cert_item != new_cert_item:
+            selected_cert_item.related_recruit = None
+            selected_cert_item.save(update_fields=["related_recruit"])
+
+        recruit.course_type = _get_or_create_course_type_from_cert_item(new_cert_item) if new_cert_item else None
+
+        if new_cert_item:
+            new_cert_item.related_recruit = recruit
+            new_cert_item.save(update_fields=["related_recruit"])
+
         recruit.title = request.POST.get("title")
         recruit.class_days = ",".join(request.POST.getlist("class_days"))
         recruit.class_time = request.POST.get("class_time", "")
@@ -735,8 +829,9 @@ def instructor_recruit_edit(request, pk):
         return redirect("instructor_recruit")
         
     return render(request, "recruit/instructor_recruit_form.html", {
-        "recruit": recruit, 
-        "courses": courses,
+        "recruit": recruit,
+        "cert_items": cert_items,
+        "selected_cert_item": selected_cert_item,
         "days_of_week": ["월","화","수","목","금","토","일"],
     })
 

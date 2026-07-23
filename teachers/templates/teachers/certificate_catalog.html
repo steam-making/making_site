@@ -58,7 +58,11 @@
           <tbody>
             {% for item in catalog %}
             <tr data-category="{{ item.category }}" data-auth="{{ item.auth_type }}">
-              <td data-label="종류">{{ item.category }}</td>
+              <td data-label="종류">
+                {% for c in item.category_list %}
+                  <span class="badge bg-primary-subtle text-primary-emphasis">{{ c }}</span>
+                {% endfor %}
+              </td>
               <td data-label="인증">{{ item.auth_type }}</td>
               <td data-label="자격증명">{{ item.name }}</td>
               <td data-label="발행처">{{ item.issuer }}</td>
@@ -183,13 +187,37 @@
         </div>
         <div class="modal-body">
           <div class="row g-3">
-            <div class="col-6">
-              <label class="form-label">종류</label>
-              <input type="text" name="category" id="editCategory" class="form-control" required>
+            <div class="col-12">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <label class="form-label mb-0">종류 <small class="text-muted">(여러 개 선택 가능)</small></label>
+                <input type="text" id="newCategoryInput" class="form-control form-control-sm" placeholder="목록에 없는 종류를 직접 입력" style="width: 160px;">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="addCategoryBtn">+ 종류 추가</button>
+              </div>
+              <div class="d-flex flex-wrap gap-3" id="editCategoryGroup">
+                {% for c in category_options %}
+                <div class="form-check">
+                  <input type="checkbox" name="category" value="{{ c }}" class="form-check-input" id="editCategory-{{ forloop.counter }}">
+                  <label class="form-check-label" for="editCategory-{{ forloop.counter }}">{{ c }}</label>
+                </div>
+                {% endfor %}
+              </div>
             </div>
             <div class="col-6">
-              <label class="form-label">인증</label>
-              <input type="text" name="auth_type" id="editAuthType" class="form-control" placeholder="민간 / 국가공인" required>
+              <label class="form-label d-block">인증</label>
+              <div class="d-flex gap-3" id="editAuthTypeGroup">
+                <div class="form-check">
+                  <input type="radio" name="auth_type" value="국가자격" class="form-check-input" id="editAuthType-national" required>
+                  <label class="form-check-label" for="editAuthType-national">국가자격</label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="auth_type" value="국가공인" class="form-check-input" id="editAuthType-authorized" required>
+                  <label class="form-check-label" for="editAuthType-authorized">국가공인</label>
+                </div>
+                <div class="form-check">
+                  <input type="radio" name="auth_type" value="민간자격" class="form-check-input" id="editAuthType-private" required>
+                  <label class="form-check-label" for="editAuthType-private">민간자격</label>
+                </div>
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label">자격증명</label>
@@ -198,6 +226,14 @@
             <div class="col-12">
               <label class="form-label">발행처</label>
               <input type="text" name="issuer" id="editIssuer" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">과정 소개</label>
+              <textarea name="course_intro" id="editCourseIntro" class="form-control" rows="3" placeholder="비워두면 자동으로 기본 소개 문구가 사용됩니다."></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">교육 목표</label>
+              <textarea name="educational_goal" id="editEducationalGoal" class="form-control" rows="3" placeholder="비워두면 자동으로 기본 목표 문구가 사용됩니다."></textarea>
             </div>
             <div class="col-6">
               <label class="form-label">유효기간</label>
@@ -243,10 +279,40 @@
               <label class="form-label">연결된 교육과정(모집공고)</label>
               <select name="related_recruit_id" id="editRelatedRecruit" class="form-select">
                 <option value="">-- 선택 안 함 --</option>
+                <option value="__new__">+ 새 모집공고 추가</option>
                 {% for r in recruit_choices %}
                 <option value="{{ r.id }}">{{ r.title }} ({{ r.get_status_display }})</option>
                 {% endfor %}
               </select>
+
+              <div id="newRecruitFields" class="border rounded p-3 mt-2 bg-light" style="display:none;">
+                <div class="row g-2">
+                  <div class="col-12">
+                    <label class="form-label small mb-1">공고명</label>
+                    <input type="text" name="new_recruit_title" id="newRecruitTitle" class="form-control form-control-sm" placeholder="예: 코딩지도사2급 1기">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small mb-1">모집 시작일시</label>
+                    <input type="datetime-local" name="new_recruit_start" id="newRecruitStart" class="form-control form-control-sm">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small mb-1">모집 마감일시</label>
+                    <input type="datetime-local" name="new_recruit_end" id="newRecruitEnd" class="form-control form-control-sm">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small mb-1">모집 정원 <small class="text-muted">(0=무제한)</small></label>
+                    <input type="number" name="new_recruit_capacity" id="newRecruitCapacity" class="form-control form-control-sm" value="0" min="0">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small mb-1">상태</label>
+                    <select name="new_recruit_status" id="newRecruitStatus" class="form-select form-select-sm">
+                      <option value="open">모집중</option>
+                      <option value="hidden">비공개</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-text">저장하면 지도사과정 모집에도 새 공고로 함께 등록됩니다.</div>
+              </div>
             </div>
             <div class="col-12">
               <label class="form-label">차시별 커리큘럼 <small class="text-muted">(한 줄에 한 차시씩)</small></label>
@@ -387,7 +453,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function renderDetail(item) {
     const d = item.detail || {};
-    let html = '<table class="table table-sm table-borderless mb-2">';
+    let html = "";
+
+    if (d.course_intro) {
+      html += '<div class="fw-bold text-muted mb-1"><i class="bi bi-info-circle me-1"></i>과정 소개</div>';
+      html += `<p class="mb-3" style="white-space: pre-line;">${d.course_intro}</p>`;
+    }
+    if (d.educational_goal) {
+      html += '<div class="fw-bold text-muted mb-1"><i class="bi bi-bullseye me-1"></i>교육 목표</div>';
+      html += `<p class="mb-3" style="white-space: pre-line;">${d.educational_goal}</p>`;
+    }
+
+    html += '<table class="table table-sm table-borderless mb-2">';
 
     function row(label, value) {
       if (value === undefined || value === null || value === "") return "";
@@ -436,10 +513,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const editForm = editModal.querySelector("form");
   const editModalTitle = document.getElementById("editModalTitle");
+  const relatedRecruitSelect = document.getElementById("editRelatedRecruit");
+  const newRecruitFields = document.getElementById("newRecruitFields");
+
+  // ===== 종류(카테고리) 직접 추가 =====
+  const categoryGroup = document.getElementById("editCategoryGroup");
+  const newCategoryInput = document.getElementById("newCategoryInput");
+  const addCategoryBtn = document.getElementById("addCategoryBtn");
+
+  function addCategoryCheckbox(value, checked) {
+    const existing = Array.from(categoryGroup.querySelectorAll('input[name="category"]'))
+      .find(cb => cb.value === value);
+    if (existing) {
+      existing.checked = true;
+      return existing;
+    }
+    const id = "editCategory-custom-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+    const wrapper = document.createElement("div");
+    wrapper.className = "form-check";
+    wrapper.innerHTML = `
+      <input type="checkbox" name="category" value="${value}" class="form-check-input" id="${id}" ${checked ? "checked" : ""}>
+      <label class="form-check-label" for="${id}">${value}</label>
+    `;
+    categoryGroup.appendChild(wrapper);
+    return wrapper.querySelector("input");
+  }
+
+  function handleAddCategory() {
+    const value = newCategoryInput.value.trim();
+    if (!value) return;
+    addCategoryCheckbox(value, true);
+    newCategoryInput.value = "";
+  }
+
+  addCategoryBtn.addEventListener("click", handleAddCategory);
+  newCategoryInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddCategory();
+    }
+  });
+
+  function formatDatetimeLocal(date) {
+    const pad = n => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function toggleNewRecruitFields() {
+    const isNew = relatedRecruitSelect.value === "__new__";
+    newRecruitFields.style.display = isNew ? "" : "none";
+    if (isNew) {
+      const nameValue = document.getElementById("editName").value.trim();
+      const titleInput = document.getElementById("newRecruitTitle");
+      if (!titleInput.value) titleInput.value = nameValue ? `${nameValue} 1기` : "";
+
+      const startInput = document.getElementById("newRecruitStart");
+      const endInput = document.getElementById("newRecruitEnd");
+      if (!startInput.value) startInput.value = formatDatetimeLocal(new Date());
+      if (!endInput.value) {
+        const end = new Date();
+        end.setDate(end.getDate() + 90);
+        endInput.value = formatDatetimeLocal(end);
+      }
+    }
+  }
+
+  relatedRecruitSelect.addEventListener("change", toggleNewRecruitFields);
+
   function resetEditForm() {
     editForm.reset();
     document.getElementById("editItemId").value = "";
     document.getElementById("editCurriculum").value = "";
+    document.getElementById("newRecruitTitle").value = "";
+    document.getElementById("newRecruitStart").value = "";
+    document.getElementById("newRecruitEnd").value = "";
+    newCategoryInput.value = "";
+    toggleNewRecruitFields();
     editModalTitle.textContent = "자격증 추가";
   }
 
@@ -453,10 +602,18 @@ document.addEventListener("DOMContentLoaded", function () {
       const d = item.detail || {};
 
       document.getElementById("editItemId").value = item.id;
-      document.getElementById("editCategory").value = item.category || "";
-      document.getElementById("editAuthType").value = item.auth_type || "";
+      const selectedCategories = item.category_list || [];
+      document.querySelectorAll('#editCategoryGroup input[name="category"]').forEach(cb => {
+        cb.checked = selectedCategories.includes(cb.value);
+      });
+      selectedCategories.forEach(cat => addCategoryCheckbox(cat, true));
+      document.querySelectorAll('#editAuthTypeGroup input[name="auth_type"]').forEach(rb => {
+        rb.checked = rb.value === item.auth_type;
+      });
       document.getElementById("editName").value = item.name || "";
       document.getElementById("editIssuer").value = item.issuer || "";
+      document.getElementById("editCourseIntro").value = d.course_intro || "";
+      document.getElementById("editEducationalGoal").value = d.educational_goal || "";
       document.getElementById("editValidity").value = d.validity || "";
       document.getElementById("editMaterials").value = d.materials || "";
       document.getElementById("editIssueFee").value = d.issue_fee || "";
@@ -468,6 +625,7 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("editExamFee").value = d.exam_fee || "";
       document.getElementById("editRelatedLink").value = d.related_link || "";
       document.getElementById("editRelatedRecruit").value = item.related_recruit_id || "";
+      toggleNewRecruitFields();
       document.getElementById("editCurriculum").value = (d.curriculum || []).join("\n");
       editModalTitle.textContent = "자격증 수정";
     });
@@ -480,7 +638,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function applyFilters() {
     rows.forEach(row => {
-      const matchesCategory = !activeCategory || row.dataset.category === activeCategory;
+      const rowCategories = row.dataset.category.split(",").map(c => c.trim());
+      const matchesCategory = !activeCategory || rowCategories.includes(activeCategory);
       const matchesAuth = !activeAuth || row.dataset.auth === activeAuth;
       row.style.display = (matchesCategory && matchesAuth) ? "" : "none";
     });

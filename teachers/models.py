@@ -78,6 +78,9 @@ class CertificateCatalogItem(models.Model):
     name = models.CharField("자격증명", max_length=200)
     issuer = models.CharField("발행처", max_length=200, blank=True)
 
+    course_intro = models.TextField("과정 소개", blank=True)
+    educational_goal = models.TextField("교육 목표", blank=True)
+
     validity = models.CharField("유효기간", max_length=100, blank=True)
     issue_fee = models.CharField("발급비", max_length=100, blank=True)
     education_fee = models.CharField("교육비", max_length=100, blank=True)

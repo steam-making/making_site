@@ -25,14 +25,16 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-primary">과정 선택 (자동입력용)</label>
-                            <select name="course_type" id="course_type" class="form-select border-primary">
+                            <label class="form-label fw-bold text-primary">자격증리스트에서 과정 선택 (자동입력용)</label>
+                            <select name="cert_item" id="course_type" class="form-select border-primary">
                                 <option value="">--- 직접 입력 ---</option>
-                                {% for c in courses %}
-                                    <option value="{{ c.id }}" {% if recruit.course_type_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                                {% for c in cert_items %}
+                                    <option value="{{ c.id }}" {% if selected_cert_item.id == c.id %}selected{% endif %}>{{ c.name }}</option>
                                 {% endfor %}
                             </select>
-                            <div class="form-text">과정을 선택하면 아래의 공고명, 소개, 커리큘럼 등이 자동으로 채워집니다.</div>
+                            <div class="form-text">
+                                <a href="{% url 'certificate_catalog' %}" target="_blank">자격증리스트</a>에 등록된 자격증을 선택하면 아래의 공고명, 소개, 커리큘럼 등이 자동으로 채워집니다.
+                            </div>
                         </div>
                         
                         <div class="mb-4">
@@ -289,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const courseId = this.value;
         if (!courseId) return;
         
-        fetch(`/recruit/instructor/courses/${courseId}/api/`)
+        fetch(`/recruit/instructor/cert-item/${courseId}/api/`)
             .then(response => response.json())
             .then(data => {
                 const titleInput = document.getElementById('id_title');

@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.db.models import Q, Count, Max
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from django.contrib.auth.models import User
 from .models import TeachingInstitution, TeachingDay
 from django.shortcuts import render, get_object_or_404, redirect
@@ -330,6 +330,11 @@ def institution_close(request, pk):
 
     
     
+CATEGORY_CHECKBOX_OPTIONS = [
+    "AI", "코딩", "로봇", "3D펜", "과학", "드론", "방과후", "사무/IT",
+]
+
+
 def _parse_material_cost(materials_text):
     import re
     if not materials_text:
@@ -355,6 +360,10 @@ def _sync_related_recruit(item):
 
     recruit = item.related_recruit
     recruit.certificate_agency = item.issuer
+    if item.course_intro:
+        recruit.course_intro = item.course_intro
+    if item.educational_goal:
+        recruit.educational_goal = item.educational_goal
     recruit.cost_education = _safe_parse_cost(item.education_fee, recruit.cost_education)
     recruit.cost_certificate = _safe_parse_cost(item.issue_fee, recruit.cost_certificate)
     material_cost = _parse_material_cost(item.materials)
@@ -367,19 +376,25 @@ def _sync_related_recruit(item):
             for i, line in enumerate(curriculum)
         ]
     recruit.save(update_fields=[
-        "certificate_agency", "cost_education", "cost_certificate", "cost_material", "curriculum",
+        "certificate_agency", "course_intro", "educational_goal",
+        "cost_education", "cost_certificate", "cost_material", "curriculum",
     ])
 
     course_type = recruit.course_type
     if course_type:
         course_type.certificate_agency = item.issuer
+        if item.course_intro:
+            course_type.course_intro = item.course_intro
+        if item.educational_goal:
+            course_type.educational_goal = item.educational_goal
         course_type.cost_education = recruit.cost_education
         course_type.cost_certificate = recruit.cost_certificate
         course_type.cost_material = recruit.cost_material
         if curriculum:
             course_type.curriculum = recruit.curriculum
         course_type.save(update_fields=[
-            "certificate_agency", "cost_education", "cost_certificate", "cost_material", "curriculum",
+            "certificate_agency", "course_intro", "educational_goal",
+            "cost_education", "cost_certificate", "cost_material", "curriculum",
         ])
 
 
@@ -387,11 +402,14 @@ def _catalog_item_to_dict(item):
     return {
         "id": item.id,
         "category": item.category,
+        "category_list": [c.strip() for c in item.category.split(",") if c.strip()],
         "auth_type": item.auth_type,
         "name": item.name,
         "issuer": item.issuer,
         "related_recruit_id": item.related_recruit_id,
         "detail": {
+            "course_intro": item.course_intro,
+            "educational_goal": item.educational_goal,
             "validity": item.validity,
             "issue_fee": item.issue_fee,
             "education_fee": item.education_fee,
@@ -425,15 +443,23 @@ def certificate_catalog(request):
         catalog.append(row)
         catalog_for_js.append(_catalog_item_to_dict(item))
 
-    categories = sorted({item.category for item in items if item.category})
+    categories = set()
+    for item in items:
+        categories.update(c.strip() for c in item.category.split(",") if c.strip())
     auth_types = sorted({item.auth_type for item in items if item.auth_type})
+
+    category_options = list(CATEGORY_CHECKBOX_OPTIONS)
+    for c in sorted(categories):
+        if c not in category_options:
+            category_options.append(c)
 
     return render(request, 'teachers/certificate_catalog.html', {
         'catalog': catalog,
         'catalog_for_js': catalog_for_js,
         'recruit_choices': InstructorRecruit.objects.select_related('course_type').order_by('-created_at'),
-        'categories': categories,
+        'categories': sorted(categories),
         'auth_types': auth_types,
+        'category_options': category_options,
     })
 
 
@@ -483,10 +509,12 @@ def certificate_catalog_save(request):
         max_order = CertificateCatalogItem.objects.aggregate(Max('order'))['order__max'] or 0
         item.order = max_order + 1
 
-    item.category = request.POST.get("category", "").strip()
+    item.category = ",".join(request.POST.getlist("category"))
     item.auth_type = request.POST.get("auth_type", "").strip()
     item.name = request.POST.get("name", "").strip()
     item.issuer = request.POST.get("issuer", "").strip()
+    item.course_intro = request.POST.get("course_intro", "").strip()
+    item.educational_goal = request.POST.get("educational_goal", "").strip()
     item.validity = request.POST.get("validity", "").strip()
     item.issue_fee = request.POST.get("issue_fee", "").strip()
     item.education_fee = request.POST.get("education_fee", "").strip()
@@ -501,14 +529,53 @@ def certificate_catalog_save(request):
     item.related_link = request.POST.get("related_link", "").strip()
 
     related_recruit_id = request.POST.get("related_recruit_id", "").strip()
-    item.related_recruit_id = int(related_recruit_id) if related_recruit_id.isdigit() else None
 
     if not item.name:
         messages.error(request, "자격증명을 입력해주세요.")
         return redirect('certificate_catalog')
 
+    if not item.category:
+        messages.error(request, "종류를 하나 이상 선택해주세요.")
+        return redirect('certificate_catalog')
+
+    new_recruit = None
+    if related_recruit_id == "__new__":
+        from recruit.models import InstructorRecruit
+        from recruit.views import _get_or_create_course_type_from_cert_item
+
+        new_title = request.POST.get("new_recruit_title", "").strip() or f"{item.name} 1기"
+        new_start = request.POST.get("new_recruit_start") or timezone.now()
+        new_end = request.POST.get("new_recruit_end") or (timezone.now() + timedelta(days=90))
+        new_capacity = request.POST.get("new_recruit_capacity") or 0
+        new_status = request.POST.get("new_recruit_status") or "open"
+
+        course_type = _get_or_create_course_type_from_cert_item(item)
+        new_recruit = InstructorRecruit.objects.create(
+            course_type=course_type,
+            title=new_title,
+            course_intro=course_type.course_intro,
+            educational_goal=course_type.educational_goal,
+            certificate_agency=course_type.certificate_agency,
+            certificate_type=course_type.certificate_type,
+            curriculum=course_type.curriculum,
+            cost_education=course_type.cost_education,
+            cost_certificate=course_type.cost_certificate,
+            cost_material=course_type.cost_material,
+            benefits=course_type.benefits,
+            recruit_start=new_start,
+            recruit_end=new_end,
+            capacity=new_capacity,
+            status=new_status,
+        )
+        item.related_recruit = new_recruit
+    elif related_recruit_id.isdigit():
+        item.related_recruit_id = int(related_recruit_id)
+    else:
+        item.related_recruit_id = None
+
     item.save()
-    _sync_related_recruit(item)
+    if not new_recruit:
+        _sync_related_recruit(item)
     messages.success(request, f"'{item.name}'이(가) 저장되었습니다.")
     return redirect('certificate_catalog')
 

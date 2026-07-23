@@ -58,7 +58,7 @@ def kakao_login(request):
     kakao_auth_url = (
         f"https://kauth.kakao.com/oauth/authorize?"
         f"client_id={client_id}&redirect_uri={redirect_uri}&response_type=code"
-        f"&scope=talk_message,friends,profile_nickname,account_email"
+        f"&scope=talk_message,friends,profile_nickname"
     )
     return redirect(kakao_auth_url)
 
