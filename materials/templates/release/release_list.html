@@ -36,6 +36,13 @@
     font-size: 0.92rem;
   }
 
+  .release-page-context {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4f46e5;
+    margin-left: 0.4rem;
+  }
+
   .release-desktop-header-row {
     display: flex;
     align-items: center;
@@ -545,7 +552,16 @@
     <div class="release-filter-card">
       <div class="d-flex d-md-none flex-wrap justify-content-between align-items-center gap-2 mb-3 release-filter-header">
         <div>
-          <div class="release-page-title">교구출고</div>
+          <div class="release-page-title">
+            교구출고
+            {% if selected_teacher or selected_institution %}
+              <span class="release-page-context">
+                {% if selected_teacher %}{{ selected_teacher.first_name|default:selected_teacher.username }}{% endif %}
+                {% if selected_teacher and selected_institution %}·{% endif %}
+                {% if selected_institution %}{% if selected_institution.school %}{{ selected_institution.school.name }}{% else %}{{ selected_institution.name }}{% endif %}{% endif %}
+              </span>
+            {% endif %}
+          </div>
           <div class="release-page-subtitle">기관별 출고 현황, 수금 상태, 견적서 발행 흐름을 한 번에 관리합니다.</div>
         </div>
         <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary px-3 d-md-none">
@@ -557,7 +573,16 @@
       <form method="get" id="filterForm" class="row g-2 align-items-center justify-content-between" data-is-staff="{{ request.user.is_staff|yesno:'true,false' }}">
       <div class="col-12 d-none d-md-block mb-2">
         <div class="release-desktop-header-row">
-          <div class="release-page-title mb-0">교구출고</div>
+          <div class="release-page-title mb-0">
+            교구출고
+            {% if selected_teacher or selected_institution %}
+              <span class="release-page-context">
+                {% if selected_teacher %}{{ selected_teacher.first_name|default:selected_teacher.username }}{% endif %}
+                {% if selected_teacher and selected_institution %}·{% endif %}
+                {% if selected_institution %}{% if selected_institution.school %}{{ selected_institution.school.name }}{% else %}{{ selected_institution.name }}{% endif %}{% endif %}
+              </span>
+            {% endif %}
+          </div>
           <div class="release-desktop-controls">
             <a href="{% url 'create_release' %}?{{ request.GET.urlencode }}" class="btn btn-primary px-3">
               <i class="bi bi-plus-lg"></i> 새 출고
@@ -567,14 +592,14 @@
               미결제 {{ unpaid_group_count }}
             </a>
             {% if request.user.is_staff %}
-            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopTeacherFilters" aria-expanded="{% if not selected_institution_id %}true{% else %}false{% endif %}" aria-controls="desktopTeacherFilters">
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopTeacherFilters" aria-expanded="{% if show_teacher_panel %}true{% else %}false{% endif %}" aria-controls="desktopTeacherFilters">
               강사검색
             </button>
             {% endif %}
-            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopSchoolFilters" aria-expanded="{% if not request.user.is_staff or selected_institution_id %}true{% else %}false{% endif %}" aria-controls="desktopSchoolFilters">
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopSchoolFilters" aria-expanded="{% if show_school_panel %}true{% else %}false{% endif %}" aria-controls="desktopSchoolFilters">
               학교검색
             </button>
-            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopCenterFilters" aria-expanded="false" aria-controls="desktopCenterFilters">
+            <button type="button" class="btn btn-outline-primary px-3" data-bs-toggle="collapse" data-bs-target="#desktopCenterFilters" aria-expanded="{% if show_center_panel %}true{% else %}false{% endif %}" aria-controls="desktopCenterFilters">
               기관검색
             </button>
             <div class="release-filter-month">
@@ -1163,6 +1188,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
    {% empty %}
      <p class="text-center">등록된 출고 내역이 없습니다.</p>

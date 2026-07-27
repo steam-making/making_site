@@ -492,6 +492,7 @@ def release_list(request):
             selected_institution = TeachingInstitution.objects.get(id=int(selected_institution_id))
         except TeachingInstitution.DoesNotExist:
             pass
+
     # Selected teacher's institutions (for admin view)
     selected_teacher_institutions = None
     if user.is_staff and selected_teacher_id:
@@ -522,6 +523,13 @@ def release_list(request):
         institutions = institutions.filter(teacher=user)
         selected_teacher_id = user.id
         center_teachers = User.objects.filter(id=user.id, profile__user_type='center_teacher')
+
+    selected_teacher = None
+    if selected_teacher_id:
+        try:
+            selected_teacher = User.objects.get(id=int(selected_teacher_id))
+        except (User.DoesNotExist, ValueError, TypeError):
+            pass
 
     if selected_institution_id and selected_institution_id.isdigit():
         all_releases = all_releases.filter(institution_id=int(selected_institution_id))
@@ -636,15 +644,20 @@ def release_list(request):
         g["total_with_vat"] = tax_total
 
     grouped_list = []
-    teacher_unpaid_counts = {}
-    institution_unpaid_counts = {}
-    unpaid_releases = MaterialRelease.objects.filter(payment_status="unpaid").values_list('teacher_id', 'institution_id')
-    
-    for teacher_id, institution_id in unpaid_releases:
+    # ✅ 미수금 개수는 개별 출고(release) 건수가 아니라 (학교/기관 + 주문월) 단위 "그룹" 개수로 세야 함
+    unpaid_releases = MaterialRelease.objects.filter(payment_status="unpaid").values_list('teacher_id', 'institution_id', 'order_month')
+
+    teacher_unpaid_groups = {}
+    institution_unpaid_groups = {}
+    for teacher_id, institution_id, order_month in unpaid_releases:
+        group_key = (institution_id, order_month)
         if teacher_id:
-            teacher_unpaid_counts[teacher_id] = teacher_unpaid_counts.get(teacher_id, 0) + 1
+            teacher_unpaid_groups.setdefault(teacher_id, set()).add(group_key)
         if institution_id:
-            institution_unpaid_counts[institution_id] = institution_unpaid_counts.get(institution_id, 0) + 1
+            institution_unpaid_groups.setdefault(institution_id, set()).add(group_key)
+
+    teacher_unpaid_counts = {tid: len(keys) for tid, keys in teacher_unpaid_groups.items()}
+    institution_unpaid_counts = {iid: len(keys) for iid, keys in institution_unpaid_groups.items()}
 
     for data in grouped_data.values():
         data["materials_summary"] = dict(sorted(data["materials_summary"].items()))
@@ -662,18 +675,13 @@ def release_list(request):
     show_school_panel = False
     show_center_panel = False
 
-    if user.is_staff:
-        if not selected_institution_id or selected_teacher_id:
+    # 출강 장소(학교/기관)를 아직 선택하지 않은 경우에만 해당 패널을 기본으로 열어두고,
+    # 선택이 끝나면(=institution 확정) 자동으로 닫아 화면을 깔끔하게 유지한다.
+    if not selected_institution_id:
+        if user.is_staff:
             show_teacher_panel = True
-        elif selected_institution and selected_institution.place_type in ['school', 'kindergarten']:
+        else:
             show_school_panel = True
-        elif selected_institution and selected_institution.place_type in ['child_center', 'culture_center', 'other']:
-            show_center_panel = True
-    else:
-        if not selected_institution_id or (selected_institution and selected_institution.place_type in ['school', 'kindergarten']):
-            show_school_panel = True
-        elif selected_institution and selected_institution.place_type in ['child_center', 'culture_center', 'other']:
-            show_center_panel = True
 
     return render(request, 'release/release_list.html', {
         'grouped_list': grouped_list,
@@ -682,6 +690,7 @@ def release_list(request):
         'institutions': institutions,
         'selected_teacher_institutions': selected_teacher_institutions,
         'selected_teacher_id': selected_teacher_id,
+        'selected_teacher': selected_teacher,
         'selected_order_month': selected_order_month,
         'selected_institution_id': selected_institution_id,
         'selected_institution': selected_institution,
@@ -3214,7 +3223,7 @@ def toggle_payment_vendor_group(request, date_str, vendor_type_id, vendor_id):
     return redirect('order_list')
 
 
-def _date_group_qs(date_str, teacher_id):
+def _date_group_qs(date_str, teacher_id, vendor_id=None):
     date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
     qs = MaterialOrderItem.objects.filter(
         order__ordered_date=date_obj,
@@ -3224,26 +3233,31 @@ def _date_group_qs(date_str, teacher_id):
         qs = qs.filter(order__teacher_id=teacher_id)
     else:
         qs = qs.filter(order__teacher__isnull=True)
+    if vendor_id:
+        qs = qs.filter(vendor_id=vendor_id)
     return qs
 
 @login_required
 @require_POST
 def toggle_payment_date_group(request, date_str, teacher_id):
-    qs = _date_group_qs(date_str, teacher_id)
+    vendor_id = request.GET.get('vendor_id') or None
+    qs = _date_group_qs(date_str, teacher_id, vendor_id)
+    scope_label = f"{date_str} (필터된 거래처)" if vendor_id else date_str
     already_paid = qs.filter(paid_date__isnull=False).exists()
     if already_paid:
         qs.update(paid_date=None)
-        messages.success(request, f"{date_str} 전체 주문의 입금완료를 취소했습니다.")
+        messages.success(request, f"{scope_label} 주문의 입금완료를 취소했습니다.")
     else:
         # datetime이 이미 datetime.datetime이므로 timezone.now().date() 활용
         qs.update(paid_date=timezone.now().date())
-        messages.success(request, f"{date_str} 전체 주문을 입금완료 처리했습니다.")
+        messages.success(request, f"{scope_label} 주문을 입금완료 처리했습니다.")
     return redirect(request.META.get('HTTP_REFERER', 'order_list'))
 
 @login_required
 @require_POST
 def toggle_receive_date_group(request, date_str, teacher_id):
-    qs = _date_group_qs(date_str, teacher_id).select_related("material")
+    vendor_id = request.GET.get('vendor_id') or None
+    qs = _date_group_qs(date_str, teacher_id, vendor_id).select_related("material")
     already_received = qs.filter(status='received').exists()
 
     with transaction.atomic():
