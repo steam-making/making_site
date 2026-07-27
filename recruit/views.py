@@ -656,6 +656,17 @@ def _cert_parse_material_fee(materials_text):
     return 0
 
 
+def _recruit_end_of_day(date_str):
+    """모집 마감일(날짜만 입력)을 그 날 23:59:59로 변환 - 마감일 당일까지는 모집중으로 유지"""
+    if not date_str:
+        return None
+    from django.utils import timezone as dj_timezone
+    dt = datetime.strptime(date_str, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+    if dj_timezone.is_naive(dt):
+        dt = dj_timezone.make_aware(dt)
+    return dt
+
+
 def _cert_item_course_intro(cert_item):
     return cert_item.course_intro or f"{cert_item.name} 과정으로, {cert_item.issuer}에서 인증하는 자격을 취득할 수 있습니다."
 
@@ -749,6 +760,8 @@ def instructor_recruit_add(request):
         recruit = InstructorRecruit.objects.create(
             course_type=course_type,
             title=request.POST.get("title"),
+            class_start_date=request.POST.get("class_start_date") or None,
+            class_end_date=request.POST.get("class_end_date") or None,
             class_days=",".join(request.POST.getlist("class_days")),
             class_time=request.POST.get("class_time", ""),
             course_intro=request.POST.get("course_intro", ""),
@@ -762,7 +775,7 @@ def instructor_recruit_add(request):
             cost_includes_all=cost_includes_all,
             benefits=request.POST.get("benefits", ""),
             recruit_start=request.POST.get("recruit_start"),
-            recruit_end=request.POST.get("recruit_end"),
+            recruit_end=_recruit_end_of_day(request.POST.get("recruit_end")),
             capacity=request.POST.get("capacity") or 0,
             status=request.POST.get("status"),
             image=request.FILES.get("image")
@@ -801,6 +814,8 @@ def instructor_recruit_edit(request, pk):
             new_cert_item.save(update_fields=["related_recruit"])
 
         recruit.title = request.POST.get("title")
+        recruit.class_start_date = request.POST.get("class_start_date") or None
+        recruit.class_end_date = request.POST.get("class_end_date") or None
         recruit.class_days = ",".join(request.POST.getlist("class_days"))
         recruit.class_time = request.POST.get("class_time", "")
         recruit.course_intro = request.POST.get("course_intro", "")
@@ -818,7 +833,7 @@ def instructor_recruit_edit(request, pk):
         recruit.benefits = request.POST.get("benefits", "")
         
         recruit.recruit_start = request.POST.get("recruit_start")
-        recruit.recruit_end = request.POST.get("recruit_end")
+        recruit.recruit_end = _recruit_end_of_day(request.POST.get("recruit_end"))
         recruit.capacity = request.POST.get("capacity") or 0
         recruit.status = request.POST.get("status")
         

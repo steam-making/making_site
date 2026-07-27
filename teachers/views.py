@@ -541,11 +541,11 @@ def certificate_catalog_save(request):
     new_recruit = None
     if related_recruit_id == "__new__":
         from recruit.models import InstructorRecruit
-        from recruit.views import _get_or_create_course_type_from_cert_item
+        from recruit.views import _get_or_create_course_type_from_cert_item, _recruit_end_of_day
 
         new_title = request.POST.get("new_recruit_title", "").strip() or f"{item.name} 1기"
         new_start = request.POST.get("new_recruit_start") or timezone.now()
-        new_end = request.POST.get("new_recruit_end") or (timezone.now() + timedelta(days=90))
+        new_end = _recruit_end_of_day(request.POST.get("new_recruit_end")) or (timezone.now() + timedelta(days=90))
         new_capacity = request.POST.get("new_recruit_capacity") or 0
         new_status = request.POST.get("new_recruit_status") or "open"
 

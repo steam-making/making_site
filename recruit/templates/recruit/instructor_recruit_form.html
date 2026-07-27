@@ -44,6 +44,17 @@
                         
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
+                                <label class="form-label fw-bold">수업 시작일</label>
+                                <input type="date" name="class_start_date" class="form-control" value="{{ recruit.class_start_date|date:'Y-m-d'|default:'' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">수업 종료일</label>
+                                <input type="date" name="class_end_date" class="form-control" value="{{ recruit.class_end_date|date:'Y-m-d'|default:'' }}">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
                                 <label class="form-label fw-bold">수업 요일</label>
                                 <div class="d-flex gap-2 flex-wrap mt-1">
                                     {% for day in days_of_week %}
@@ -166,12 +177,12 @@
                         
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">모집 시작일시</label>
-                                <input type="datetime-local" name="recruit_start" class="form-control" value="{{ recruit.recruit_start|date:'Y-m-d\TH:i'|default:'' }}" required>
+                                <label class="form-label fw-bold">모집 시작일</label>
+                                <input type="date" name="recruit_start" class="form-control" value="{{ recruit.recruit_start|date:'Y-m-d'|default:'' }}" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">모집 마감일시</label>
-                                <input type="datetime-local" name="recruit_end" class="form-control" value="{{ recruit.recruit_end|date:'Y-m-d\TH:i'|default:'' }}" required>
+                                <label class="form-label fw-bold">모집 마감일</label>
+                                <input type="date" name="recruit_end" class="form-control" value="{{ recruit.recruit_end|date:'Y-m-d'|default:'' }}" required>
                             </div>
                         </div>
                         

@@ -292,12 +292,12 @@
                     <input type="text" name="new_recruit_title" id="newRecruitTitle" class="form-control form-control-sm" placeholder="예: 코딩지도사2급 1기">
                   </div>
                   <div class="col-6">
-                    <label class="form-label small mb-1">모집 시작일시</label>
-                    <input type="datetime-local" name="new_recruit_start" id="newRecruitStart" class="form-control form-control-sm">
+                    <label class="form-label small mb-1">모집 시작일</label>
+                    <input type="date" name="new_recruit_start" id="newRecruitStart" class="form-control form-control-sm">
                   </div>
                   <div class="col-6">
-                    <label class="form-label small mb-1">모집 마감일시</label>
-                    <input type="datetime-local" name="new_recruit_end" id="newRecruitEnd" class="form-control form-control-sm">
+                    <label class="form-label small mb-1">모집 마감일</label>
+                    <input type="date" name="new_recruit_end" id="newRecruitEnd" class="form-control form-control-sm">
                   </div>
                   <div class="col-6">
                     <label class="form-label small mb-1">모집 정원 <small class="text-muted">(0=무제한)</small></label>
@@ -554,9 +554,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  function formatDatetimeLocal(date) {
+  function formatDateOnly(date) {
     const pad = n => String(n).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   }
 
   function toggleNewRecruitFields() {
@@ -569,11 +569,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const startInput = document.getElementById("newRecruitStart");
       const endInput = document.getElementById("newRecruitEnd");
-      if (!startInput.value) startInput.value = formatDatetimeLocal(new Date());
+      if (!startInput.value) startInput.value = formatDateOnly(new Date());
       if (!endInput.value) {
         const end = new Date();
         end.setDate(end.getDate() + 90);
-        endInput.value = formatDatetimeLocal(end);
+        endInput.value = formatDateOnly(end);
       }
     }
   }

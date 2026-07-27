@@ -123,6 +123,8 @@ class InstructorRecruit(models.Model):
     )
     title = models.CharField("공고명", max_length=200)
     
+    class_start_date = models.DateField("수업 시작일", null=True, blank=True)
+    class_end_date = models.DateField("수업 종료일", null=True, blank=True)
     class_days = models.CharField("수업 요일", max_length=50, blank=True)
     class_time = models.CharField("수업 시간", max_length=100, blank=True)
     
