@@ -51,6 +51,9 @@ HOLIDAY_API_KEY = "여기에_발급받은_API_KEY_입력"
 
 KAKAO_REST_API_KEY = "00b9459c0c60c9c475e7ccbc88abc6e0"
 
+# 카카오톡 알림 등에서 사용하는 실제 서비스 도메인. 로컬 테스트 시 .env에서 SITE_URL로 덮어쓸 수 있음.
+SITE_URL = env('SITE_URL', default='https://steam-making.com')
+
 ESTIMATE_VENDOR = {
     "business_no": "420-03-01408",
     "name": "메듀테크",

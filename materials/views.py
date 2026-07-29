@@ -846,9 +846,7 @@ def request_release_notification(request, institution_id, order_month):
             messages.error(request, "강사가 관리자의 친구 목록에 없습니다. 카카오톡 친구 추가 및 메시지 권한 동의가 필요합니다.")
             return redirect("release_list")
 
-        link_url = request.build_absolute_uri(
-            f"{reverse('release_list')}?teacher={teacher_user.id}&institution={institution.id}&order_month={order_month}"
-        )
+        link_url = f"{settings.SITE_URL}{reverse('release_list')}?teacher={teacher_user.id}&institution={institution.id}&order_month={order_month}"
         res = send_kakao_friend_message(admin_user, receiver_uuid, message, local_test=bool(settings.DEBUG), link_url=link_url)
 
         if res and res.get("error"):
@@ -902,9 +900,7 @@ def request_release_notification(request, institution_id, order_month):
             messages.error(request, "관리자가 친구 목록에 없거나 친구 메시지 권한이 없습니다.")
             return redirect("release_list")
 
-        link_url = request.build_absolute_uri(
-            f"{reverse('release_list')}?teacher={request.user.id}&institution={institution.id}&order_month={order_month}"
-        )
+        link_url = f"{settings.SITE_URL}{reverse('release_list')}?teacher={request.user.id}&institution={institution.id}&order_month={order_month}"
         res = send_kakao_friend_message(request.user, receiver_uuid, message, local_test=bool(settings.DEBUG), link_url=link_url)
 
         if res and res.get("error"):
