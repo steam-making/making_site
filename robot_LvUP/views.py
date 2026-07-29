@@ -419,7 +419,6 @@ def levelup_by_institution(request, institution_id):
         .select_related("material", "student__division")
         .order_by(
             "-year_month",           # 년월 최신순
-            "delivery_done",        # 전달 안된 게 먼저
             "section",
             "grade",
             "class_no",

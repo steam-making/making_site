@@ -40,20 +40,16 @@
         <tr>
           <td class="row-index text-muted">1</td>
           <td>
-            <select name="material" class="form-select form-select-sm text-center" required>
-              {% for m in robot_materials %}
-                <option value="{{ m.id }}" {% if record.material.id == m.id %}selected{% endif %}>
-                  {{ m.name }}
-                </option>
-              {% endfor %}
-            </select>
+            <input type="hidden" name="material" id="editMaterialId" value="{{ record.material.id|default:'' }}">
+            <input type="text" id="editMaterialInput" class="form-control form-control-sm text-center material-input"
+                   placeholder="교구명" autocomplete="off" value="{{ record.material.name|default:'' }}" required>
           </td>
           <td><input type="text" name="section" class="form-control form-control-sm text-center" value="{{ record.section }}"></td>
           <td><input type="text" name="grade" class="form-control form-control-sm text-center" value="{{ record.grade }}"></td>
           <td><input type="text" name="class_no" class="form-control form-control-sm text-center" value="{{ record.class_no }}"></td>
           <td><input type="text" name="student_no" class="form-control form-control-sm text-center" value="{{ record.student_no }}"></td>
           <td><input type="text" name="student_name" class="form-control form-control-sm text-center" value="{{ record.student_name }}"></td>
-          <td><input type="number" name="price" class="form-control form-control-sm text-center" value="{{ record.price }}"></td>
+          <td><input type="number" name="price" id="editPriceInput" class="form-control form-control-sm text-center" value="{{ record.price }}"></td>
           <td><input type="text" name="note" class="form-control form-control-sm text-center" value="{{ record.note }}"></td>
         </tr>
 
@@ -134,15 +130,15 @@
   .autocomplete-item:hover { background-color: #e9f0ff; }
 </style>
 
-{% if not record %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const yearMonthInput = document.getElementById('yearMonthInput');
+  {% if not record %}
   // 다음달 자동 입력
   const today = new Date();
   today.setMonth(today.getMonth() + 1);
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, '0');
-  const yearMonthInput = document.getElementById('yearMonthInput');
   if (yearMonthInput && !yearMonthInput.value) {
     yearMonthInput.value = `${year}-${month}`;
   }
@@ -179,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // 학생/교구 데이터
+  // 학생 데이터
   const students = [
     {% for s in students %}
       {% if s.division and "미수강" not in s.division.division %}
@@ -194,7 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
       {% endif %}
     {% endfor %}
   ];
+  {% endif %}
 
+  // 교구 데이터
   const materials = [
     {% for m in robot_materials %}
       { id: "{{ m.id }}", name: "{{ m.name }}", price: "{{ m.school_price }}" },
@@ -241,10 +239,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     inputEl.addEventListener('blur', () => setTimeout(closeList, 150));
 
-    window.addEventListener('scroll', closeList, true);
+    window.addEventListener('scroll', function(e) {
+      if (list && (e.target === list || list.contains(e.target))) return;
+      closeList();
+    }, true);
     window.addEventListener('resize', closeList);
   }
 
+  {% if not record %}
   // 동적 행 자동완성 연결
   function attachRowAutocomplete(row) {
     const materialInput = row.querySelector('.material-input');
@@ -284,7 +286,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const lastRow = rowContainer.lastElementChild;
     attachRowAutocomplete(lastRow);
   });
+  {% else %}
+  // 수정 모드: 교구명 자동완성 + 선택 시 가격 자동 입력
+  const editMaterialInput = document.getElementById('editMaterialInput');
+  if (editMaterialInput) {
+    makeAutocomplete(editMaterialInput, materials,
+      m => m.name,
+      m => {
+        editMaterialInput.value = m.name;
+        document.getElementById('editMaterialId').value = m.id;
+        document.getElementById('editPriceInput').value = m.price;
+      }
+    );
+  }
+  {% endif %}
 });
 </script>
-{% endif %}
 {% endblock %}
