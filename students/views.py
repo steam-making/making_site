@@ -462,7 +462,7 @@ def medutech_sync_students(request, institution_id):
         return redirect('students:medutech_map_institution', institution_id=institution.id)
 
     try:
-        items = medutech_client.get_students_today(account.api_token, mapping.medutech_school_id)
+        items, synced_month = medutech_client.get_recent_students(account.api_token, mapping.medutech_school_id)
     except medutech_client.MedutechAPIError as exc:
         messages.error(request, str(exc))
         return redirect('students:student_detail', institution_id=institution.id)
@@ -480,7 +480,7 @@ def medutech_sync_students(request, institution_id):
 
     with transaction.atomic():
         for item in items:
-            medutech_student_id = item.get('student_id')
+            medutech_student_id = item.get('id')
             seen_medutech_ids.add(medutech_student_id)
 
             division_name = (item.get('department') or '미수강').strip()
@@ -491,7 +491,7 @@ def medutech_sync_students(request, institution_id):
             field_values = {
                 'division': division,
                 'grade': str(item.get('grade') or ''),
-                'class_name': str(item.get('class_no') or ''),
+                'class_name': str(item.get('classroom') or ''),
                 'number': str(item.get('number') or ''),
                 'name': item.get('name') or '',
                 'parent_contact': item.get('phone') or '',
@@ -518,8 +518,9 @@ def medutech_sync_students(request, institution_id):
             division__institution=institution
         ).exclude(medutech_student_id__in=seen_medutech_ids).delete()
 
+    month_label = f" ({synced_month} 기준)" if synced_month else ""
     messages.success(
         request,
-        f"출첵마스터 동기화 완료: 신규 {created_count}명, 갱신 {updated_count}명, 삭제 {removed_count}명."
+        f"출첵마스터 동기화 완료{month_label}: 신규 {created_count}명, 갱신 {updated_count}명, 삭제 {removed_count}명."
     )
     return redirect('students:student_detail', institution_id=institution.id)

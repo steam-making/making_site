@@ -124,3 +124,32 @@ def get_students_today(api_token, medutech_school_id):
         raise MedutechAPIError(data.get('error', '알 수 없는 오류가 발생했습니다.'))
 
     return data.get('data', {}).get('items', [])
+
+
+def get_recent_students(api_token, medutech_school_id):
+    """
+    medutech.kr의 특정 학교 학생 명단을, 가장 최근에 등록/변경된 월 기준으로 가져온다.
+    (예: 8월에 새로 엑셀등록/부서이동이 있었다면 8월 시점 기준 유효 명단만 반환)
+    반환값: (items, month) — items의 학생 식별자는 'id' 키를 사용한다.
+    """
+    url = f"{_base_url()}/attendance/api/students/recent/"
+    try:
+        resp = requests.get(
+            url,
+            headers=_headers(api_token),
+            params={'school_id': medutech_school_id},
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        raise MedutechAPIError(f"medutech.kr에 연결할 수 없습니다: {exc}") from exc
+
+    if resp.status_code == 401:
+        raise MedutechAPIError("API 토큰이 유효하지 않습니다.", status_code=401)
+    if not resp.ok:
+        raise MedutechAPIError(f"medutech.kr 응답 오류 ({resp.status_code})", status_code=resp.status_code)
+
+    data = _parse_json(resp)
+    if not data.get('ok', True):
+        raise MedutechAPIError(data.get('error', '알 수 없는 오류가 발생했습니다.'))
+
+    return data.get('items', []), data.get('month', '')
