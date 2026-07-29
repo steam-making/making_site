@@ -116,14 +116,15 @@ def _refresh_token(token: KakaoToken) -> KakaoToken | None:
         print("[카카오 토큰 갱신 오류]", e)
     return None
 
-def send_kakao_message(user, text, local_test=False):
+def send_kakao_message(user, text, local_test=False, link_url=None):
     """나에게 보내기 (기존 유지)"""
     try:
         token = KakaoToken.objects.filter(user=user).order_by("-created_at").first()
         if not token:
             return {"error": "no_token"}
 
-        link_url = "http://127.0.0.1:8000" if local_test else "http://133.186.144.151"
+        if not link_url:
+            link_url = "http://127.0.0.1:8000" if local_test else "http://133.186.144.151"
         template_obj = {
             "object_type": "text",
             "text": text,
@@ -184,7 +185,7 @@ def find_friend_uuid(sender_user, target_kakao_id):
     print(f"[find_friend_uuid] 친구 목록에서 {target_kakao_id_str}를 찾을 수 없습니다.")
     return None
 
-def send_kakao_friend_message(sender_user, receiver_uuid, text, local_test=False):
+def send_kakao_friend_message(sender_user, receiver_uuid, text, local_test=False, link_url=None):
     """친구에게 보내기"""
     try:
         token = KakaoToken.objects.filter(user=sender_user).order_by("-created_at").first()
@@ -192,8 +193,9 @@ def send_kakao_friend_message(sender_user, receiver_uuid, text, local_test=False
             return {"error": "no_token"}
 
         url = "https://kapi.kakao.com/v1/api/talk/friends/message/default/send"
-        link_url = "http://127.0.0.1:8000" if local_test else "http://133.186.144.151"
-        
+        if not link_url:
+            link_url = "http://127.0.0.1:8000" if local_test else "http://133.186.144.151"
+
         template_obj = {
             "object_type": "text",
             "text": text,

@@ -846,7 +846,10 @@ def request_release_notification(request, institution_id, order_month):
             messages.error(request, "강사가 관리자의 친구 목록에 없습니다. 카카오톡 친구 추가 및 메시지 권한 동의가 필요합니다.")
             return redirect("release_list")
 
-        res = send_kakao_friend_message(admin_user, receiver_uuid, message, local_test=bool(settings.DEBUG))
+        link_url = request.build_absolute_uri(
+            f"{reverse('release_list')}?teacher={teacher_user.id}&institution={institution.id}&order_month={order_month}"
+        )
+        res = send_kakao_friend_message(admin_user, receiver_uuid, message, local_test=bool(settings.DEBUG), link_url=link_url)
 
         if res and res.get("error"):
             messages.error(request, f"카카오 알림 발송 중 오류가 발생했습니다: {res.get('error')}")
@@ -867,9 +870,13 @@ def request_release_notification(request, institution_id, order_month):
         institution = releases.first().institution
         mat_counts = {}
         for r in releases:
-            for item in r.items.all():
+            for item in r.items.filter(status="pending"):
                 mat_name = item.material.name
                 mat_counts[mat_name] = mat_counts.get(mat_name, 0) + item.quantity
+
+        if not mat_counts:
+            messages.warning(request, "출고 처리되지 않은 교구재가 없습니다.")
+            return redirect("release_list")
 
         items_text = "\n".join(f"- {name} {qty}개" for name, qty in sorted(mat_counts.items()))
         is_re_request = releases.first().request_sent
@@ -895,7 +902,10 @@ def request_release_notification(request, institution_id, order_month):
             messages.error(request, "관리자가 친구 목록에 없거나 친구 메시지 권한이 없습니다.")
             return redirect("release_list")
 
-        res = send_kakao_friend_message(request.user, receiver_uuid, message, local_test=bool(settings.DEBUG))
+        link_url = request.build_absolute_uri(
+            f"{reverse('release_list')}?teacher={request.user.id}&institution={institution.id}&order_month={order_month}"
+        )
+        res = send_kakao_friend_message(request.user, receiver_uuid, message, local_test=bool(settings.DEBUG), link_url=link_url)
 
         if res and res.get("error"):
             messages.error(request, f"카카오 알림 발송 중 오류가 발생했습니다: {res.get('error')}")
