@@ -454,10 +454,21 @@ def release_list(request):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" and request.GET.get("format") == "json":
         from django.db.models import Sum, F as Fexp
         unpaid = MaterialRelease.objects.filter(payment_status="unpaid").select_related("institution")
-        releases = []
+        # ✅ 개별 출고(release) 건이 아니라 (기관/학교 + 주문월) 단위 "그룹"으로 묶어서 반환
+        # (release_list 화면과 동일한 그룹 기준을 사용해야 오픈뱅킹 수동매칭 목록도 일치함)
+        groups = {}
         for r in unpaid:
+            key = (r.institution_id, r.order_month)
             total = r.items.aggregate(s=Sum(Fexp('unit_price') * Fexp('quantity')))["s"] or 0
-            releases.append({"id": r.id, "institution": r.institution.name if r.institution else "", "order_month": r.order_month, "total": int(total)})
+            if key not in groups:
+                groups[key] = {
+                    "institution_id": r.institution_id,
+                    "institution": r.institution.name if r.institution else "",
+                    "order_month": r.order_month,
+                    "total": 0,
+                }
+            groups[key]["total"] += int(total)
+        releases = sorted(groups.values(), key=lambda g: (g["order_month"], g["institution"]), reverse=True)
         return JsonResponse({"releases": releases})
 
     user = request.user

@@ -186,23 +186,30 @@ def transaction_list(request):
 @login_required
 @require_POST
 def manual_match(request):
-    """수동 매칭: 거래 ↔ MaterialRelease 연결 후 수금 처리"""
+    """수동 매칭: 거래 ↔ (기관/학교 + 주문월) 출고 그룹 연결 후 그룹 전체 수금 처리"""
     tran_id = request.POST.get("transaction_id")
-    release_id = request.POST.get("release_id")
+    institution_id = request.POST.get("institution_id")
+    order_month = request.POST.get("order_month")
 
     try:
         tran = BankTransaction.objects.get(id=tran_id, account__user=request.user)
-        release = MaterialRelease.objects.get(id=release_id)
-    except (BankTransaction.DoesNotExist, MaterialRelease.DoesNotExist):
-        return JsonResponse({"success": False, "message": "데이터를 찾을 수 없습니다."})
+    except BankTransaction.DoesNotExist:
+        return JsonResponse({"success": False, "message": "거래내역을 찾을 수 없습니다."})
 
-    tran.matched_release = release
+    # ✅ 같은 (기관/학교 + 주문월) 그룹에 속한 출고 건 전체를 매칭 대상으로 함
+    group_releases = MaterialRelease.objects.filter(
+        institution_id=institution_id,
+        order_month=order_month,
+        payment_status="unpaid",
+    ).order_by("-id")
+    if not group_releases.exists():
+        return JsonResponse({"success": False, "message": "해당 출고 그룹을 찾을 수 없습니다."})
+
+    tran.matched_release = group_releases.first()
     tran.is_auto_matched = False
     tran.save(update_fields=["matched_release", "is_auto_matched"])
 
-    release.payment_status = "paid"
-    release.payment_date = tran.tran_date
-    release.save(update_fields=["payment_status", "payment_date"])
+    group_releases.update(payment_status="paid", payment_date=tran.tran_date)
 
     return JsonResponse({"success": True, "message": "매칭 완료 및 수금 처리됐습니다."})
 

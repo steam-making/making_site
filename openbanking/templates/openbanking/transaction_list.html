@@ -112,7 +112,7 @@ document.body.addEventListener('click', function (e) {
         sel.innerHTML = '<option value="">-- 선택하세요 --</option>';
         (data.releases || []).forEach(function (r) {
           var opt = document.createElement('option');
-          opt.value = r.id;
+          opt.value = r.institution_id + '|' + r.order_month;
           opt.textContent = r.institution + ' ' + r.order_month + ' (' + r.total.toLocaleString() + '원)';
           sel.appendChild(opt);
         });
@@ -155,13 +155,15 @@ document.body.addEventListener('click', function (e) {
 });
 
 document.getElementById('confirmMatchBtn')?.addEventListener('click', function () {
-  var releaseId = document.getElementById('releaseSelect').value;
-  if (!releaseId) { document.getElementById('matchError').textContent = '출고 그룹을 선택하세요.'; document.getElementById('matchError').classList.remove('d-none'); return; }
+  var groupKey = document.getElementById('releaseSelect').value;
+  if (!groupKey) { document.getElementById('matchError').textContent = '출고 그룹을 선택하세요.'; document.getElementById('matchError').classList.remove('d-none'); return; }
   document.getElementById('matchError').classList.add('d-none');
+  var parts = groupKey.split('|');
 
   var form = new FormData();
   form.append('transaction_id', currentTranId);
-  form.append('release_id', releaseId);
+  form.append('institution_id', parts[0]);
+  form.append('order_month', parts[1]);
   form.append('csrfmiddlewaretoken', '{{ csrf_token }}');
   fetch('{% url "openbanking_manual_match" %}', { method: 'POST', body: form })
     .then(r => r.json())
