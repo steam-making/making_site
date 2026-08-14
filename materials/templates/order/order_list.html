@@ -30,13 +30,13 @@
       <div class="d-flex flex-wrap gap-2 align-items-center">
         <!-- 전체 보기 버튼 -->
         <a href="{% url 'order_list' %}" class="btn btn-sm {% if not selected_vendor_id %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
-          전체 보기
+          전체 보기{% if total_unpaid_count %} <span class="badge rounded-pill bg-danger ms-1">{{ total_unpaid_count }}</span>{% endif %}
         </a>
 
         <!-- 개별 거래처 버튼 -->
         {% for v in vendors %}
           <a href="?vendor_id={{ v.id }}" class="btn btn-sm {% if selected_vendor_id == v.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
-            {{ v.name }}
+            {{ v.name }}{% if v.unpaid_count %} <span class="badge rounded-pill bg-danger ms-1">{{ v.unpaid_count }}</span>{% endif %}
           </a>
         {% empty %}
           <span class="text-muted small">등록된 거래처 없음</span>

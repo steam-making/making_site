@@ -934,6 +934,17 @@ def order_list(request):
     from .models import Vendor
     vendors = Vendor.objects.all()
 
+    # ✅ 거래처별 미입금 건수 (필터 버튼 옆 배지용)
+    from django.db.models import Count
+    unpaid_items_qs = MaterialOrderItem.objects.filter(order__receive_type='order', paid_date__isnull=True)
+    unpaid_counts_by_vendor = {
+        row['vendor_id']: row['cnt']
+        for row in unpaid_items_qs.values('vendor_id').annotate(cnt=Count('id'))
+    }
+    total_unpaid_count = unpaid_items_qs.count()
+    for v in vendors:
+        v.unpaid_count = unpaid_counts_by_vendor.get(v.id, 0)
+
     # 모든 주문 아이템 조회 (날짜 내림차순 정렬)
     items_query = (
         MaterialOrderItem.objects
@@ -1013,6 +1024,7 @@ def order_list(request):
         "total_sum": total_sum,
         "vendors": vendors,
         "selected_vendor_id": vendor_id_filter,
+        "total_unpaid_count": total_unpaid_count,
     }
     return render(request, "order/order_list.html", context)
 
