@@ -85,8 +85,10 @@ def sync_levelup_shipment_status(release):
         if not item.released_quantity:
             continue
         shipped_date = item.released_at.date() if item.released_at else None
+        # ✅ shipped_done=False로 한정해야, 같은 material_id로 항목이 분할된 경우에도
+        # 각 항목이 서로 다른 학생 묶음을 가리키도록(중복 배정 방지) 보장됨
         ids_to_ship = list(
-            records.filter(material_id=item.material_id)
+            records.filter(material_id=item.material_id, shipped_done=False)
                    .order_by('created_at')
                    .values_list('id', flat=True)[:item.released_quantity]
         )
@@ -168,7 +170,7 @@ def sync_institution_shipment_status(institution):
                 continue
             shipped_date = item.released_at.date() if item.released_at else None
             ids_to_ship = list(
-                month_records.filter(material_id=item.material_id)
+                month_records.filter(material_id=item.material_id, shipped_done=False)
                              .order_by('created_at')
                              .values_list('id', flat=True)[:item.released_quantity]
             )
@@ -233,7 +235,30 @@ def _sync_levelup_release(institution, year_month, user=None):
             release.source_type = AUTO_RELEASE_SOURCE
             release.save(update_fields=["teacher", "created_by", "title", "source_type"])
 
-        existing_items = {item.material_id: item for item in release.items.all()}
+        # ✅ 교구별 출고방법 수동 분할(같은 material_id로 항목이 여러 개 나뉜 경우)이 있어도
+        # 기존 진행 상태(실출고수량 등)를 잃지 않도록 material_id 기준으로 합산해서 보존한다.
+        # (분할 자체는 다음 동기화 시 하나로 다시 합쳐지지만, 실출고수량/납품가 등은 보존됨)
+        existing_items = {}
+        for item in release.items.all():
+            merged = existing_items.get(item.material_id)
+            item_released_qty = item.released_quantity or 0
+            if merged is None:
+                existing_items[item.material_id] = {
+                    "unit_price": item.unit_price,
+                    "release_method": item.release_method,
+                    "released_at": item.released_at,
+                    "included": item.included,
+                    "group_name": item.group_name,
+                    "released_quantity": item_released_qty,
+                }
+            else:
+                merged["released_quantity"] += item_released_qty
+                # 실제로 출고가 진행된(실출고수량>0) 쪽의 정보를 우선 사용
+                if item_released_qty > 0:
+                    merged["unit_price"] = item.unit_price
+                    merged["release_method"] = item.release_method
+                    merged["released_at"] = item.released_at or merged["released_at"]
+                    merged["group_name"] = item.group_name
         release.items.all().delete()
 
         for material_id, data in summary.items():
@@ -241,7 +266,7 @@ def _sync_levelup_release(institution, year_month, user=None):
             existing_item = existing_items.get(material_id)
             new_qty = data["quantity"]
             # 기존 실출고수량 보존 (단, 새 수량을 초과할 수 없음)
-            old_released_qty = min(existing_item.released_quantity, new_qty) if existing_item else 0
+            old_released_qty = min(existing_item["released_quantity"], new_qty) if existing_item else 0
             all_released = old_released_qty > 0 and old_released_qty >= new_qty
 
             MaterialReleaseItem.objects.create(
@@ -249,12 +274,12 @@ def _sync_levelup_release(institution, year_month, user=None):
                 vendor=data["vendor"],
                 material=material,
                 quantity=new_qty,
-                unit_price=existing_item.unit_price if existing_item else material.school_price,
+                unit_price=existing_item["unit_price"] if existing_item else material.school_price,
                 status="released" if all_released else "pending",
-                release_method=existing_item.release_method if existing_item else "택배",
-                released_at=existing_item.released_at if (existing_item and all_released) else None,
-                included=existing_item.included if existing_item else True,
-                group_name=existing_item.group_name if existing_item else material.name,
+                release_method=existing_item["release_method"] if existing_item else "택배",
+                released_at=existing_item["released_at"] if (existing_item and all_released) else None,
+                included=existing_item["included"] if existing_item else True,
+                group_name=existing_item["group_name"] if existing_item else material.name,
                 released_quantity=old_released_qty,
             )
 
