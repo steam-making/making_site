@@ -907,6 +907,18 @@
                             </form>
                           {% endif %}
                           {% if order.source_type != 'levelup_auto' %}
+                            {% with available_qty=item.quantity|sub:item.released_quantity %}
+                              {% if available_qty >= 2 %}
+                                <button type="button" class="btn btn-sm btn-outline-info js-split-button"
+                                        data-split-action="{% url 'split_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}"
+                                        data-material-name="{{ item.material.name|escape }}"
+                                        data-current-method="{{ item.release_method }}"
+                                        data-available-qty="{{ available_qty }}">
+                                  <i class="bi bi-arrows-collapse"></i> <span class="d-none d-md-inline">분할</span>
+                                </button>
+                              {% endif %}
+                            {% endwith %}
+
                             <a class="btn btn-sm btn-outline-secondary" href="{% url 'edit_release_item' item.id %}?teacher={{ selected_teacher_id|default_if_none:'' }}&institution={{ selected_institution_id|default_if_none:'' }}&order_month={{ selected_order_month|default_if_none:'' }}">
                               <i class="bi bi-pencil"></i> <span class="d-none d-md-inline">수정</span>
                             </a>
@@ -1213,6 +1225,33 @@
      </div>
    </div>
 
+   <div class="modal fade" id="splitModal" tabindex="-1" aria-labelledby="splitModalLabel" aria-hidden="true">
+     <div class="modal-dialog modal-dialog-centered">
+       <form method="post" action="#" class="modal-content" id="splitModalForm">
+         {% csrf_token %}
+         <div class="modal-header">
+           <h5 class="modal-title" id="splitModalLabel">출고방법 분할</h5>
+           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+         </div>
+         <div class="modal-body text-start">
+           <p class="mb-2"><strong data-split-material></strong></p>
+           <p class="text-muted small mb-3" data-split-info></p>
+           <label class="form-label" for="splitQtyInput">분할할 수량</label>
+           <input type="number" name="split_qty" id="splitQtyInput" class="form-control mb-3" min="1" required>
+           <label class="form-label" for="splitMethodInput">분할 후 출고방법</label>
+           <select name="new_method" id="splitMethodInput" class="form-select">
+             <option value="택배">택배</option>
+             <option value="센터수령">센터수령</option>
+           </select>
+         </div>
+         <div class="modal-footer">
+           <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+           <button type="submit" class="btn btn-primary">분할하기</button>
+         </div>
+       </form>
+     </div>
+   </div>
+
    <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
      <div class="modal-dialog modal-dialog-centered">
        <form method="post" action="#" class="modal-content" id="returnModalForm">
@@ -1279,6 +1318,40 @@
         qtyInput.value = "";
         pendingFocus = true;
         returnModal.show();
+      });
+    }
+
+    // 분할 모달
+    const splitModalEl = document.getElementById("splitModal");
+    if (splitModalEl && typeof bootstrap !== "undefined") {
+      const splitModal = bootstrap.Modal.getOrCreateInstance(splitModalEl);
+      const splitForm = document.getElementById("splitModalForm");
+      const splitMaterialEl = splitModalEl.querySelector("[data-split-material]");
+      const splitInfoEl = splitModalEl.querySelector("[data-split-info]");
+      const splitQtyInput = document.getElementById("splitQtyInput");
+      const splitMethodInput = document.getElementById("splitMethodInput");
+      let splitPendingFocus = false;
+
+      splitModalEl.addEventListener("shown.bs.modal", function () {
+        if (splitPendingFocus) { splitQtyInput.focus(); splitPendingFocus = false; }
+      });
+
+      document.body.addEventListener("click", function (event) {
+        const button = event.target.closest(".js-split-button");
+        if (!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        splitForm.action = button.dataset.splitAction || "#";
+        splitMaterialEl.textContent = button.dataset.materialName || "";
+        const currentMethod = button.dataset.currentMethod || "택배";
+        const availableQty = button.dataset.availableQty || "";
+        splitInfoEl.textContent = `현재 출고방법: ${currentMethod} / 미출고 수량: ${availableQty}개`;
+        splitQtyInput.max = availableQty ? (parseInt(availableQty, 10) - 1) : "";
+        splitQtyInput.value = "";
+        // 기본값: 현재와 반대되는 출고방법
+        splitMethodInput.value = currentMethod === "택배" ? "센터수령" : "택배";
+        splitPendingFocus = true;
+        splitModal.show();
       });
     }
   });

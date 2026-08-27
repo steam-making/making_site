@@ -11,6 +11,14 @@ def mul(value, arg):
         return 0
 
 @register.filter
+def sub(value, arg):
+    """뺄셈 필터"""
+    try:
+        return int(value or 0) - int(arg or 0)
+    except (ValueError, TypeError):
+        return 0
+
+@register.filter
 def dict_get(d, key):
     """딕셔너리 값 가져오기"""
     try:

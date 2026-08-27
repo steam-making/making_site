@@ -762,6 +762,53 @@ def toggle_release_method(request, item_id):
     return redirect_with_filters(request, "release_list")
 
 
+@login_required
+@user_passes_test(is_admin)
+@require_POST
+def split_release_item(request, item_id):
+    """출고 항목의 수량 중 일부를 다른 출고방법으로 분리 (예: 6개 택배 중 3개만 센터수령으로)"""
+    item = get_object_or_404(MaterialReleaseItem.objects.select_related("material", "vendor", "release"), id=item_id)
+
+    if item.status == 'released':
+        messages.error(request, "이미 출고완료된 항목은 분할할 수 없습니다.")
+        return redirect_with_filters(request, "release_list")
+
+    available = item.quantity - (item.released_quantity or 0)
+
+    try:
+        split_qty = int(request.POST.get("split_qty", 0))
+    except (TypeError, ValueError):
+        split_qty = 0
+
+    new_method = request.POST.get("new_method") or ('센터수령' if item.release_method == '택배' else '택배')
+    if new_method not in ('택배', '센터수령'):
+        messages.error(request, "출고방법이 올바르지 않습니다.")
+        return redirect_with_filters(request, "release_list")
+
+    if split_qty < 1 or split_qty >= available:
+        messages.error(request, f"분할 수량은 1 이상 {available - 1} 이하로 입력해주세요.")
+        return redirect_with_filters(request, "release_list")
+
+    with transaction.atomic():
+        MaterialReleaseItem.objects.create(
+            release=item.release,
+            vendor=item.vendor,
+            material=item.material,
+            unit_price=item.unit_price,
+            quantity=split_qty,
+            status='pending',
+            release_method=new_method,
+            released_quantity=0,
+            included=item.included,
+            group_name=item.group_name,
+        )
+        item.quantity = item.quantity - split_qty
+        item.save(update_fields=["quantity"])
+
+    messages.success(request, f"{split_qty}개를 {new_method}(으)로 분리했습니다.")
+    return redirect_with_filters(request, "release_list")
+
+
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from django.http import HttpResponseNotAllowed
