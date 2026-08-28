@@ -1,29 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4 seating-page">
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">
-      <i class="bi bi-grid-3x3-gap me-2"></i> 자리 관리 - {{ institution.name }}
-    </h4>
-    <a href="{% url 'students:student_detail' institution.id %}" class="btn btn-outline-secondary btn-sm">
+  <div class="seating-hero">
+    <div class="seating-hero-text">
+      <div class="seating-hero-eyebrow">🏫 자리 관리</div>
+      <h4 class="mb-0">{{ institution.name }}</h4>
+    </div>
+    <a href="{% url 'students:student_detail' institution.id %}" class="btn btn-light btn-sm seating-back-btn">
       <i class="bi bi-arrow-left"></i> 학생 관리로
     </a>
   </div>
 
   {% if messages %}
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'info' }} py-2">{{ message }}</div>
+      <div class="alert alert-{{ message.tags|default:'info' }} py-2 seating-alert">{{ message }}</div>
     {% endfor %}
   {% endif %}
 
   <!-- 부서 선택 (조 배치는 부서 공통, 학생 배정만 부서별로 다름) -->
   {% if divisions %}
-    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
-      <span class="text-muted small me-1">배정 보기:</span>
+    <div class="division-tabs">
+      <span class="division-tabs-label">배정 보기</span>
       {% for d in divisions %}
-        <a href="?division={{ d.id }}"
-           class="btn btn-sm {% if division.id == d.id %}btn-dark{% else %}btn-outline-dark{% endif %}">
+        <a href="?division={{ d.id }}" class="division-tab {% if division.id == d.id %}active{% endif %}">
           {{ d.division }}
         </a>
       {% endfor %}
@@ -33,21 +33,22 @@
   {% endif %}
 
   <!-- 조 배치 설정 (1부/2부/3부 공통) -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-white">
-      <button class="btn btn-link text-decoration-none p-0 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#gridSettings">
-        <i class="bi bi-sliders me-1"></i> 조 배치 설정 (1부/2부/3부 공통) {% if not layout %}- 먼저 설정해주세요{% endif %}
+  <div class="seating-card mb-3">
+    <div class="seating-card-header">
+      <button class="seating-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#gridSettings">
+        <i class="bi bi-sliders me-1"></i> 조 배치 설정 <span class="seating-card-header-sub">(1부/2부/3부 공통)</span>
+        {% if not layout %}<span class="badge rounded-pill text-bg-warning ms-2">먼저 설정해주세요</span>{% endif %}
       </button>
     </div>
     <div id="gridSettings" class="collapse {% if not layout %}show{% endif %}">
-      <div class="card-body">
+      <div class="seating-card-body">
         <div class="row g-2 align-items-end mb-3">
           <div class="col-auto">
             <label class="form-label mb-0 small">행 수</label>
             <input type="number" id="rowCountInput" class="form-control form-control-sm" min="1" max="10" value="{{ current_row_cols|length }}">
           </div>
           <div class="col-auto">
-            <button type="button" id="applyRowCountBtn" class="btn btn-outline-primary btn-sm">행 수 적용</button>
+            <button type="button" id="applyRowCountBtn" class="btn btn-outline-primary btn-sm rounded-pill px-3">행 수 적용</button>
           </div>
         </div>
 
@@ -58,7 +59,7 @@
 
           <div id="rowColsContainer" class="d-flex flex-column gap-2 mb-3"></div>
 
-          <button type="submit" class="btn btn-success btn-sm">
+          <button type="submit" class="btn btn-success btn-sm rounded-pill px-3">
             {% if layout %}조 배치 적용{% else %}조 배치 생성{% endif %}
           </button>
         </form>
@@ -71,14 +72,14 @@
 
   {% if layout and division %}
   <!-- 우선배정 학생 선택 -->
-  <div class="card shadow-sm mb-3">
-    <div class="card-header bg-white">
-      <button class="btn btn-link text-decoration-none p-0 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#prioritySettings">
-        <i class="bi bi-star me-1"></i> 앞자리 우선배정 학생 선택 ({{ division.division }})
+  <div class="seating-card mb-3">
+    <div class="seating-card-header">
+      <button class="seating-collapse-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#prioritySettings">
+        <i class="bi bi-star-fill me-1 text-warning"></i> 앞자리 우선배정 학생 선택 <span class="seating-card-header-sub">({{ division.division }})</span>
       </button>
     </div>
     <div id="prioritySettings" class="collapse">
-      <div class="card-body">
+      <div class="seating-card-body">
         <form method="post" action="{% url 'seating:set_priority_students' institution.id division.id %}">
           {% csrf_token %}
           <div class="row">
@@ -97,7 +98,7 @@
             {% endfor %}
           </div>
           {% if students %}
-            <button type="submit" class="btn btn-warning btn-sm mt-2">저장</button>
+            <button type="submit" class="btn btn-warning btn-sm rounded-pill px-3 mt-2">저장</button>
           {% endif %}
         </form>
       </div>
@@ -105,24 +106,34 @@
   </div>
 
   <!-- 자동배정 -->
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div class="text-muted small">
-      {{ division.division }} 학생 {{ students.count }}명 · 배정됨 {{ assigned_count }}명 · 미배정 {{ unseated_count }}명
+  <div class="seating-toolbar mb-3">
+    <div class="seating-stats">
+      <span class="seating-stat-chip">{{ division.division }} 학생 <strong>{{ students.count }}</strong>명</span>
+      <span class="seating-stat-chip ok">배정됨 <strong>{{ assigned_count }}</strong>명</span>
+      <span class="seating-stat-chip warn">미배정 <strong>{{ unseated_count }}</strong>명</span>
     </div>
-    <form method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
-          onsubmit="return confirm('{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. (다른 부서의 배정에는 영향 없음) 계속할까요?');">
-      {% csrf_token %}
-      <button type="submit" class="btn btn-primary btn-sm">
-        <i class="bi bi-shuffle me-1"></i> {{ division.division }} 자리 자동 배정
-      </button>
-    </form>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if layout %}
+        <a href="{% url 'seating:seat_fullscreen' institution.id division.id %}" target="_blank"
+           class="seating-action-btn seating-action-btn-outline">
+          <i class="bi bi-arrows-fullscreen me-1"></i> 전체화면으로 보기
+        </a>
+      {% endif %}
+      <form method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
+            onsubmit="return confirm('{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. (다른 부서의 배정에는 영향 없음) 계속할까요?');">
+        {% csrf_token %}
+        <button type="submit" class="seating-action-btn seating-action-btn-primary">
+          <i class="bi bi-shuffle me-1"></i> {{ division.division }} 자리 자동 배정
+        </button>
+      </form>
+    </div>
   </div>
 
   <!-- 배치도 -->
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <div class="text-center mb-3">
-        <span class="podium-badge">교탁</span>
+  <div class="seating-card">
+    <div class="seating-card-body">
+      <div class="classroom-podium-wrap">
+        <span class="classroom-podium">🧑‍🏫 교탁</span>
       </div>
       <p class="text-center text-muted small mb-3">지금 보고 있는 배정: <strong>{{ division.division }}</strong></p>
 
@@ -131,9 +142,9 @@
         {% csrf_token %}
         {% if division %}<input type="hidden" name="division" value="{{ division.id }}">{% endif %}
 
-        <div class="d-flex flex-column gap-3">
+        <div class="classroom-rows">
           {% for row_groups in layout_rows %}
-            <div class="d-flex flex-wrap gap-3 justify-content-center">
+            <div class="classroom-row">
               {% for group in row_groups %}
                 <div class="seat-group-card">
                   <div class="seat-group-title">{{ group.name }}</div>
@@ -141,7 +152,13 @@
                     {% for seat in group.seats.all %}
                       <div class="seat-cell {% if seat.current_assignment %}occupied{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}"
                            draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
-                        {% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}<span class="text-muted">-</span>{% endif %}
+                        {% if seat.current_assignment %}
+                          {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
+                          <span class="seat-avatar">{{ seat.current_assignment.student.name|slice:":1" }}</span>
+                          <span class="seat-name">{{ seat.current_assignment.student.name }}</span>
+                        {% else %}
+                          <span class="seat-empty-icon">＋</span>
+                        {% endif %}
                       </div>
                     {% endfor %}
                   </div>
@@ -158,13 +175,13 @@
         </div>
 
         <div class="text-center mt-4">
-          <button type="submit" class="btn btn-success">
+          <button type="submit" class="btn btn-success rounded-pill px-4">
             <i class="bi bi-check2-circle me-1"></i> 전체 조 좌석 배치 적용
           </button>
         </div>
       </form>
 
-      <p class="text-muted small mt-3 mb-0">자리를 서로 드래그해서 놓으면 지금 보고 있는 부서({{ division.division }})의 학생 자리를 맞바꿀 수 있습니다. (별표 배경은 우선배정 학생, 조 배치와 좌석 행/열은 1부/2부/3부 공통입니다)</p>
+      <p class="text-muted small mt-3 mb-0 text-center">💡 자리를 서로 드래그해서 놓으면 지금 보고 있는 부서({{ division.division }})의 학생 자리를 맞바꿀 수 있습니다. (⭐ 표시는 우선배정 학생, 조 배치와 좌석 행/열은 1부/2부/3부 공통입니다)</p>
     </div>
   </div>
   {% endif %}
@@ -172,13 +189,193 @@
 </div>
 
 <style>
-  .podium-badge {
+  .seating-page {
+    --seat-blue: #4dabf7;
+    --seat-green: #51cf66;
+    --seat-yellow: #ffd43b;
+    --seat-pink: #ff8787;
+    --seat-purple: #b197fc;
+    --seat-ink: #343a40;
+  }
+
+  /* ── 상단 히어로 ───────────────────────────────── */
+  .seating-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--seat-blue), var(--seat-purple));
+    border-radius: 18px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(77, 171, 247, 0.25);
+  }
+  .seating-hero h4 { color: #fff; font-weight: 800; }
+  .seating-hero-eyebrow {
+    font-size: 0.8rem;
+    font-weight: 700;
+    opacity: 0.9;
+    margin-bottom: 2px;
+    letter-spacing: 0.3px;
+  }
+  .seating-back-btn {
+    border-radius: 999px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .seating-alert {
+    border-radius: 12px;
+  }
+
+  /* ── 부서 탭 ───────────────────────────────── */
+  .division-tabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .division-tabs-label {
+    font-size: 0.8rem;
+    color: #868e96;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .division-tab {
+    padding: 7px 18px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1.5px solid #dee2e6;
+    color: #495057;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all .15s ease;
+  }
+  .division-tab:hover {
+    border-color: var(--seat-blue);
+    color: var(--seat-blue);
+  }
+  .division-tab.active {
+    background: linear-gradient(135deg, var(--seat-blue), #339af0);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(51, 154, 240, 0.35);
+  }
+
+  /* ── 카드 공통 ───────────────────────────────── */
+  .seating-card {
+    background: #fff;
+    border: 1px solid #edf0f3;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .seating-card-header {
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-bottom: 1px solid #edf0f3;
+  }
+  .seating-collapse-toggle {
+    background: none;
+    border: none;
+    padding: 0;
+    font-weight: 700;
+    color: var(--seat-ink);
+    font-size: 0.95rem;
+  }
+  .seating-card-header-sub {
+    color: #adb5bd;
+    font-weight: 500;
+    font-size: 0.82rem;
+  }
+  .seating-card-body {
+    padding: 18px;
+  }
+
+  /* ── 자동배정 툴바 ───────────────────────────────── */
+  .seating-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .seating-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .seating-stat-chip {
+    background: #f1f3f5;
+    color: #495057;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .seating-stat-chip.ok { background: #e6fcf0; color: #2b8a3e; }
+  .seating-stat-chip.warn { background: #fff4e6; color: #d9730d; }
+
+  /* 버튼 태그(a/button)가 달라도 항상 같은 크기로 보이도록 고정 크기 지정 */
+  .seating-action-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .seating-action-btn-outline {
+    background: #fff;
+    border: 1.5px solid #343a40;
+    color: #343a40;
+  }
+  .seating-action-btn-outline:hover {
+    background: #343a40;
+    color: #fff;
+  }
+  .seating-action-btn-primary {
+    background: linear-gradient(135deg, var(--seat-blue), #339af0);
+    border: none;
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(51, 154, 240, 0.3);
+  }
+  .seating-action-btn-primary:hover { color: #fff; opacity: 0.92; }
+
+  /* ── 배치도 ───────────────────────────────── */
+  .classroom-podium-wrap {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+  .classroom-podium {
     display: inline-block;
-    padding: 8px 24px;
-    background-color: #f0f0f0;
-    border: 2px solid #888;
-    border-radius: 10px;
-    font-weight: bold;
+    padding: 10px 30px;
+    background: linear-gradient(135deg, #495057, #343a40);
+    color: #fff;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .classroom-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .classroom-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: center;
   }
   .preview-row {
     display: flex;
@@ -187,13 +384,14 @@
     justify-content: center;
   }
   .preview-group-card {
-    border: 1px dashed #adb5bd;
-    border-radius: 8px;
+    border: 1.5px dashed #ced4da;
+    border-radius: 10px;
     padding: 10px;
     background: #f8f9fa;
     text-align: center;
     font-size: 0.8rem;
-    color: #6c757d;
+    color: #868e96;
+    font-weight: 600;
     min-height: 50px;
     min-width: 70px;
     display: flex;
@@ -206,47 +404,97 @@
     gap: 8px;
   }
   .seat-group-card {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    background: #fafafa;
-    width: 200px;
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 14px;
+    background: linear-gradient(180deg, #fbfcfe, #f4f6f9);
+    width: 210px;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .seat-group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.06);
   }
   .seat-group-title {
     text-align: center;
-    font-weight: 600;
+    font-weight: 800;
     font-size: 0.85rem;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     color: #495057;
+    background: #fff;
+    border-radius: 999px;
+    padding: 3px 0;
+    box-shadow: inset 0 0 0 1px #e9ecef;
   }
   .seat-grid {
     display: grid;
-    gap: 4px;
+    gap: 6px;
   }
   .seat-cell {
     background: #fff;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    min-height: 44px;
+    border: 1.5px solid #e0e5ea;
+    border-radius: 10px;
+    min-height: 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #495057;
+    cursor: grab;
+    padding: 4px 2px;
+    text-align: center;
+    position: relative;
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    gap: 2px;
+  }
+  .seat-cell:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    z-index: 1;
+  }
+  .seat-cell:active { cursor: grabbing; }
+  .seat-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--seat-blue);
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    cursor: move;
-    padding: 2px;
-    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+  .seat-name {
+    line-height: 1.1;
+    word-break: keep-all;
+  }
+  .seat-empty-icon {
+    color: #ced4da;
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .seat-star {
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    font-size: 0.7rem;
   }
   .seat-cell.occupied {
-    background: #e7f1ff;
-    border-color: #86b7fe;
+    background: #eef6ff;
+    border-color: #a9d2fb;
   }
+  .seat-cell.occupied .seat-avatar { background: var(--seat-blue); }
   .seat-cell.priority {
-    border-color: #ffc107;
     background: #fff8e1;
+    border-color: var(--seat-yellow);
   }
+  .seat-cell.priority .seat-avatar { background: #f59f00; }
   .seat-config-label {
     text-align: center;
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     color: #adb5bd;
     margin-top: 10px;
     margin-bottom: 4px;
@@ -269,6 +517,7 @@
     flex-shrink: 0;
     padding: 4px 2px;
     -moz-appearance: textfield;
+    border-radius: 8px;
   }
   .group-seat-config input[type=number]::-webkit-outer-spin-button,
   .group-seat-config input[type=number]::-webkit-inner-spin-button {
@@ -358,7 +607,7 @@
         for (let i = 0; i < rows * cols; i++) {
           const cell = document.createElement('div');
           cell.className = 'seat-cell';
-          cell.innerHTML = '<span class="text-muted">-</span>';
+          cell.innerHTML = '<span class="seat-empty-icon">＋</span>';
           grid.appendChild(cell);
         }
       }

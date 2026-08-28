@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ institution.name }} - {{ division.division }} 자리 배치</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --seat-blue: #4dabf7;
+      --seat-purple: #b197fc;
+      --seat-yellow: #ffd43b;
+    }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+      background: #f1f3f9;
+      color: #212529;
+      padding: 28px;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 22px;
+      background: linear-gradient(135deg, var(--seat-blue), var(--seat-purple));
+      border-radius: 18px;
+      padding: 18px 24px;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(77, 171, 247, 0.25);
+    }
+    .top-bar h1 {
+      font-size: 1.3rem;
+      margin: 0;
+      font-weight: 800;
+    }
+    .top-bar .sub {
+      color: rgba(255,255,255,0.85);
+      font-size: 0.95rem;
+      margin-left: 8px;
+      font-weight: 500;
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .top-actions a, .top-actions button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(255,255,255,0.92);
+      color: #343a40;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .top-actions a:hover, .top-actions button:hover {
+      background: #fff;
+    }
+    .top-actions .btn-assign {
+      background: #fff3bf;
+      color: #7a5c00;
+    }
+    .fs-alert {
+      max-width: 720px;
+      margin: 0 auto 18px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: #fff3bf;
+      color: #7a5c00;
+      font-weight: 600;
+      text-align: center;
+    }
+    .fs-alert.error { background: #ffe3e3; color: #a51111; }
+    .podium-badge {
+      display: block;
+      margin: 0 auto 30px;
+      width: fit-content;
+      padding: 10px 32px;
+      background: linear-gradient(135deg, #495057, #343a40);
+      color: #fff;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .layout-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+    }
+    .layout-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 22px;
+      justify-content: center;
+    }
+    .seat-group-card {
+      border: 1px solid #e9ecef;
+      border-radius: 16px;
+      padding: 16px;
+      background: linear-gradient(180deg, #ffffff, #f6f8fb);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+      min-width: 160px;
+    }
+    .seat-group-title {
+      text-align: center;
+      font-weight: 800;
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+      color: #495057;
+      background: #fff;
+      border-radius: 999px;
+      padding: 4px 0;
+      box-shadow: inset 0 0 0 1px #e9ecef;
+    }
+    .seat-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .seat-cell {
+      background: #f8f9fa;
+      border: 1.5px solid #e0e5ea;
+      border-radius: 12px;
+      min-width: 78px;
+      min-height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 6px;
+      text-align: center;
+      position: relative;
+    }
+    .seat-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--seat-blue);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+    }
+    .seat-cell.occupied {
+      background: #eef6ff;
+      border-color: #a9d2fb;
+      color: #0d3b7a;
+    }
+    .seat-cell.priority {
+      border-color: var(--seat-yellow);
+      background: #fff8e1;
+      color: #7a5c00;
+    }
+    .seat-cell.priority .seat-avatar { background: #f59f00; }
+    .seat-star {
+      position: absolute;
+      top: -8px;
+      right: -6px;
+      font-size: 0.9rem;
+    }
+    .seat-cell.empty {
+      color: #ced4da;
+      font-weight: 400;
+    }
+    @media print {
+      .top-actions { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div>
+      <h1>{{ institution.name }}<span class="sub">{{ division.division }} 자리 배치</span></h1>
+    </div>
+    <div class="top-actions">
+      <form method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
+            onsubmit="return confirm('{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. 계속할까요?');">
+        {% csrf_token %}
+        <input type="hidden" name="return_to" value="fullscreen">
+        <button type="submit" class="btn-assign">🎲 {{ division.division }} 자리 자동 배정</button>
+      </form>
+      <button type="button" id="toggleFullscreenBtn">⛶ 전체화면 켜기</button>
+      <a href="{% url 'seating:seat_manage' institution.id %}?division={{ division.id }}">← 닫기</a>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="fs-alert {% if message.tags == 'error' %}error{% endif %}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <span class="podium-badge">🧑‍🏫 교탁</span>
+
+  <div class="layout-rows">
+    {% for row_groups in layout_rows %}
+      <div class="layout-row">
+        {% for group in row_groups %}
+          <div class="seat-group-card">
+            <div class="seat-group-title">{{ group.name }}</div>
+            <div class="seat-grid" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
+              {% for seat in group.seats.all %}
+                <div class="seat-cell {% if seat.current_assignment %}occupied{% else %}empty{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}">
+                  {% if seat.current_assignment %}
+                    {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
+                    <span class="seat-avatar">{{ seat.current_assignment.student.name|slice:":1" }}</span>
+                    <span>{{ seat.current_assignment.student.name }}</span>
+                  {% else %}
+                    <span>-</span>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    document.getElementById('toggleFullscreenBtn').addEventListener('click', function () {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(function () {});
+      } else {
+        document.exitFullscreen();
+      }
+    });
+  </script>
+</body>
+</html>

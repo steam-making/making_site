@@ -24,6 +24,13 @@ def _seat_manage_url(institution_id, division_id=None):
     return url
 
 
+def _return_url(request, institution_id, division_id):
+    """자동배정 등 액션 후 어디로 돌아갈지: 전체화면에서 실행했으면 전체화면으로, 아니면 관리 화면으로"""
+    if request.POST.get('return_to') == 'fullscreen' and division_id:
+        return reverse('seating:seat_fullscreen', args=[institution_id, division_id])
+    return _seat_manage_url(institution_id, division_id)
+
+
 def _check_access(request, institution):
     if not request.user.is_staff and institution.teacher != request.user:
         return False
@@ -43,6 +50,30 @@ def _division_students(division):
     return Student.objects.filter(division=division).order_by('grade', 'class_name', 'number')
 
 
+def _build_layout_rows(layout, division):
+    """레이아웃의 조들을 행별로 묶고, 지정된 부서의 현재 좌석 배정을 채워서 반환"""
+    if not layout:
+        return []
+
+    assignment_qs = SeatAssignment.objects.none()
+    if division:
+        assignment_qs = SeatAssignment.objects.filter(division=division).select_related('student')
+
+    groups = list(
+        layout.groups.prefetch_related(
+            Prefetch('seats__assignments', queryset=assignment_qs, to_attr='division_assignments')
+        ).order_by('position_row', 'position_col')
+    )
+    for group in groups:
+        for seat in group.seats.all():
+            seat.current_assignment = seat.division_assignments[0] if seat.division_assignments else None
+
+    rows_map = {}
+    for group in groups:
+        rows_map.setdefault(group.position_row, []).append(group)
+    return [rows_map[r] for r in sorted(rows_map.keys())]
+
+
 @login_required
 def seat_manage(request, institution_id):
     institution = get_object_or_404(TeachingInstitution, id=institution_id)
@@ -59,35 +90,14 @@ def seat_manage(request, institution_id):
         division = divisions[0]
 
     layout = SeatLayout.objects.filter(institution=institution).first()
-    groups = []
-    layout_rows = []
+    layout_rows = _build_layout_rows(layout, division)
     students = Student.objects.none()
     assigned_count = 0
 
-    if layout:
-        assignment_qs = SeatAssignment.objects.none()
-        if division:
-            assignment_qs = SeatAssignment.objects.filter(division=division).select_related('student')
-
-        groups = list(
-            layout.groups.prefetch_related(
-                Prefetch('seats__assignments', queryset=assignment_qs, to_attr='division_assignments')
-            ).order_by('position_row', 'position_col')
-        )
-        for group in groups:
-            for seat in group.seats.all():
-                seat.current_assignment = seat.division_assignments[0] if seat.division_assignments else None
-
-        # 행별로 조를 묶어서 템플릿에 전달 (행마다 조 개수가 다를 수 있음)
-        rows_map = {}
-        for group in groups:
-            rows_map.setdefault(group.position_row, []).append(group)
-        layout_rows = [rows_map[r] for r in sorted(rows_map.keys())]
-
-        if division:
-            assigned_count = SeatAssignment.objects.filter(
-                seat__group__layout=layout, division=division
-            ).count()
+    if layout and division:
+        assigned_count = SeatAssignment.objects.filter(
+            seat__group__layout=layout, division=division
+        ).count()
 
     if division:
         students = _division_students(division)
@@ -99,12 +109,32 @@ def seat_manage(request, institution_id):
         'divisions': divisions,
         'division': division,
         'layout': layout,
-        'groups': groups,
         'layout_rows': layout_rows,
         'current_row_cols': current_row_cols,
         'students': students,
         'assigned_count': assigned_count,
         'unseated_count': students.count() - assigned_count,
+    })
+
+
+@login_required
+def seat_fullscreen(request, institution_id, division_id):
+    institution = get_object_or_404(TeachingInstitution, id=institution_id)
+    if not _check_access(request, institution):
+        return HttpResponseForbidden("접근 권한이 없습니다.")
+    division = get_object_or_404(ProgramDivision, id=division_id, institution=institution)
+
+    layout = SeatLayout.objects.filter(institution=institution).first()
+    if not layout:
+        messages.error(request, "먼저 조 배치를 생성해주세요.")
+        return redirect(_seat_manage_url(institution.id, division.id))
+
+    layout_rows = _build_layout_rows(layout, division)
+
+    return render(request, 'seating/seat_fullscreen.html', {
+        'institution': institution,
+        'division': division,
+        'layout_rows': layout_rows,
     })
 
 
@@ -238,7 +268,7 @@ def assign_random_seats(request, institution_id, division_id):
     layout = SeatLayout.objects.filter(institution=institution).first()
     if not layout:
         messages.error(request, "먼저 조 배치를 생성해주세요.")
-        return redirect(_seat_manage_url(institution.id, division.id))
+        return redirect(_return_url(request, institution.id, division.id))
 
     students = _division_students(division)
     priority_students = list(students.filter(is_priority=True))
@@ -268,7 +298,7 @@ def assign_random_seats(request, institution_id, division_id):
         )
     else:
         messages.success(request, "자리를 자동으로 배정했습니다.")
-    return redirect(_seat_manage_url(institution.id, division.id))
+    return redirect(_return_url(request, institution.id, division.id))
 
 
 @login_required
