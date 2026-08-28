@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'tasks',
     'robot_LvUP',
     'students',
+    'seating',
     "blog_auto",
     'pycode',
     'progress',

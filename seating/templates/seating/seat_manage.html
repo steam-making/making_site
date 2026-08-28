@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      <i class="bi bi-grid-3x3-gap me-2"></i> 자리 관리 - {{ institution.name }}
+    </h4>
+    <a href="{% url 'students:student_detail' institution.id %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left"></i> 학생 관리로
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} py-2">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- 부서 선택 (조 배치는 부서 공통, 학생 배정만 부서별로 다름) -->
+  {% if divisions %}
+    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+      <span class="text-muted small me-1">배정 보기:</span>
+      {% for d in divisions %}
+        <a href="?division={{ d.id }}"
+           class="btn btn-sm {% if division.id == d.id %}btn-dark{% else %}btn-outline-dark{% endif %}">
+          {{ d.division }}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-secondary">이 출강장소에 등록된 부서(반)가 없습니다. 학생관리에서 먼저 부서를 등록해주세요.</div>
+  {% endif %}
+
+  <!-- 조 배치 설정 (1부/2부/3부 공통) -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-white">
+      <button class="btn btn-link text-decoration-none p-0 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#gridSettings">
+        <i class="bi bi-sliders me-1"></i> 조 배치 설정 (1부/2부/3부 공통) {% if not layout %}- 먼저 설정해주세요{% endif %}
+      </button>
+    </div>
+    <div id="gridSettings" class="collapse {% if not layout %}show{% endif %}">
+      <div class="card-body">
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-auto">
+            <label class="form-label mb-0 small">행 수</label>
+            <input type="number" id="rowCountInput" class="form-control form-control-sm" min="1" max="10" value="{{ current_row_cols|length }}">
+          </div>
+          <div class="col-auto">
+            <button type="button" id="applyRowCountBtn" class="btn btn-outline-primary btn-sm">행 수 적용</button>
+          </div>
+        </div>
+
+        <form id="gridForm" method="post" action="{% url 'seating:set_group_grid' institution.id %}"
+              onsubmit="return {% if layout %}confirm('조 배치를 변경하면 범위 밖으로 밀려난 조와 그 좌석 배정(모든 부서 공통)이 삭제됩니다. 계속할까요?'){% else %}true{% endif %};">
+          {% csrf_token %}
+          {% if division %}<input type="hidden" name="division" value="{{ division.id }}">{% endif %}
+
+          <div id="rowColsContainer" class="d-flex flex-column gap-2 mb-3"></div>
+
+          <button type="submit" class="btn btn-success btn-sm">
+            {% if layout %}조 배치 적용{% else %}조 배치 생성{% endif %}
+          </button>
+        </form>
+
+        <p class="text-muted small mt-3 mb-1">미리보기 (실제 저장 전까지는 이 화면에서만 보입니다)</p>
+        <div id="gridPreview" class="d-flex flex-column gap-2"></div>
+      </div>
+    </div>
+  </div>
+
+  {% if layout and division %}
+  <!-- 우선배정 학생 선택 -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-header bg-white">
+      <button class="btn btn-link text-decoration-none p-0 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#prioritySettings">
+        <i class="bi bi-star me-1"></i> 앞자리 우선배정 학생 선택 ({{ division.division }})
+      </button>
+    </div>
+    <div id="prioritySettings" class="collapse">
+      <div class="card-body">
+        <form method="post" action="{% url 'seating:set_priority_students' institution.id division.id %}">
+          {% csrf_token %}
+          <div class="row">
+            {% for s in students %}
+              <div class="col-6 col-md-3 col-lg-2 mb-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="priority_students" value="{{ s.id }}"
+                         id="prio-{{ s.id }}" {% if s.is_priority %}checked{% endif %}>
+                  <label class="form-check-label small" for="prio-{{ s.id }}">
+                    {{ s.name }}
+                  </label>
+                </div>
+              </div>
+            {% empty %}
+              <p class="text-muted small mb-0">{{ division.division }}에 등록된 학생이 없습니다.</p>
+            {% endfor %}
+          </div>
+          {% if students %}
+            <button type="submit" class="btn btn-warning btn-sm mt-2">저장</button>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 자동배정 -->
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="text-muted small">
+      {{ division.division }} 학생 {{ students.count }}명 · 배정됨 {{ assigned_count }}명 · 미배정 {{ unseated_count }}명
+    </div>
+    <form method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
+          onsubmit="return confirm('{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. (다른 부서의 배정에는 영향 없음) 계속할까요?');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-shuffle me-1"></i> {{ division.division }} 자리 자동 배정
+      </button>
+    </form>
+  </div>
+
+  <!-- 배치도 -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="text-center mb-3">
+        <span class="podium-badge">교탁</span>
+      </div>
+      <p class="text-center text-muted small mb-3">지금 보고 있는 배정: <strong>{{ division.division }}</strong></p>
+
+      <form id="allGroupSeatsForm" method="post" action="{% url 'seating:set_all_group_seats' institution.id %}"
+            onsubmit="return confirm('변경된 조의 좌석 배치를 적용하시겠습니까? 해당 조들의 모든 부서 배정은 초기화됩니다.');">
+        {% csrf_token %}
+        {% if division %}<input type="hidden" name="division" value="{{ division.id }}">{% endif %}
+
+        <div class="d-flex flex-column gap-3">
+          {% for row_groups in layout_rows %}
+            <div class="d-flex flex-wrap gap-3 justify-content-center">
+              {% for group in row_groups %}
+                <div class="seat-group-card">
+                  <div class="seat-group-title">{{ group.name }}</div>
+                  <div class="seat-grid" id="seat-grid-{{ group.id }}" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
+                    {% for seat in group.seats.all %}
+                      <div class="seat-cell {% if seat.current_assignment %}occupied{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}"
+                           draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
+                        {% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}<span class="text-muted">-</span>{% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                  <div class="seat-config-label">좌석 행 x 열</div>
+                  <div class="group-seat-config" data-group-id="{{ group.id }}">
+                    <input type="number" name="seat_rows_{{ group.id }}" id="seat-rows-{{ group.id }}" class="form-control form-control-sm seat-rows-input" min="1" max="8" value="{{ group.seat_rows }}">
+                    <span class="seat-config-x">×</span>
+                    <input type="number" name="seat_cols_{{ group.id }}" id="seat-cols-{{ group.id }}" class="form-control form-control-sm seat-cols-input" min="1" max="8" value="{{ group.seat_cols }}">
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check2-circle me-1"></i> 전체 조 좌석 배치 적용
+          </button>
+        </div>
+      </form>
+
+      <p class="text-muted small mt-3 mb-0">자리를 서로 드래그해서 놓으면 지금 보고 있는 부서({{ division.division }})의 학생 자리를 맞바꿀 수 있습니다. (별표 배경은 우선배정 학생, 조 배치와 좌석 행/열은 1부/2부/3부 공통입니다)</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<style>
+  .podium-badge {
+    display: inline-block;
+    padding: 8px 24px;
+    background-color: #f0f0f0;
+    border: 2px solid #888;
+    border-radius: 10px;
+    font-weight: bold;
+  }
+  .preview-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .preview-group-card {
+    border: 1px dashed #adb5bd;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f8f9fa;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #6c757d;
+    min-height: 50px;
+    min-width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .row-col-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .seat-group-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fafafa;
+    width: 200px;
+  }
+  .seat-group-title {
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    color: #495057;
+  }
+  .seat-grid {
+    display: grid;
+    gap: 4px;
+  }
+  .seat-cell {
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: move;
+    padding: 2px;
+    text-align: center;
+  }
+  .seat-cell.occupied {
+    background: #e7f1ff;
+    border-color: #86b7fe;
+  }
+  .seat-cell.priority {
+    border-color: #ffc107;
+    background: #fff8e1;
+  }
+  .seat-config-label {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #adb5bd;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+  .group-seat-config {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .group-seat-config .seat-config-x {
+    font-size: 0.8rem;
+    color: #868e96;
+    flex-shrink: 0;
+  }
+  .group-seat-config input[type=number] {
+    text-align: center;
+    width: 42px;
+    flex-shrink: 0;
+    padding: 4px 2px;
+    -moz-appearance: textfield;
+  }
+  .group-seat-config input[type=number]::-webkit-outer-spin-button,
+  .group-seat-config input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+</style>
+
+<script>
+  const initialRowCols = {{ current_row_cols }};
+
+  // ── 행별 "열 수" 입력칸 만들기 ──────────────────────────────
+  function buildRowColsInputs(counts) {
+    const container = document.getElementById('rowColsContainer');
+    container.innerHTML = '';
+    counts.forEach(function (count, idx) {
+      const row = document.createElement('div');
+      row.className = 'row-col-input-row';
+      row.innerHTML = `
+        <span class="small text-muted" style="width:56px;">${idx + 1}행</span>
+        <label class="small mb-0">열(조) 수</label>
+        <input type="number" name="row_cols" class="form-control form-control-sm row-cols-input" min="1" max="10" value="${count}" style="width:70px;">
+      `;
+      container.appendChild(row);
+    });
+    container.querySelectorAll('.row-cols-input').forEach(function (input) {
+      input.addEventListener('input', renderGridPreview);
+    });
+    renderGridPreview();
+  }
+
+  function currentRowColsFromInputs() {
+    return Array.from(document.querySelectorAll('.row-cols-input')).map(function (input) {
+      return Math.max(1, Math.min(10, parseInt(input.value, 10) || 1));
+    });
+  }
+
+  // ── 조 배치 미리보기 (행마다 열 수가 다를 수 있음) ──────────────
+  function renderGridPreview() {
+    const preview = document.getElementById('gridPreview');
+    if (!preview) return;
+    const rowCols = currentRowColsFromInputs();
+
+    preview.innerHTML = '';
+    let n = 1;
+    rowCols.forEach(function (cols) {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'preview-row';
+      for (let c = 0; c < cols; c++) {
+        const box = document.createElement('div');
+        box.className = 'preview-group-card';
+        box.textContent = `${n}조`;
+        rowDiv.appendChild(box);
+        n++;
+      }
+      preview.appendChild(rowDiv);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    buildRowColsInputs(initialRowCols);
+
+    document.getElementById('applyRowCountBtn').addEventListener('click', function () {
+      const rowCountInput = document.getElementById('rowCountInput');
+      const newRowCount = Math.max(1, Math.min(10, parseInt(rowCountInput.value, 10) || 1));
+      const existing = currentRowColsFromInputs();
+      const newCounts = [];
+      for (let i = 0; i < newRowCount; i++) {
+        newCounts.push(existing[i] || 2);
+      }
+      buildRowColsInputs(newCounts);
+    });
+
+    // ── 조별 좌석 행/열 미리보기 (실제 저장 전, 해당 조 칸만 즉시 다시 그림) ──
+    document.querySelectorAll('.group-seat-config').forEach(function (config) {
+      const groupId = config.dataset.groupId;
+      const grid = document.getElementById('seat-grid-' + groupId);
+      if (!grid) return;
+      const rowsInput = config.querySelector('.seat-rows-input');
+      const colsInput = config.querySelector('.seat-cols-input');
+
+      function redraw() {
+        const rows = Math.max(1, Math.min(8, parseInt(rowsInput.value, 10) || 1));
+        const cols = Math.max(1, Math.min(8, parseInt(colsInput.value, 10) || 1));
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        grid.innerHTML = '';
+        for (let i = 0; i < rows * cols; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'seat-cell';
+          cell.innerHTML = '<span class="text-muted">-</span>';
+          grid.appendChild(cell);
+        }
+      }
+      rowsInput.addEventListener('input', redraw);
+      colsInput.addEventListener('input', redraw);
+    });
+
+    // ── 자리 드래그 & 드롭으로 맞바꾸기 (현재 보고 있는 부서 기준) ──────
+    let draggedSeatId = null;
+    const currentDivisionId = {{ division.id|default:'null' }};
+
+    document.addEventListener('dragstart', function (e) {
+      const cell = e.target.closest('.seat-cell');
+      if (!cell || !cell.dataset.seatId) return;
+      draggedSeatId = cell.dataset.seatId;
+    });
+
+    document.addEventListener('dragover', function (e) {
+      const cell = e.target.closest('.seat-cell');
+      if (!cell || !cell.dataset.seatId) return;
+      e.preventDefault();
+    });
+
+    document.addEventListener('drop', function (e) {
+      const cell = e.target.closest('.seat-cell');
+      if (!cell || !cell.dataset.seatId) return;
+      e.preventDefault();
+      const targetSeatId = cell.dataset.seatId;
+      if (draggedSeatId && targetSeatId && draggedSeatId !== targetSeatId) {
+        swapSeats(draggedSeatId, targetSeatId);
+      }
+    });
+
+    function swapSeats(seat1Id, seat2Id) {
+      if (!currentDivisionId) return;
+      fetch("{% url 'seating:swap_seats' %}", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ seat1: seat1Id, seat2: seat2Id, division: currentDivisionId })
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data.status === 'success') {
+            location.reload();
+          } else {
+            alert(data.message || '자리 교환에 실패했습니다.');
+          }
+        })
+        .catch(() => alert('자리 교환 중 오류가 발생했습니다.'));
+    }
+  });
+</script>
+{% endblock %}

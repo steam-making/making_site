@@ -68,6 +68,7 @@ urlpatterns = [
     path('tasks/', include('tasks.urls')),
     path('robot_LvUP/', include('robot_LvUP.urls')),
     path('students/', include('students.urls')),
+    path('seating/', include('seating.urls')),
     path("blog-auto/", include("blog_auto.urls")),
     path('py/', include('pycode.urls')),
     # ✅ 진도관리 앱

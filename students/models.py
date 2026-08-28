@@ -48,6 +48,7 @@ class Student(models.Model):
     name = models.CharField("학생 이름", max_length=50)
     parent_contact = models.CharField("학부모 연락처", max_length=20)
     medutech_student_id = models.IntegerField("medutech 학생 ID", null=True, blank=True, db_index=True)
+    is_priority = models.BooleanField("자리 우선배정 대상", default=False)
 
     def __str__(self):
         return f"{self.name} ({self.grade} {self.class_name})"
