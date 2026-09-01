@@ -150,7 +150,7 @@
           {% for row_groups in layout_rows %}
             <div class="classroom-row">
               {% for group in row_groups %}
-                <div class="seat-group-card">
+                <div class="seat-group-card seat-group-color-{% cycle '1' '2' '3' '4' '5' '6' as group_color_cycle %}">
                   <div class="seat-group-title">{{ group.name }}</div>
                   <div class="seat-grid" id="seat-grid-{{ group.id }}" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
                     {% for seat in group.seats.all %}
@@ -158,8 +158,7 @@
                            draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
                         {% if seat.current_assignment %}
                           {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
-                          <span class="seat-icon">🧒</span>
-                          <span class="seat-name">{{ seat.current_assignment.student.name }}</span>
+                          <span class="seat-content"><span class="seat-icon">🧒</span><span class="seat-name">{{ seat.current_assignment.student.name }}</span></span>
                         {% else %}
                           <span class="seat-empty-icon">＋</span>
                         {% endif %}
@@ -407,6 +406,7 @@
   }
   .seat-group-card {
     border: 1px solid #e9ecef;
+    border-top: 5px solid #adb5bd;
     border-radius: 14px;
     padding: 14px;
     background: linear-gradient(180deg, #fbfcfe, #f4f6f9);
@@ -417,6 +417,18 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 18px rgba(0,0,0,0.06);
   }
+  .seat-group-color-1 { border-top-color: #4dabf7; }
+  .seat-group-color-2 { border-top-color: #51cf66; }
+  .seat-group-color-3 { border-top-color: #ff922b; }
+  .seat-group-color-4 { border-top-color: #b197fc; }
+  .seat-group-color-5 { border-top-color: #ff6b9d; }
+  .seat-group-color-6 { border-top-color: #20c997; }
+  .seat-group-color-1 .seat-group-title { color: #1971c2; box-shadow: inset 0 0 0 1px #a5d8ff; }
+  .seat-group-color-2 .seat-group-title { color: #2b8a3e; box-shadow: inset 0 0 0 1px #b2f2bb; }
+  .seat-group-color-3 .seat-group-title { color: #c2560c; box-shadow: inset 0 0 0 1px #ffd8a8; }
+  .seat-group-color-4 .seat-group-title { color: #7048e8; box-shadow: inset 0 0 0 1px #d0bfff; }
+  .seat-group-color-5 .seat-group-title { color: #c2255c; box-shadow: inset 0 0 0 1px #ffc9de; }
+  .seat-group-color-6 .seat-group-title { color: #0c8599; box-shadow: inset 0 0 0 1px #96f2d7; }
   .seat-group-title {
     text-align: center;
     font-weight: 800;
@@ -457,13 +469,24 @@
     z-index: 1;
   }
   .seat-cell:active { cursor: grabbing; }
+  .seat-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    max-width: 100%;
+  }
   .seat-icon {
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1;
+    flex-shrink: 0;
   }
   .seat-name {
     line-height: 1.1;
-    word-break: keep-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .seat-empty-icon {
     color: #ced4da;
@@ -759,8 +782,7 @@
               if (info && info.student_name) {
                 cell.className = 'seat-cell occupied' + (info.is_priority ? ' priority' : '') + ' reveal-pop';
                 cell.innerHTML = (info.is_priority ? '<span class="seat-star">⭐</span>' : '') +
-                  '<span class="seat-icon">🧒</span>' +
-                  '<span class="seat-name">' + escapeHtml(info.student_name) + '</span>';
+                  '<span class="seat-content"><span class="seat-icon">🧒</span><span class="seat-name">' + escapeHtml(info.student_name) + '</span></span>';
                 cell.setAttribute('title', info.student_name);
               } else {
                 cell.className = 'seat-cell reveal-pop';

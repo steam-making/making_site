@@ -105,12 +105,25 @@
     }
     .seat-group-card {
       border: 1px solid #e9ecef;
+      border-top: 6px solid #adb5bd;
       border-radius: 20px;
       padding: 20px;
       background: linear-gradient(180deg, #ffffff, #f6f8fb);
       box-shadow: 0 6px 18px rgba(0,0,0,0.07);
       min-width: 200px;
     }
+    .seat-group-color-1 { border-top-color: #4dabf7; }
+    .seat-group-color-2 { border-top-color: #51cf66; }
+    .seat-group-color-3 { border-top-color: #ff922b; }
+    .seat-group-color-4 { border-top-color: #b197fc; }
+    .seat-group-color-5 { border-top-color: #ff6b9d; }
+    .seat-group-color-6 { border-top-color: #20c997; }
+    .seat-group-color-1 .seat-group-title { color: #1971c2; box-shadow: inset 0 0 0 1px #a5d8ff; }
+    .seat-group-color-2 .seat-group-title { color: #2b8a3e; box-shadow: inset 0 0 0 1px #b2f2bb; }
+    .seat-group-color-3 .seat-group-title { color: #c2560c; box-shadow: inset 0 0 0 1px #ffd8a8; }
+    .seat-group-color-4 .seat-group-title { color: #7048e8; box-shadow: inset 0 0 0 1px #d0bfff; }
+    .seat-group-color-5 .seat-group-title { color: #c2255c; box-shadow: inset 0 0 0 1px #ffc9de; }
+    .seat-group-color-6 .seat-group-title { color: #0c8599; box-shadow: inset 0 0 0 1px #96f2d7; }
     .seat-group-title {
       text-align: center;
       font-weight: 800;
@@ -166,9 +179,23 @@
       font-weight: 400;
       font-size: 1.4rem;
     }
+    .seat-content {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      max-width: 100%;
+    }
     .seat-icon {
       font-size: clamp(1.2rem, 2vw, 1.8rem);
       line-height: 1;
+      flex-shrink: 0;
+    }
+    .seat-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     @media print {
       .top-actions { display: none; }
@@ -230,15 +257,14 @@
     {% for row_groups in layout_rows %}
       <div class="layout-row">
         {% for group in row_groups %}
-          <div class="seat-group-card">
+          <div class="seat-group-card seat-group-color-{% cycle '1' '2' '3' '4' '5' '6' as group_color_cycle %}">
             <div class="seat-group-title">{{ group.name }}</div>
             <div class="seat-grid" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
               {% for seat in group.seats.all %}
                 <div class="seat-cell {% if seat.current_assignment %}occupied{% else %}empty{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}" data-seat-id="{{ seat.id }}">
                   {% if seat.current_assignment %}
                     {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
-                    <span class="seat-icon">🧒</span>
-                    <span>{{ seat.current_assignment.student.name }}</span>
+                    <span class="seat-content"><span class="seat-icon">🧒</span><span class="seat-name">{{ seat.current_assignment.student.name }}</span></span>
                   {% else %}
                     <span>-</span>
                   {% endif %}
@@ -350,8 +376,7 @@
               if (info && info.student_name) {
                 cell.className = 'seat-cell occupied' + (info.is_priority ? ' priority' : '') + ' reveal-pop';
                 cell.innerHTML = (info.is_priority ? '<span class="seat-star">⭐</span>' : '') +
-                  '<span class="seat-icon">🧒</span>' +
-                  '<span>' + escapeHtml(info.student_name) + '</span>';
+                  '<span class="seat-content"><span class="seat-icon">🧒</span><span class="seat-name">' + escapeHtml(info.student_name) + '</span></span>';
               } else {
                 cell.className = 'seat-cell empty reveal-pop';
                 cell.innerHTML = '<span>-</span>';
