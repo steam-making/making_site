@@ -154,7 +154,6 @@
                            draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
                         {% if seat.current_assignment %}
                           {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
-                          <span class="seat-avatar">{{ seat.current_assignment.student.name|slice:":1" }}</span>
                           <span class="seat-name">{{ seat.current_assignment.student.name }}</span>
                         {% else %}
                           <span class="seat-empty-icon">＋</span>
@@ -455,18 +454,6 @@
     z-index: 1;
   }
   .seat-cell:active { cursor: grabbing; }
-  .seat-avatar {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--seat-blue);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.68rem;
-    font-weight: 800;
-  }
   .seat-name {
     line-height: 1.1;
     word-break: keep-all;
@@ -486,12 +473,10 @@
     background: #eef6ff;
     border-color: #a9d2fb;
   }
-  .seat-cell.occupied .seat-avatar { background: var(--seat-blue); }
   .seat-cell.priority {
     background: #fff8e1;
     border-color: var(--seat-yellow);
   }
-  .seat-cell.priority .seat-avatar { background: #f59f00; }
   .seat-config-label {
     text-align: center;
     font-size: 0.68rem;

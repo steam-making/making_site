@@ -82,78 +82,68 @@
     .fs-alert.error { background: #ffe3e3; color: #a51111; }
     .podium-badge {
       display: block;
-      margin: 0 auto 30px;
+      margin: 0 auto 36px;
       width: fit-content;
-      padding: 10px 32px;
+      padding: 12px 40px;
       background: linear-gradient(135deg, #495057, #343a40);
       color: #fff;
       border-radius: 999px;
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 1.3rem;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .layout-rows {
       display: flex;
       flex-direction: column;
-      gap: 26px;
+      gap: 32px;
     }
     .layout-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 22px;
+      gap: 28px;
       justify-content: center;
     }
     .seat-group-card {
       border: 1px solid #e9ecef;
-      border-radius: 16px;
-      padding: 16px;
+      border-radius: 20px;
+      padding: 20px;
       background: linear-gradient(180deg, #ffffff, #f6f8fb);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-      min-width: 160px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.07);
+      min-width: 200px;
     }
     .seat-group-title {
       text-align: center;
       font-weight: 800;
-      font-size: 1.05rem;
-      margin-bottom: 12px;
+      font-size: clamp(1.1rem, 1.6vw, 1.6rem);
+      margin-bottom: 16px;
       color: #495057;
       background: #fff;
       border-radius: 999px;
-      padding: 4px 0;
+      padding: 6px 0;
       box-shadow: inset 0 0 0 1px #e9ecef;
     }
     .seat-grid {
       display: grid;
-      gap: 10px;
+      gap: 16px;
     }
     .seat-cell {
       background: #f8f9fa;
-      border: 1.5px solid #e0e5ea;
-      border-radius: 12px;
-      min-width: 78px;
-      min-height: 64px;
+      border: 2px solid #e0e5ea;
+      border-radius: 16px;
+      min-width: 120px;
+      min-height: 100px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 4px;
-      font-size: 1rem;
-      font-weight: 700;
-      padding: 6px;
+      font-size: clamp(1.3rem, 2.4vw, 2.1rem);
+      font-weight: 800;
+      padding: 10px;
       text-align: center;
       position: relative;
-    }
-    .seat-avatar {
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: var(--seat-blue);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
-      font-weight: 800;
+      word-break: keep-all;
+      line-height: 1.15;
     }
     .seat-cell.occupied {
       background: #eef6ff;
@@ -165,16 +155,16 @@
       background: #fff8e1;
       color: #7a5c00;
     }
-    .seat-cell.priority .seat-avatar { background: #f59f00; }
     .seat-star {
       position: absolute;
-      top: -8px;
-      right: -6px;
-      font-size: 0.9rem;
+      top: -14px;
+      right: -10px;
+      font-size: clamp(1.3rem, 2vw, 1.8rem);
     }
     .seat-cell.empty {
       color: #ced4da;
       font-weight: 400;
+      font-size: 1.4rem;
     }
     @media print {
       .top-actions { display: none; }
@@ -217,7 +207,6 @@
                 <div class="seat-cell {% if seat.current_assignment %}occupied{% else %}empty{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}">
                   {% if seat.current_assignment %}
                     {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
-                    <span class="seat-avatar">{{ seat.current_assignment.student.name|slice:":1" }}</span>
                     <span>{{ seat.current_assignment.student.name }}</span>
                   {% else %}
                     <span>-</span>
