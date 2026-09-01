@@ -997,7 +997,7 @@ def order_list(request):
         MaterialOrderItem.objects
         .filter(order__receive_type='order')
         .select_related('order', 'order__teacher', 'vendor', 'vendor__vendor_type', 'material')
-        .order_by('-order__ordered_date', 'vendor__name', 'material__name')
+        .order_by('-order__ordered_date', 'order__teacher_id', 'vendor__name', 'material__name')
     )
 
     if vendor_id_filter:
