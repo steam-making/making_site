@@ -130,11 +130,13 @@ def seat_fullscreen(request, institution_id, division_id):
         return redirect(_seat_manage_url(institution.id, division.id))
 
     layout_rows = _build_layout_rows(layout, division)
+    student_names = list(_division_students(division).values_list('name', flat=True))
 
     return render(request, 'seating/seat_fullscreen.html', {
         'institution': institution,
         'division': division,
         'layout_rows': layout_rows,
+        'student_names': student_names,
     })
 
 

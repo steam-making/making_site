@@ -134,6 +134,8 @@
   <!-- 배치도 -->
   <div class="seating-card">
     <div class="seating-card-body">
+      <p class="text-muted small mb-3 text-center">💡 자리를 서로 드래그해서 놓으면 지금 보고 있는 부서({{ division.division }})의 학생 자리를 맞바꿀 수 있습니다. (⭐ 표시는 우선배정 학생, 조 배치와 좌석 행/열은 1부/2부/3부 공통입니다)</p>
+
       <div class="classroom-podium-wrap">
         <span class="classroom-podium">🧑‍🏫 교탁</span>
       </div>
@@ -156,6 +158,7 @@
                            draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
                         {% if seat.current_assignment %}
                           {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
+                          <span class="seat-icon">🧒</span>
                           <span class="seat-name">{{ seat.current_assignment.student.name }}</span>
                         {% else %}
                           <span class="seat-empty-icon">＋</span>
@@ -181,8 +184,6 @@
           </button>
         </div>
       </form>
-
-      <p class="text-muted small mt-3 mb-0 text-center">💡 자리를 서로 드래그해서 놓으면 지금 보고 있는 부서({{ division.division }})의 학생 자리를 맞바꿀 수 있습니다. (⭐ 표시는 우선배정 학생, 조 배치와 좌석 행/열은 1부/2부/3부 공통입니다)</p>
     </div>
   </div>
   {% endif %}
@@ -456,6 +457,10 @@
     z-index: 1;
   }
   .seat-cell:active { cursor: grabbing; }
+  .seat-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+  }
   .seat-name {
     line-height: 1.1;
     word-break: keep-all;
@@ -754,6 +759,7 @@
               if (info && info.student_name) {
                 cell.className = 'seat-cell occupied' + (info.is_priority ? ' priority' : '') + ' reveal-pop';
                 cell.innerHTML = (info.is_priority ? '<span class="seat-star">⭐</span>' : '') +
+                  '<span class="seat-icon">🧒</span>' +
                   '<span class="seat-name">' + escapeHtml(info.student_name) + '</span>';
                 cell.setAttribute('title', info.student_name);
               } else {

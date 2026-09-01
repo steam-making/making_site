@@ -166,8 +166,36 @@
       font-weight: 400;
       font-size: 1.4rem;
     }
+    .seat-icon {
+      font-size: clamp(1.2rem, 2vw, 1.8rem);
+      line-height: 1;
+    }
     @media print {
       .top-actions { display: none; }
+    }
+
+    /* ── 자동배정 애니메이션 ───────────────────────────────── */
+    .seat-cell.shuffling {
+      animation: seat-shuffle-pulse 0.25s ease-in-out infinite;
+      background: #eef2ff !important;
+      border-color: var(--seat-purple) !important;
+      color: #5f3dc4 !important;
+    }
+    @keyframes seat-shuffle-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+    .seat-cell.reveal-pop {
+      animation: seat-reveal-pop 0.45s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes seat-reveal-pop {
+      0% { transform: scale(0.55); opacity: 0.3; }
+      60% { transform: scale(1.12); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .top-actions button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
   </style>
 </head>
@@ -177,22 +205,24 @@
       <h1>{{ institution.name }}<span class="sub">{{ division.division }} 자리 배치</span></h1>
     </div>
     <div class="top-actions">
-      <form method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
-            onsubmit="return confirm('{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. 계속할까요?');">
+      <form id="assignForm" method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
+            data-confirm="{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. 계속할까요?">
         {% csrf_token %}
         <input type="hidden" name="return_to" value="fullscreen">
-        <button type="submit" class="btn-assign">🎲 {{ division.division }} 자리 자동 배정</button>
+        <button type="submit" id="assignSubmitBtn" class="btn-assign">🎲 {{ division.division }} 자리 자동 배정</button>
       </form>
       <button type="button" id="toggleFullscreenBtn">⛶ 전체화면 켜기</button>
       <a href="{% url 'seating:seat_manage' institution.id %}?division={{ division.id }}">← 닫기</a>
     </div>
   </div>
 
-  {% if messages %}
-    {% for message in messages %}
-      <div class="fs-alert {% if message.tags == 'error' %}error{% endif %}">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
+  <div id="seatingAlerts">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="fs-alert {% if message.tags == 'error' %}error{% endif %}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
 
   <span class="podium-badge">🧑‍🏫 교탁</span>
 
@@ -204,9 +234,10 @@
             <div class="seat-group-title">{{ group.name }}</div>
             <div class="seat-grid" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
               {% for seat in group.seats.all %}
-                <div class="seat-cell {% if seat.current_assignment %}occupied{% else %}empty{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}">
+                <div class="seat-cell {% if seat.current_assignment %}occupied{% else %}empty{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}" data-seat-id="{{ seat.id }}">
                   {% if seat.current_assignment %}
                     {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
+                    <span class="seat-icon">🧒</span>
                     <span>{{ seat.current_assignment.student.name }}</span>
                   {% else %}
                     <span>-</span>
@@ -220,6 +251,8 @@
     {% endfor %}
   </div>
 
+  {{ student_names|json_script:"studentNamesData" }}
+
   <script>
     document.getElementById('toggleFullscreenBtn').addEventListener('click', function () {
       if (!document.fullscreenElement) {
@@ -228,6 +261,119 @@
         document.exitFullscreen();
       }
     });
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function showSeatingAlert(level, message) {
+      const container = document.getElementById('seatingAlerts');
+      if (!container) return;
+      container.innerHTML = '<div class="fs-alert' + (level === 'danger' || level === 'error' ? ' error' : '') + '">' + message + '</div>';
+    }
+
+    // ── 자리 자동 배정: 셔플 애니메이션 후 결과 순차 공개 ──────────────
+    const assignForm = document.getElementById('assignForm');
+    if (assignForm) {
+      assignForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!confirm(assignForm.dataset.confirm)) return;
+        runAssignAnimation();
+      });
+    }
+
+    function runAssignAnimation() {
+      const submitBtn = document.getElementById('assignSubmitBtn');
+      const seatCells = Array.from(document.querySelectorAll('.layout-rows .seat-cell'));
+      if (!seatCells.length) return;
+
+      let namePool = [];
+      const namesDataEl = document.getElementById('studentNamesData');
+      if (namesDataEl) {
+        try { namePool = JSON.parse(namesDataEl.textContent) || []; } catch (err) { namePool = []; }
+      }
+
+      const originalHTML = seatCells.map(function (cell) { return cell.innerHTML; });
+      const originalClass = seatCells.map(function (cell) { return cell.className; });
+
+      submitBtn.disabled = true;
+      const originalBtnHTML = submitBtn.innerHTML;
+      submitBtn.innerHTML = '🎲 배정 중...';
+
+      let shuffleTimer = null;
+      if (namePool.length) {
+        shuffleTimer = setInterval(function () {
+          seatCells.forEach(function (cell) {
+            cell.classList.add('shuffling');
+            cell.textContent = namePool[Math.floor(Math.random() * namePool.length)];
+          });
+        }, 90);
+      }
+
+      const shuffleDuration = new Promise(function (resolve) { setTimeout(resolve, 900); });
+      const requestPromise = fetch(assignForm.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: new FormData(assignForm)
+      }).then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      });
+
+      Promise.all([shuffleDuration, requestPromise])
+        .then(function (results) {
+          const result = results[1];
+          if (shuffleTimer) clearInterval(shuffleTimer);
+
+          if (!result.ok || !result.data || !result.data.seats) {
+            seatCells.forEach(function (cell, i) {
+              cell.innerHTML = originalHTML[i];
+              cell.className = originalClass[i];
+            });
+            showSeatingAlert('danger', (result.data && result.data.message) || '자동 배정에 실패했습니다.');
+            return;
+          }
+
+          const data = result.data;
+          const seatMap = {};
+          data.seats.forEach(function (s) { seatMap[s.seat_id] = s; });
+
+          seatCells.forEach(function (cell, idx) {
+            const seatId = parseInt(cell.dataset.seatId, 10);
+            const info = seatMap[seatId];
+            cell.classList.remove('shuffling');
+            setTimeout(function () {
+              if (info && info.student_name) {
+                cell.className = 'seat-cell occupied' + (info.is_priority ? ' priority' : '') + ' reveal-pop';
+                cell.innerHTML = (info.is_priority ? '<span class="seat-star">⭐</span>' : '') +
+                  '<span class="seat-icon">🧒</span>' +
+                  '<span>' + escapeHtml(info.student_name) + '</span>';
+              } else {
+                cell.className = 'seat-cell empty reveal-pop';
+                cell.innerHTML = '<span>-</span>';
+              }
+            }, idx * 35);
+          });
+
+          showSeatingAlert(data.status, data.message);
+        })
+        .catch(function () {
+          if (shuffleTimer) clearInterval(shuffleTimer);
+          seatCells.forEach(function (cell, i) {
+            cell.innerHTML = originalHTML[i];
+            cell.className = originalClass[i];
+          });
+          showSeatingAlert('danger', '자동 배정 중 오류가 발생했습니다.');
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHTML;
+        });
+    }
   </script>
 </body>
 </html>
