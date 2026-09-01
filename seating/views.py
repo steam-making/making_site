@@ -290,14 +290,42 @@ def assign_random_seats(request, institution_id, division_id):
             for seat, student in zip(all_seats, ordered_students)
         ])
 
-    if len(ordered_students) > len(all_seats):
-        messages.warning(
-            request,
+    assigned_pairs = list(zip(all_seats, ordered_students))
+    unassigned_count = len(ordered_students) - len(all_seats)
+
+    if unassigned_count > 0:
+        message = (
             f"학생 수({len(ordered_students)}명)가 좌석 수({len(all_seats)}개)보다 많아 "
-            f"{len(ordered_students) - len(all_seats)}명은 배정되지 못했습니다."
+            f"{unassigned_count}명은 배정되지 못했습니다."
         )
+        level = "warning"
     else:
-        messages.success(request, "자리를 자동으로 배정했습니다.")
+        message = "자리를 자동으로 배정했습니다."
+        level = "success"
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        assigned_seat_ids = {seat.id for seat, _ in assigned_pairs}
+        seats_payload = [
+            {
+                "seat_id": seat.id,
+                "student_name": student.name,
+                "is_priority": student.is_priority,
+            }
+            for seat, student in assigned_pairs
+        ] + [
+            {"seat_id": seat.id, "student_name": None, "is_priority": False}
+            for seat in all_seats if seat.id not in assigned_seat_ids
+        ]
+        return JsonResponse({
+            "status": level,
+            "message": message,
+            "assigned_count": len(assigned_pairs),
+            "total_count": len(ordered_students),
+            "unassigned_count": max(unassigned_count, 0),
+            "seats": seats_payload,
+        })
+
+    getattr(messages, level)(request, message)
     return redirect(_return_url(request, institution.id, division.id))
 
 

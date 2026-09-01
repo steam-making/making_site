@@ -12,11 +12,13 @@
     </a>
   </div>
 
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'info' }} py-2 seating-alert">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
+  <div id="seatingAlerts">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} py-2 seating-alert">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
 
   <!-- 부서 선택 (조 배치는 부서 공통, 학생 배정만 부서별로 다름) -->
   {% if divisions %}
@@ -106,11 +108,11 @@
   </div>
 
   <!-- 자동배정 -->
-  <div class="seating-toolbar mb-3">
+  <div class="seating-toolbar mb-3" data-total-students="{{ students.count }}">
     <div class="seating-stats">
       <span class="seating-stat-chip">{{ division.division }} 학생 <strong>{{ students.count }}</strong>명</span>
-      <span class="seating-stat-chip ok">배정됨 <strong>{{ assigned_count }}</strong>명</span>
-      <span class="seating-stat-chip warn">미배정 <strong>{{ unseated_count }}</strong>명</span>
+      <span class="seating-stat-chip ok">배정됨 <strong id="assignedCountText">{{ assigned_count }}</strong>명</span>
+      <span class="seating-stat-chip warn">미배정 <strong id="unseatedCountText">{{ unseated_count }}</strong>명</span>
     </div>
     <div class="d-flex gap-2 flex-wrap">
       {% if layout %}
@@ -119,10 +121,10 @@
           <i class="bi bi-arrows-fullscreen me-1"></i> 전체화면으로 보기
         </a>
       {% endif %}
-      <form method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
-            onsubmit="return confirm('{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. (다른 부서의 배정에는 영향 없음) 계속할까요?');">
+      <form id="assignForm" method="post" action="{% url 'seating:assign_random_seats' institution.id division.id %}"
+            data-confirm="{{ division.division }}의 현재 자리 배치를 지우고 우선배정 학생을 먼저 채운 뒤 나머지는 무작위로 배정합니다. (다른 부서의 배정에는 영향 없음) 계속할까요?">
         {% csrf_token %}
-        <button type="submit" class="seating-action-btn seating-action-btn-primary">
+        <button type="submit" id="assignSubmitBtn" class="seating-action-btn seating-action-btn-primary">
           <i class="bi bi-shuffle me-1"></i> {{ division.division }} 자리 자동 배정
         </button>
       </form>
@@ -509,6 +511,30 @@
     -webkit-appearance: none;
     margin: 0;
   }
+
+  /* ── 자동배정 애니메이션 ───────────────────────────────── */
+  .seat-cell.shuffling {
+    animation: seat-shuffle-pulse 0.25s ease-in-out infinite;
+    background: #eef2ff !important;
+    border-color: var(--seat-purple) !important;
+    color: #5f3dc4 !important;
+  }
+  @keyframes seat-shuffle-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+  }
+  .seat-cell.reveal-pop {
+    animation: seat-reveal-pop 0.45s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes seat-reveal-pop {
+    0% { transform: scale(0.55); opacity: 0.3; }
+    60% { transform: scale(1.12); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .seating-action-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 </style>
 
 <script>
@@ -645,6 +671,124 @@
           }
         })
         .catch(() => alert('자리 교환 중 오류가 발생했습니다.'));
+    }
+
+    // ── 자리 자동 배정: 셔플 애니메이션 후 결과 순차 공개 ──────────────
+    const assignForm = document.getElementById('assignForm');
+    if (assignForm) {
+      assignForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!confirm(assignForm.dataset.confirm)) return;
+        runAssignAnimation();
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function runAssignAnimation() {
+      const submitBtn = document.getElementById('assignSubmitBtn');
+      const seatCells = Array.from(document.querySelectorAll('.classroom-rows .seat-cell'));
+      if (!seatCells.length) return;
+
+      // 셔플 연출에 쓸 이름 풀 (현재 부서 학생 명단에서 가져옴)
+      const namePool = Array.from(document.querySelectorAll('#prioritySettings .form-check-label'))
+        .map(function (el) { return el.textContent.trim(); })
+        .filter(Boolean);
+
+      const originalHTML = seatCells.map(function (cell) { return cell.innerHTML; });
+      const originalClass = seatCells.map(function (cell) { return cell.className; });
+
+      submitBtn.disabled = true;
+      const originalBtnHTML = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="bi bi-shuffle me-1"></i> 배정 중...';
+
+      let shuffleTimer = null;
+      if (namePool.length) {
+        shuffleTimer = setInterval(function () {
+          seatCells.forEach(function (cell) {
+            cell.classList.add('shuffling');
+            cell.textContent = namePool[Math.floor(Math.random() * namePool.length)];
+          });
+        }, 90);
+      }
+
+      const shuffleDuration = new Promise(function (resolve) { setTimeout(resolve, 900); });
+      const requestPromise = fetch(assignForm.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: new FormData(assignForm)
+      }).then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      });
+
+      Promise.all([shuffleDuration, requestPromise])
+        .then(function (results) {
+          const result = results[1];
+          if (shuffleTimer) clearInterval(shuffleTimer);
+
+          if (!result.ok || !result.data || !result.data.seats) {
+            seatCells.forEach(function (cell, i) {
+              cell.innerHTML = originalHTML[i];
+              cell.className = originalClass[i];
+            });
+            showSeatingAlert('danger', (result.data && result.data.message) || '자동 배정에 실패했습니다.');
+            return;
+          }
+
+          const data = result.data;
+          const seatMap = {};
+          data.seats.forEach(function (s) { seatMap[s.seat_id] = s; });
+
+          seatCells.forEach(function (cell, idx) {
+            const seatId = parseInt(cell.dataset.seatId, 10);
+            const info = seatMap[seatId];
+            cell.classList.remove('shuffling');
+            setTimeout(function () {
+              if (info && info.student_name) {
+                cell.className = 'seat-cell occupied' + (info.is_priority ? ' priority' : '') + ' reveal-pop';
+                cell.innerHTML = (info.is_priority ? '<span class="seat-star">⭐</span>' : '') +
+                  '<span class="seat-name">' + escapeHtml(info.student_name) + '</span>';
+                cell.setAttribute('title', info.student_name);
+              } else {
+                cell.className = 'seat-cell reveal-pop';
+                cell.innerHTML = '<span class="seat-empty-icon">＋</span>';
+                cell.setAttribute('title', '빈 자리');
+              }
+            }, idx * 35);
+          });
+
+          const totalStudents = parseInt(document.querySelector('.seating-toolbar').dataset.totalStudents, 10) || 0;
+          document.getElementById('assignedCountText').textContent = data.assigned_count;
+          document.getElementById('unseatedCountText').textContent = Math.max(totalStudents - data.assigned_count, 0);
+
+          showSeatingAlert(data.status === 'warning' ? 'warning' : 'success', data.message);
+        })
+        .catch(function () {
+          if (shuffleTimer) clearInterval(shuffleTimer);
+          seatCells.forEach(function (cell, i) {
+            cell.innerHTML = originalHTML[i];
+            cell.className = originalClass[i];
+          });
+          showSeatingAlert('danger', '자동 배정 중 오류가 발생했습니다.');
+        })
+        .finally(function () {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtnHTML;
+        });
+    }
+
+    function showSeatingAlert(level, message) {
+      const container = document.getElementById('seatingAlerts');
+      if (!container) return;
+      container.innerHTML = '<div class="alert alert-' + level + ' py-2 seating-alert">' + message + '</div>';
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   });
 </script>
