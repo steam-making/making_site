@@ -189,6 +189,27 @@
 
 </div>
 
+<!-- 자리 자동 배정 확인 모달 -->
+<div class="modal fade" id="seatingConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 18px; border: none;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-shuffle me-2 text-primary"></i>자리 자동 배정</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="mb-0" id="seatingConfirmMessage"></p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">취소</button>
+        <button type="button" id="seatingConfirmOkBtn" class="seating-action-btn seating-action-btn-primary">
+          <i class="bi bi-shuffle me-1"></i> 배정하기
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
   .seating-page {
     --seat-blue: #4dabf7;
@@ -706,8 +727,23 @@
     if (assignForm) {
       assignForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (!confirm(assignForm.dataset.confirm)) return;
-        runAssignAnimation();
+        const modalEl = document.getElementById('seatingConfirmModal');
+        if (modalEl && typeof bootstrap !== 'undefined') {
+          document.getElementById('seatingConfirmMessage').textContent = assignForm.dataset.confirm;
+          const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          const okBtn = document.getElementById('seatingConfirmOkBtn');
+          const onConfirm = function () {
+            modal.hide();
+            runAssignAnimation();
+          };
+          okBtn.addEventListener('click', onConfirm, { once: true });
+          modalEl.addEventListener('hidden.bs.modal', function () {
+            okBtn.removeEventListener('click', onConfirm);
+          }, { once: true });
+          modal.show();
+        } else if (confirm(assignForm.dataset.confirm)) {
+          runAssignAnimation();
+        }
       });
     }
 

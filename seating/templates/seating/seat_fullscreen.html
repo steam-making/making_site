@@ -201,6 +201,61 @@
       .top-actions { display: none; }
     }
 
+    /* ── 확인 모달 ───────────────────────────────── */
+    .fs-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 17, 23, 0.55);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .fs-modal-backdrop.show {
+      display: flex;
+    }
+    .fs-modal {
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    .fs-modal h3 {
+      margin: 0 0 12px;
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+    .fs-modal p {
+      margin: 0 0 22px;
+      color: #495057;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+    .fs-modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .fs-modal-actions button {
+      padding: 10px 22px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .fs-modal-cancel {
+      background: #f1f3f5;
+      color: #495057;
+    }
+    .fs-modal-ok {
+      background: linear-gradient(135deg, var(--seat-blue), var(--seat-purple));
+      color: #fff;
+    }
+
     /* ── 자동배정 애니메이션 ───────────────────────────────── */
     .seat-cell.shuffling {
       animation: seat-shuffle-pulse 0.25s ease-in-out infinite;
@@ -239,7 +294,7 @@
         <button type="submit" id="assignSubmitBtn" class="btn-assign">🎲 {{ division.division }} 자리 자동 배정</button>
       </form>
       <button type="button" id="toggleFullscreenBtn">⛶ 전체화면 켜기</button>
-      <a href="{% url 'seating:seat_manage' institution.id %}?division={{ division.id }}">← 닫기</a>
+      <a href="{% url 'seating:seat_manage' institution.id %}?division={{ division.id }}" id="closeFullscreenLink">← 닫기</a>
     </div>
   </div>
 
@@ -252,6 +307,17 @@
   </div>
 
   <span class="podium-badge">🧑‍🏫 교탁</span>
+
+  <div class="fs-modal-backdrop" id="fsConfirmBackdrop">
+    <div class="fs-modal">
+      <h3>🎲 자리 자동 배정</h3>
+      <p id="fsConfirmMessage"></p>
+      <div class="fs-modal-actions">
+        <button type="button" class="fs-modal-cancel" id="fsConfirmCancelBtn">취소</button>
+        <button type="button" class="fs-modal-ok" id="fsConfirmOkBtn">배정하기</button>
+      </div>
+    </div>
+  </div>
 
   <div class="layout-rows">
     {% for row_groups in layout_rows %}
@@ -280,11 +346,33 @@
   {{ student_names|json_script:"studentNamesData" }}
 
   <script>
+    function updateFullscreenBtnLabel() {
+      const btn = document.getElementById('toggleFullscreenBtn');
+      if (!btn) return;
+      btn.textContent = document.fullscreenElement ? '⛶ 전체화면 끄기' : '⛶ 전체화면 켜기';
+    }
+
     document.getElementById('toggleFullscreenBtn').addEventListener('click', function () {
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(function () {});
       } else {
         document.exitFullscreen();
+      }
+    });
+    document.addEventListener('fullscreenchange', updateFullscreenBtnLabel);
+
+    // 전체화면으로 보기를 누르고 새 탭으로 들어오면 바로 전체화면으로 전환 시도
+    // (브라우저가 자동 전체화면을 막는 경우 위의 "전체화면 켜기" 버튼으로 수동 전환 가능)
+    document.documentElement.requestFullscreen().catch(function () {});
+
+    // 닫기: 전체화면 상태면 먼저 빠져나온 뒤(esc를 누른 것과 같은 효과) 관리 화면으로 이동
+    document.getElementById('closeFullscreenLink').addEventListener('click', function (e) {
+      if (document.fullscreenElement) {
+        e.preventDefault();
+        const targetUrl = this.href;
+        document.exitFullscreen().finally(function () {
+          window.location.href = targetUrl;
+        });
       }
     });
 
@@ -305,8 +393,23 @@
     if (assignForm) {
       assignForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        if (!confirm(assignForm.dataset.confirm)) return;
-        runAssignAnimation();
+        const backdrop = document.getElementById('fsConfirmBackdrop');
+        document.getElementById('fsConfirmMessage').textContent = assignForm.dataset.confirm;
+        backdrop.classList.add('show');
+
+        const okBtn = document.getElementById('fsConfirmOkBtn');
+        const cancelBtn = document.getElementById('fsConfirmCancelBtn');
+        function close() {
+          backdrop.classList.remove('show');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', close);
+        }
+        function onOk() {
+          close();
+          runAssignAnimation();
+        }
+        okBtn.addEventListener('click', onOk, { once: true });
+        cancelBtn.addEventListener('click', close, { once: true });
       });
     }
 
