@@ -12,4 +12,5 @@ urlpatterns = [
     path('<int:institution_id>/<int:division_id>/priority/', views.set_priority_students, name='set_priority_students'),
     path('<int:institution_id>/<int:division_id>/assign-random/', views.assign_random_seats, name='assign_random_seats'),
     path('swap/', views.swap_seats, name='swap_seats'),
+    path('assign-single/', views.assign_single_seat, name='assign_single_seat'),
 ]

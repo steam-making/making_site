@@ -99,8 +99,15 @@ def seat_manage(request, institution_id):
             seat__group__layout=layout, division=division
         ).count()
 
+    unassigned_students = []
     if division:
         students = _division_students(division)
+        assigned_student_ids = set(
+            SeatAssignment.objects.filter(division=division).values_list('student_id', flat=True)
+        )
+        unassigned_students = [
+            {"id": s.id, "name": s.name} for s in students if s.id not in assigned_student_ids
+        ]
 
     current_row_cols = layout.get_row_col_counts() if layout else [2, 2]
 
@@ -112,6 +119,7 @@ def seat_manage(request, institution_id):
         'layout_rows': layout_rows,
         'current_row_cols': current_row_cols,
         'students': students,
+        'unassigned_students': unassigned_students,
         'assigned_count': assigned_count,
         'unseated_count': students.count() - assigned_count,
     })
@@ -329,6 +337,42 @@ def assign_random_seats(request, institution_id, division_id):
 
     getattr(messages, level)(request, message)
     return redirect(_return_url(request, institution.id, division.id))
+
+
+@login_required
+@require_POST
+def assign_single_seat(request):
+    """미배정 좌석 하나를 클릭해서 특정 학생을 수동으로 배정"""
+    try:
+        data = json.loads(request.body)
+        seat_id = data.get('seat_id')
+        division_id = data.get('division')
+        student_id = data.get('student_id')
+        seat = Seat.objects.select_related('group__layout__institution').get(id=seat_id)
+        division = ProgramDivision.objects.get(id=division_id)
+        student = Student.objects.get(id=student_id)
+    except (ValueError, TypeError, Seat.DoesNotExist, ProgramDivision.DoesNotExist, Student.DoesNotExist):
+        return JsonResponse({'status': 'error', 'message': '좌석, 부서 또는 학생을 찾을 수 없습니다.'}, status=400)
+
+    institution = seat.group.layout.institution
+    if institution.id != division.institution_id or student.division_id != division.id:
+        return JsonResponse({'status': 'error', 'message': '해당 부서의 좌석/학생이 아닙니다.'}, status=400)
+    if not _check_access(request, institution):
+        return JsonResponse({'status': 'error', 'message': '권한이 없습니다.'}, status=403)
+
+    if SeatAssignment.objects.filter(seat=seat, division=division).exists():
+        return JsonResponse({'status': 'error', 'message': '이미 배정된 좌석입니다. 새로고침 후 다시 시도해주세요.'}, status=400)
+
+    with transaction.atomic():
+        # 이 학생이 같은 부서의 다른 좌석에 이미 배정되어 있으면 그 자리를 비우고 옮긴다
+        SeatAssignment.objects.filter(division=division, student=student).delete()
+        SeatAssignment.objects.create(seat=seat, division=division, student=student)
+
+    return JsonResponse({
+        'status': 'success',
+        'student_name': student.name,
+        'is_priority': student.is_priority,
+    })
 
 
 @login_required

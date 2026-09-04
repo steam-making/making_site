@@ -210,8 +210,35 @@
   </div>
 </div>
 
+<!-- 빈 좌석 수동 배정 모달 -->
+<div class="modal fade" id="manualAssignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 18px; border: none;">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2 text-primary"></i>학생 배정</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <label class="form-label small text-muted mb-1" id="manualAssignSeatLabel">이 자리에 배정할 학생을 선택하세요</label>
+        <select class="form-select" id="manualAssignStudentSelect">
+          <option value="">-- 선택하세요 --</option>
+        </select>
+        <div id="manualAssignEmptyMsg" class="text-muted small mt-2" style="display:none;">배정 가능한(미배정) 학생이 없습니다.</div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">취소</button>
+        <button type="button" id="manualAssignOkBtn" class="seating-action-btn seating-action-btn-primary">
+          <i class="bi bi-check2 me-1"></i> 배정하기
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ unassigned_students|json_script:"unassignedStudentsData" }}
+
 <style>
-  .seating-page {
+  :root {
     --seat-blue: #4dabf7;
     --seat-green: #51cf66;
     --seat-yellow: #ffd43b;
@@ -490,6 +517,11 @@
     z-index: 1;
   }
   .seat-cell:active { cursor: grabbing; }
+  .seat-cell:not(.occupied):hover {
+    border-color: var(--seat-blue);
+    background: #eef6ff;
+    cursor: pointer;
+  }
   .seat-content {
     display: flex;
     flex-direction: row;
@@ -721,6 +753,64 @@
         })
         .catch(() => alert('자리 교환 중 오류가 발생했습니다.'));
     }
+
+    // ── 빈 좌석 클릭 → 학생 수동 배정 모달 ──────────────────────────
+    let unassignedStudents = [];
+    const unassignedDataEl = document.getElementById('unassignedStudentsData');
+    if (unassignedDataEl) {
+      try { unassignedStudents = JSON.parse(unassignedDataEl.textContent) || []; } catch (err) { unassignedStudents = []; }
+    }
+    let manualAssignSeatId = null;
+
+    document.addEventListener('click', function (e) {
+      const cell = e.target.closest('.seat-cell');
+      if (!cell || !cell.dataset.seatId || cell.classList.contains('occupied')) return;
+      if (!currentDivisionId) return;
+
+      const modalEl = document.getElementById('manualAssignModal');
+      if (!modalEl || typeof bootstrap === 'undefined') return;
+
+      manualAssignSeatId = cell.dataset.seatId;
+      const select = document.getElementById('manualAssignStudentSelect');
+      const emptyMsg = document.getElementById('manualAssignEmptyMsg');
+      select.innerHTML = '<option value="">-- 선택하세요 --</option>';
+      unassignedStudents.forEach(function (s) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        select.appendChild(opt);
+      });
+      const hasStudents = unassignedStudents.length > 0;
+      select.style.display = hasStudents ? '' : 'none';
+      emptyMsg.style.display = hasStudents ? 'none' : '';
+      document.getElementById('manualAssignOkBtn').disabled = !hasStudents;
+
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    });
+
+    document.getElementById('manualAssignOkBtn').addEventListener('click', function () {
+      const select = document.getElementById('manualAssignStudentSelect');
+      const studentId = select.value;
+      if (!studentId || !manualAssignSeatId) return;
+
+      fetch("{% url 'seating:assign_single_seat' %}", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ seat_id: manualAssignSeatId, student_id: studentId, division: currentDivisionId })
+      })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data.status === 'success') {
+            location.reload();
+          } else {
+            alert((data && data.message) || '학생 배정에 실패했습니다.');
+          }
+        })
+        .catch(() => alert('학생 배정 중 오류가 발생했습니다.'));
+    });
 
     // ── 자리 자동 배정: 셔플 애니메이션 후 결과 순차 공개 ──────────────
     const assignForm = document.getElementById('assignForm');
