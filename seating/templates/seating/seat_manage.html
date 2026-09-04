@@ -151,19 +151,21 @@
             <div class="classroom-row">
               {% for group in row_groups %}
                 <div class="seat-group-card seat-group-color-{% cycle '1' '2' '3' '4' '5' '6' as group_color_cycle %}">
-                  <div class="seat-group-title">{{ group.name }}</div>
-                  <div class="seat-grid" id="seat-grid-{{ group.id }}" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
-                    {% for seat in group.seats.all %}
-                      <div class="seat-cell {% if seat.current_assignment %}occupied{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}"
-                           draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
-                        {% if seat.current_assignment %}
-                          {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
-                          <span class="seat-content"><span class="seat-icon">🧒</span><span class="seat-name">{{ seat.current_assignment.student.name }}</span></span>
-                        {% else %}
-                          <span class="seat-empty-icon">＋</span>
-                        {% endif %}
-                      </div>
-                    {% endfor %}
+                  <div class="seat-group-main">
+                    <div class="seat-group-title">{{ group.name }}</div>
+                    <div class="seat-grid" id="seat-grid-{{ group.id }}" style="grid-template-columns: repeat({{ group.seat_cols }}, 1fr);">
+                      {% for seat in group.seats.all %}
+                        <div class="seat-cell {% if seat.current_assignment %}occupied{% endif %} {% if seat.current_assignment.student.is_priority %}priority{% endif %}"
+                             draggable="true" data-seat-id="{{ seat.id }}" title="{% if seat.current_assignment %}{{ seat.current_assignment.student.name }}{% else %}빈 자리{% endif %}">
+                          {% if seat.current_assignment %}
+                            {% if seat.current_assignment.student.is_priority %}<span class="seat-star">⭐</span>{% endif %}
+                            <span class="seat-content"><span class="seat-icon">🧒</span><span class="seat-name">{{ seat.current_assignment.student.name }}</span></span>
+                          {% else %}
+                            <span class="seat-empty-icon">＋</span>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
                   </div>
                   <div class="seat-config-label">좌석 행 x 열</div>
                   <div class="group-seat-config" data-group-id="{{ group.id }}">
@@ -458,8 +460,16 @@
     border-radius: 14px;
     padding: 14px;
     background: linear-gradient(180deg, #fbfcfe, #f4f6f9);
-    width: 210px;
+    width: 240px;
+    display: flex;
+    flex-direction: column;
     transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .seat-group-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
   }
   .seat-group-card:hover {
     transform: translateY(-2px);
@@ -478,19 +488,26 @@
   .seat-group-color-5 .seat-group-title { color: #c2255c; box-shadow: inset 0 0 0 1px #ffc9de; }
   .seat-group-color-6 .seat-group-title { color: #0c8599; box-shadow: inset 0 0 0 1px #96f2d7; }
   .seat-group-title {
-    text-align: left;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    text-align: center;
     font-weight: 800;
     font-size: 0.85rem;
-    margin-bottom: 10px;
     color: #495057;
     background: #fff;
     border-radius: 999px;
-    padding: 3px 14px;
+    padding: 10px 4px;
     box-shadow: inset 0 0 0 1px #e9ecef;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 1px;
   }
   .seat-grid {
     display: grid;
     gap: 6px;
+    flex: 1;
   }
   .seat-cell {
     background: #fff;

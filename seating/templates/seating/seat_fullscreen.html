@@ -128,6 +128,9 @@
       background: linear-gradient(180deg, #ffffff, #f6f8fb);
       box-shadow: 0 6px 18px rgba(0,0,0,0.07);
       min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
     .seat-group-color-1 { border-top-color: #4dabf7; }
     .seat-group-color-2 { border-top-color: #51cf66; }
@@ -142,19 +145,26 @@
     .seat-group-color-5 .seat-group-title { color: #c2255c; box-shadow: inset 0 0 0 1px #ffc9de; }
     .seat-group-color-6 .seat-group-title { color: #0c8599; box-shadow: inset 0 0 0 1px #96f2d7; }
     .seat-group-title {
-      text-align: left;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      text-align: center;
       font-weight: 800;
       font-size: clamp(1.1rem, 1.6vw, 1.6rem);
-      margin-bottom: 16px;
       color: #495057;
       background: #fff;
       border-radius: 999px;
-      padding: 6px 20px;
+      padding: 16px 6px;
       box-shadow: inset 0 0 0 1px #e9ecef;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 2px;
     }
     .seat-grid {
       display: grid;
       gap: 16px;
+      flex: 1;
     }
     .seat-cell {
       background: #f8f9fa;
